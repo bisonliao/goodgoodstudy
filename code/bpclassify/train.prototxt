@@ -1,0 +1,176 @@
+name: "CaffeNet"
+layers {
+  name: "data"
+  type: DATA
+  top: "data"
+  top: "label"
+  data_param {
+    source: "/data/bisonliao/bankMarketing/csv2lmdb/range_train_lmdb"
+    mean_file: "/data/bisonliao/bankMarketing/csv2lmdb/range_mean.binaryproto"
+    batch_size: 1000
+    #crop_size: 4
+    mirror: false
+    backend: LMDB
+  }
+  include: { phase: TRAIN }
+}
+layers {
+  name: "data"
+  type: DATA
+  top: "data"
+  top: "label"
+  data_param {
+    source: "/data/bisonliao/bankMarketing/csv2lmdb/range_test_lmdb"
+    mean_file: "/data/bisonliao/bankMarketing/csv2lmdb/range_mean.binaryproto"
+    batch_size: 1000
+    #crop_size: 4
+    mirror: false
+    backend: LMDB
+  }
+  include: { phase: TEST }
+}
+layers {
+  name: "fc6"
+  type: INNER_PRODUCT
+  bottom: "data"
+  top: "fc6"
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 1
+  weight_decay: 0
+  inner_product_param {
+    num_output: 512
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 1
+    }
+  }
+}
+layers{
+  name : "relu6"
+  type :RELU
+  bottom: "fc6"
+  top: "fc6"
+}
+layers {
+  name: "fc7"
+  type: INNER_PRODUCT
+  bottom: "fc6"
+  top: "fc7"
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 1
+  weight_decay: 0
+  inner_product_param {
+    num_output: 256
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 1
+    }
+  }
+}
+layers{
+  name : "relu7"
+  type :RELU
+  bottom: "fc7"
+  top: "fc7"
+} 
+layers {
+  name: "fc8"
+  type: INNER_PRODUCT
+  bottom: "fc7"
+  top: "fc8"
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 1
+  weight_decay: 0
+  inner_product_param {
+    num_output: 128
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 1
+    }
+  }
+}
+layers{
+  name : "relu8"
+  type :RELU
+  bottom: "fc8"
+  top: "fc8"
+} 
+layers {
+  name: "fc9"
+  type: INNER_PRODUCT
+  bottom: "fc8"
+  top: "fc9"
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 1
+  weight_decay: 0
+  inner_product_param {
+    num_output: 64
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 1
+    }
+  }
+}
+layers{
+  name : "relu9"
+  type :RELU
+  bottom: "fc9"
+  top: "fc9"
+} 
+
+layers {
+  name: "fc8_sbt"
+  type: INNER_PRODUCT
+  bottom: "fc9"
+  top: "fc8_sbt"
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 1
+  weight_decay: 0
+  inner_product_param {
+    num_output: 4
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layers {
+  name: "loss"
+  type: SOFTMAX_LOSS
+  bottom: "fc8_sbt"
+  bottom: "label"
+  include: { phase: TRAIN }
+}
+layers {
+  name: "accuracy"
+  type: ACCURACY
+  bottom: "fc8_sbt"
+  bottom: "label"
+  top: "accuracy"
+  include: { phase: TEST }
+}
