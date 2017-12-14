@@ -55,14 +55,12 @@ void caffe_forward(boost::shared_ptr< Net<float> > & net, float *data_ptr)
     net->Forward();
 }
 
-//对图片img的局部区域（i,j）进行超分，存储到img2里
 void super_resolution(boost::shared_ptr<Net<float> > net,
 	    cv::Mat & img,  cv::Mat & img2,
 		int i, int j)
 {
 		float data_input[input_size][input_size];
 
-		//挨个像素填写输入项
 		int sub_i, sub_j;
 		for (sub_i = 0; sub_i < input_size; ++sub_i)
 		{
@@ -72,13 +70,12 @@ void super_resolution(boost::shared_ptr<Net<float> > net,
 				}
 		}
 
-		caffe_forward(net, (float*)data_input);//网络向前传播，计算出输出
-		int index = get_blob_index(net, "conv3");//获取conv3层的输出值
+		caffe_forward(net, (float*)data_input);
+		int index = get_blob_index(net, "conv3");
 		boost::shared_ptr<Blob<float> > blob = net->blobs()[index];
 		unsigned int num_data = blob->count(); 
 		const float *blob_ptr = (const float *) blob->cpu_data();
 
-		//逐项写入到img2
 		for (sub_i = 0; sub_i < label_size; ++sub_i)
 		{
 				for (sub_j = 0; sub_j < label_size; ++sub_j)
@@ -88,16 +85,19 @@ void super_resolution(boost::shared_ptr<Net<float> > net,
 		}
 
 }
-//将清晰图片img缩放为不清晰的图片，并保存为文件
-void get_low_quality_pic(cv::Mat& img)
+
+void get_scaled_pic(cv::Mat& img)
 {
-	cv::imwrite("./sr_orginal.bmp", img);	
+	// 裁剪到scale的倍数
+	int row = img.rows / scale * scale;
+	int col = img.cols / scale * scale;
+	img = img(cv::Range(0, row), cv::Range(0, col));
+	
+	cv::imwrite("./sr_source.bmp", img);	
 
-	cv::Mat dst;
-
-	cv::resize(img, dst, cv::Size(img.cols/scale, img.rows/scale), 0, 0, cv::INTER_CUBIC);
-	cv::imwrite("./sr_low.bmp", dst);	
-	cv::resize(dst, img, cv::Size(dst.cols*scale, dst.rows*scale), 0, 0, cv::INTER_CUBIC);
+	cv::Mat tmp;
+	tmp = img;
+	cv::resize(tmp, img, cv::Size(tmp.cols*scale, tmp.rows*scale), 0, 0, cv::INTER_CUBIC);
 	cv::imwrite("./sr_bicubic.bmp", img);	
 }
 		
@@ -110,18 +110,20 @@ int main(int argc, char** argv) {
 		return 255;
 	}
 	cv::Mat img = cv::imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
-	cv::Mat img2(img.rows-(input_size-label_size), img.cols-(input_size-label_size), CV_8UC1);
 
-	get_low_quality_pic(img);
+	get_scaled_pic(img);
+
+	cv::Mat img2(img.rows-(input_size-label_size), img.cols-(input_size-label_size), CV_8UC1);
 
 
 	const char *proto = "/data/bisonliao/srcnn/SRCNN_mat.prototxt";
-    const char *model = "/data/bisonliao/srcnn/SRCNN_iter_160000.caffemodel";
+    const char *model = "/data/bisonliao/srcnn/SRCNN_iter_700000.caffemodel";
+    //char *mean_file = "H:\\Models\\Caffe\\imagenet_mean.binaryproto";
     Phase phase = TEST;
     Caffe::set_mode(Caffe::CPU);
 
 	boost::shared_ptr<Net<float> > net(new caffe::Net<float>(proto, phase));
-    net->CopyTrainedLayersFrom(model); //加载训练好的模型
+    net->CopyTrainedLayersFrom(model);
 
 	int i, j;
 
@@ -133,7 +135,7 @@ int main(int argc, char** argv) {
 
     	}
 	}
-	//因为图片尺寸不是刚好为21的整数倍，修一下边幅 ， 最后一行
+	//修一下边幅 ， 最后一行
 	i = img2.rows  - label_size;
     for (j = 0; j < img.cols-input_size; j+=label_size)
     {
