@@ -88,10 +88,6 @@ void super_resolution(boost::shared_ptr<Net<float> > net,
 
 void get_scaled_pic(cv::Mat& img)
 {
-	// ²Ã¼ôµ½scaleµÄ±¶Êý
-	int row = img.rows / scale * scale;
-	int col = img.cols / scale * scale;
-	img = img(cv::Range(0, row), cv::Range(0, col));
 	
 	cv::imwrite("./sr_source.bmp", img);	
 
