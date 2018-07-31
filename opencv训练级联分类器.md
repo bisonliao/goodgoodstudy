@@ -129,4 +129,33 @@
 
 	opencv\sources\data
 
+后来改用opencv自带的一个人脸.vec文件，外加我自己下载的500个负样本，经过6个小时的训练，训练的模型好一些：
+
+	opencv_traincascade.exe -data d:\opencv\face -vec d:\opencv\opencv\opencv\sources\data\vec_files\trainingfaces_24-24.vec -w 24 -h 24 -bg d:\opencv\face\neg.txt -numPos 3000 -numNeg 500 -featureType HAAR -mode ALL
+
+训练出来的模型如下：
+
+[code/cascade/cascade.xml](code/cascade/cascade.xml)
+
+[code/cascade/params.xml](code/cascade/params.xml)
+
+没有仔细测试准确率和召回率，只是简单的用十几张图片感受了一下：
+
+正脸且眼睛连线水平的检测效果较好：
+
+![](img/cascade/ok.jpg)
+
+![](img/cascade/little.jpg)
+
+![](img/cascade/tangwei.jpg)
+
+侧脸或者眼睛连线不水平的话，检测不到：
+
+![](img/cascade/wai.jpg)
+
+![](img/cascade/xie.jpg)
+
+
+
+
 
