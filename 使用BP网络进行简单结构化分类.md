@@ -260,4 +260,16 @@ caffe框架的两个关键文件：
 
 [数据预处理的java类](code/bpclassify/preprocess.java)
 
+# 8.一年之后在windows上验证遇到的坑 #
+
+一年之后，自己买了个RTX1060显卡的游戏本，windows系统，经过曲折的过程终于安装了caffe。
+
+用上述例子验证caffe安装是否正确，遇到一个坑：在windows下，指定lmdb数据源的方式，不像linux下面那样“路径+lmdb文件名”的方式，而是要指定一个目录，该目录下有两个固定的文件，一个叫data.mdb，一个叫lock.mdb，前者是实际的lmdb数据文件，后者是lmdb自动产生的用于访问控制的。
+
+如果不按照上面的规则来做，caffe.exe会报错，提示也是莫名其妙的：系统找不到指定路径。 compute_image_mean.exe更离谱，错误信息都不报，就是没有反应，也不计算均值。
+
+另外，在windows下用vs2015编写程序，将坐标/分类这些信息写入lmdb的时候，也遇到了比较多需要修改的地方，主要是访问lmdb的方式，使用mdb_env_create等函数。 这些函数的具体说明，在lmdb位于github的官网上的一个简单的文本文件里说明了。
+
+这里是[windows下的代码](code/bpclassify/GeneImdb.cpp)
+
 
