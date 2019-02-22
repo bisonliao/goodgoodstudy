@@ -167,7 +167,9 @@ e) GPU的属性里有一项内核运行时间限制，修改为NO就可以解决
 
 2019.2.10：最近在音频编码中需要对大量的数据做DCT变换，所以在windows+GPU环境下写了一个核函数对大块的数据做DCT。发现当核函数本身运算量比较大，或者并发的block/thread比较多的时候，就会运行失败。
 
-具体体现是启动核函数异步执行后 再同步执行的cudaMemcpy拷贝运算结果时候失败，错误信息也比较费解。后来把参数改小、降低运算复杂度，就能正确执行了。
+具体体现是启动核函数异步执行后 再同步执行的cudaMemcpy拷贝运算结果时候失败，错误信息也比较费解:unspecific launch failure。后来把参数改小、降低运算复杂度，就能正确执行了。
+
+而且更加好玩的是：某个复杂度的核函数，当笔记本电脑外接电源情况下运行ok，使用电池的情况下运行失败。
 
 CUDA官网的FAQ里有回答这个问题：
 
@@ -182,3 +184,5 @@ For this reason it is recommended that CUDA is run on a GPU that is NOT attached
 因此，在实际应用中，如果有大运算量本来一个核函数可以搞定的，需要拆分为细粒度的多次调用核函数。
 
 一开始我还担心在linux下可以使用GPU/CUDA的caffe在windows下不能正常使用GPU/CUDA，实验验证没有问题。
+
+这里是[dct的代码](code/cuda/dct.cu)
