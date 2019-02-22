@@ -1,5 +1,7 @@
 # CUDA初体验 #
 
+这篇文章有点老了，写于2012年的左右。
+
 ## CUDA的线程组织架构 ##
 
 一个grid包含若干个block，一个block包含若干个thread。
@@ -139,7 +141,7 @@ e)  warpSize
 
 ## 常见问题 ##
 
-**1、  黑屏**
+### 1、  黑屏 ###
 
 当kernel函数比较复杂的时候，过几秒就黑屏，程序结束，屏幕恢复。我一开始以为是kernel函数太复杂，把线程的内存资源用光导致，后来一查网上信息，据说是显卡上运行时间的限制。当网上众说纷纭：
 
@@ -157,6 +159,26 @@ e) GPU的属性里有一项内核运行时间限制，修改为NO就可以解决
 
 在[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\GraphicsDrivers]这个位置增加一个二进制项"TdrLevel"=dword:00000000并重新启动电脑，接不接显示器的GPU都没有时间限制了
 
-**2、  cudaMemcpy、cudaMemcpyFromSymbol诡异的表现**
+### 2、  cudaMemcpy、cudaMemcpyFromSymbol诡异的表现 ###
 
 例如当__global__函数修改全局变量，直接对全局变量赋值，或者通过指向全局变量的该函数的参数赋值，居然会影响__global__函数执行后在主机上cudaMemcpyFromSymbol的成败。原因尚不清楚，cuda的官方文档也是一坨屎。
+
+### 3、核函数复杂度大导致运行失败 ###
+
+2019.2.10：最近在音频编码中需要对大量的数据做DCT变换，所以在windows+GPU环境下写了一个核函数对大块的数据做DCT。发现当核函数本身运算量比较大，或者并发的block/thread比较多的时候，就会运行失败。
+
+具体体现是启动核函数异步执行后 再同步执行的cudaMemcpy拷贝运算结果时候失败，错误信息也比较费解。后来把参数改小、降低运算复杂度，就能正确执行了。
+
+CUDA官网的FAQ里有回答这个问题：
+
+**Q: What is the maximum kernel execution time? **
+
+On Windows, individual GPU program launches have a maximum run time of around 5 seconds. Exceeding this time limit usually will cause a launch failure reported through the CUDA driver or the CUDA runtime, but in some cases can hang the entire machine, requiring a hard reset.
+
+This is caused by the Windows "watchdog" timer that causes programs using the primary graphics adapter to time out if they run longer than the maximum allowed time.
+
+For this reason it is recommended that CUDA is run on a GPU that is NOT attached to a display and does not have the Windows desktop extended onto it. In this case, the system must contain at least one NVIDIA GPU that serves as the primary graphics adapter.
+
+因此，在实际应用中，如果有大运算量本来一个核函数可以搞定的，需要拆分为细粒度的多次调用核函数。
+
+一开始我还担心在linux下可以使用GPU/CUDA的caffe在windows下不能正常使用GPU/CUDA，实验验证没有问题。
