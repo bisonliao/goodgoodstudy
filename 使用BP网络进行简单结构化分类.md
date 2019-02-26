@@ -55,54 +55,59 @@
         string value;
         Datum datum;
         datum.set_channels(1);
-    
-    
-        for (item_id = 0; ; item_id++)//一行一行的读
-        {
-            char line[1024];
-            if ( NULL == fgets(line, sizeof(line)-1, fp) )
-            {
-                break;
-            }
-            rmReturn(line);
-    
-            InputType fields[MAX_FIELD_NUM];
-    
-            int field_num = split2fields(line, fields);//按逗号分割成3个字段
-    
-    
-            if (item_id < 1)
-            {
-                printf("field number:%d, %d,%d,%d\n", field_num, fields[0], fields[1], fields[field_num-1]); 
-    
-                datum.set_height(1);
-                datum.set_width( (field_num-1) * sizeof(InputType) );
-            }
-    
-    
-            //将x,y拷贝到一个缓冲区，设置到datum的data字段里
-            int j;
-            int offset = 0;
-            memcpy(databuf, &fields[0], sizeof(InputType)*(field_num-1) );
-    
-    
-            offset += sizeof(InputType)*(field_num-1);
-    
-    
-            datum.set_data(databuf, sizeof(InputType)*(field_num-1) );
-            datum.set_label(fields[field_num-1]); //将分类设置到label字段里
-    
-            if (item_id < 3) 
-            { 
-                printf("label:%d ", datum.label());
-                printf("x:%d, y:%d\n", *(InputType*)(databuf), *(InputType*)(databuf+sizeof(InputType)) ); 
-            }
-    
-            string key_str = caffe::format_int(item_id, 8);
-            datum.SerializeToString(&value);
-    
-            if (item_id < 3) { printf("keystr:%s, value len:%d\n", key_str.c_str(), value.length());}
-    
+
+
+​    
+​        for (item_id = 0; ; item_id++)//一行一行的读
+​        {
+​            char line[1024];
+​            if ( NULL == fgets(line, sizeof(line)-1, fp) )
+​            {
+​                break;
+​            }
+​            rmReturn(line);
+​    
+​            InputType fields[MAX_FIELD_NUM];
+​    
+​            int field_num = split2fields(line, fields);//按逗号分割成3个字段
+
+
+​    
+​            if (item_id < 1)
+​            {
+​                printf("field number:%d, %d,%d,%d\n", field_num, fields[0], fields[1], fields[field_num-1]); 
+​    
+​                datum.set_height(1);
+​                datum.set_width( (field_num-1) * sizeof(InputType) );
+​            }
+
+
+​    
+​            //将x,y拷贝到一个缓冲区，设置到datum的data字段里
+​            int j;
+​            int offset = 0;
+​            memcpy(databuf, &fields[0], sizeof(InputType)*(field_num-1) );
+
+
+​    
+​            offset += sizeof(InputType)*(field_num-1);
+
+
+​    
+​            datum.set_data(databuf, sizeof(InputType)*(field_num-1) );
+​            datum.set_label(fields[field_num-1]); //将分类设置到label字段里
+​    
+​            if (item_id < 3) 
+​            { 
+​                printf("label:%d ", datum.label());
+​                printf("x:%d, y:%d\n", *(InputType*)(databuf), *(InputType*)(databuf+sizeof(InputType)) ); 
+​            }
+​    
+​            string key_str = caffe::format_int(item_id, 8);
+​            datum.SerializeToString(&value);
+​    
+​            if (item_id < 3) { printf("keystr:%s, value len:%d\n", key_str.c_str(), value.length());}
+​    
             txn->Put(key_str, value);//写入数据库
     
             if (++count % 1000 == 0) {
@@ -173,13 +178,13 @@ caffe框架的两个关键文件：
 
 
 	  string file = argv[5];
-
+	
 	  std::cout << "---------- Prediction for "
 				<< file << " ----------" << std::endl;
 
 
 	  FILE * fp = fopen(file.c_str(), "rb");
-
+	
 	  int i, j,  f_idx;
 	  for (i = 0; ; ++i)
 	  {
@@ -194,32 +199,33 @@ caffe框架的两个关键文件：
 		  InputType fields[MAX_FIELD_NUM];
 		  int field_num = split2fields(line, fields);
 
-		  
-		  cv::Mat img(1, sizeof(InputType)*(field_num-1), CV_8UC1);
-		  for(f_idx = 0; f_idx < field_num-1; f_idx++)
-		  {
-				  unsigned char * p = (unsigned char*)&fields[f_idx]; 
 
-				  for (j = 0; j < sizeof(InputType); ++j)
-				  {
-						  img.at<unsigned char>(0,f_idx*sizeof(InputType)+j)= *(p+j);
-				  }
-		  }
-
-	#if 1
-		  CHECK(!img.empty()) << "Unable to decode image " << file;
-		  std::vector<Prediction> predictions = classifier.Classify(img);
-
-		  /* Print the top N predictions. 0.9980 - "0 NO" */
-		  for (size_t i = 0; i < predictions.size(); ++i) {
-			  Prediction p = predictions[i];
-			  std::cout << std::fixed << std::setprecision(4) << p.second << " - \""
-				  << p.first << "\"" << std::endl;
-		  }
-	#endif
-		  
+​		  
+​		  cv::Mat img(1, sizeof(InputType)*(field_num-1), CV_8UC1);
+​		  for(f_idx = 0; f_idx < field_num-1; f_idx++)
+​		  {
+​				  unsigned char * p = (unsigned char*)&fields[f_idx]; 
+​	
+​				  for (j = 0; j < sizeof(InputType); ++j)
+​				  {
+​						  img.at<unsigned char>(0,f_idx*sizeof(InputType)+j)= *(p+j);
+​				  }
+​		  }
+​	
+​	#if 1
+​		  CHECK(!img.empty()) << "Unable to decode image " << file;
+​		  std::vector<Prediction> predictions = classifier.Classify(img);
+​	
+​		  /* Print the top N predictions. 0.9980 - "0 NO" */
+​		  for (size_t i = 0; i < predictions.size(); ++i) {
+​			  Prediction p = predictions[i];
+​			  std::cout << std::fixed << std::setprecision(4) << p.second << " - \""
+​				  << p.first << "\"" << std::endl;
+​		  }
+​	#endif
+​		  
 		  std::cout << "actually:" << fields[field_num-1] << std::endl << std::endl;
-
+	
 	  }
 	}
 
@@ -240,14 +246,77 @@ caffe框架的两个关键文件：
 	0.0000 - "0 c0"
 	0.0000 - "3 c3"
 	actually:1
-
+	
 	1.0000 - "3 c3"
 	0.0000 - "2 c2"
 	0.0000 - "0 c0"
 	0.0000 - "1 c1"
 	actually:3
 
-# 7.关于数据预处理 #
+还有一种调用的方式，使用了另外一组API，似乎更加底层更灵活：
+
+以一个判断脸部图片性别的模型为例（模型来自caffe model zoo中的一个项目：https://gist.github.com/GilLevi/c9e99062283c719c03de）
+
+直接将图片的像素/输入的结构化数据拷贝到net的输入层，执行forward()函数，然后查看最后一层的输出值。
+
+拷贝图片像素到一个三维数组：
+
+	float data_input[input_channel][input_size][input_size];
+	int width, height, chn;
+	for (height = 0; height < input_size; ++height)
+	{
+		for (width = 0; width < input_size; ++width)
+		{
+			cv::Point3_<uchar>* p = img.ptr<cv::Point3_<uchar> >(height, width);
+			data_input[0][height][width] = p->x;//B
+			data_input[1][height][width] = p->y;//G
+			data_input[2][height][width] = p->z;//R
+	
+		}
+	}
+
+将数组里的值拷贝到网络的第一层的输入：
+
+	Blob<float>* input_blobs = net->input_blobs()[0];
+	printf("input blobs size:%d, uchar count:%d\n", net->input_blobs().size(), input_blobs->count());
+	
+	switch (Caffe::mode())
+	{
+	case Caffe::CPU:
+		memcpy(input_blobs->mutable_cpu_data(), data_ptr,
+			sizeof(float) * input_blobs->count());
+		break;
+	case Caffe::GPU:
+		
+		cudaMemcpy(input_blobs->mutable_gpu_data(), data_ptr,
+		sizeof(float) * input_blobs->count(), cudaMemcpyHostToDevice);
+		break;
+	default:
+		LOG(FATAL) << "Unknown Caffe mode.";
+	}
+	net->Forward();
+
+查看网络的最后一层的输出：
+
+	int index = get_blob_index(net, "prob");
+	boost::shared_ptr<Blob<float> > blob = net->blobs()[index];
+	unsigned int num_data = blob->count();
+	int i;
+	for (i = 0; i < num_data; ++i)
+	{
+		const float *blob_ptr = (const float *)blob->cpu_data();
+		printf("%f\n", *(blob_ptr+i) );
+	}	
+
+详细的代码见下面的链接：
+
+[性别分类模型的使用](code/bpclassify/UseTrainedModel.cpp)
+
+[结构化数据分类模型的使用](code/bpclassify/UseTrainedModel2.cpp)
+
+
+
+# 7.关于数据预处理
 
 * 如果是double类型的x,y，然后直接内存拷贝到datum.data，也就是把double类型字段的内存挨个作为图片的像素，训练效果会很差，也能收敛一点（有一次达到了70%的准确率），但比整数的情况要差，所以要尽量用uint型
 
@@ -260,7 +329,7 @@ caffe框架的两个关键文件：
 
 [数据预处理的java类](code/bpclassify/preprocess.java)
 
-# 8.一年之后在windows上验证遇到的坑 #
+# 8.一年之后在windows上遇到的坑 #
 
 一年之后，自己买了个GTX1060显卡的游戏本，windows系统，经过曲折的过程终于安装了caffe。
 
@@ -268,8 +337,10 @@ caffe框架的两个关键文件：
 
 如果不按照上面的规则来做，caffe.exe会报错，提示也是莫名其妙的：系统找不到指定路径。 compute_image_mean.exe更离谱，错误信息都不报，就是没有反应，也不计算均值。
 
-另外，在windows下用vs2015编写程序，将坐标/分类这些信息写入lmdb的时候，也遇到了比较多需要修改的地方，主要是访问lmdb的方式，使用mdb_env_create等函数。 这些函数的具体说明，在lmdb位于github的官网上的一个简单的文本文件里说明了。
+另外，在windows下用vs2015编写程序生成训练数据，将坐标/分类这些信息写入lmdb的时候，也遇到了比较多需要修改的地方，主要是访问lmdb的方式，使用mdb_env_create等函数。 这些函数的具体说明，在lmdb位于github的官网上的一个简单的文本文件里说明了。
 
 这里是[windows下的代码](code/bpclassify/GeneImdb.cpp)
+
+
 
 
