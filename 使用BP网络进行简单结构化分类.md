@@ -46,9 +46,7 @@
         if (fp == NULL) { perror("fopen:"); return;}
     
         int count = 0;
-    
         int item_id;
-    
         unsigned char databuf[MAX_FIELD_NUM*sizeof(InputType)];
         //写入lmdb的数据，是一个protobuf message序列化后的字节流
         //这个message的定义是Datum
@@ -57,50 +55,51 @@
         datum.set_channels(1);
 
 
-        for (item_id = 0; ; item_id++)//一行一行的读
+```c
+    for (item_id = 0; ; item_id++)//一行一行的读
+    {
+        char line[1024];
+        if ( NULL == fgets(line, sizeof(line)-1, fp) )
         {
-            char line[1024];
-            if ( NULL == fgets(line, sizeof(line)-1, fp) )
-            {
-                break;
-            }
-            rmReturn(line);
-            InputType fields[MAX_FIELD_NUM];
-            int field_num = split2fields(line, fields);//按逗号分割成3个字段
-            if (item_id < 1)
-            {
-                printf("field number:%d, %d,%d,%d\n", field_num, fields[0], fields[1], fields[field_num-1]); 
-                datum.set_height(1);
-                datum.set_width( (field_num-1) * sizeof(InputType) );
-            }
-            //将x,y拷贝到一个缓冲区，设置到datum的data字段里
-            int j;
-            int offset = 0;
-            memcpy(databuf, &fields[0], sizeof(InputType)*(field_num-1) );
-            offset += sizeof(InputType)*(field_num-1);
-            datum.set_data(databuf, sizeof(InputType)*(field_num-1) );
-            datum.set_label(fields[field_num-1]); //将分类设置到label字段里
-            if (item_id < 3) 
-            { 
-                printf("label:%d ", datum.label());
-                printf("x:%d, y:%d\n", *(InputType*)(databuf), *(InputType*)(databuf+sizeof(InputType)) ); 
-            }
-            string key_str = caffe::format_int(item_id, 8);
-            datum.SerializeToString(&value);
-            if (item_id < 3) { printf("keystr:%s, value len:%d\n", key_str.c_str(), value.length());}
-            txn->Put(key_str, value);//写入数据库
-            if (++count % 1000 == 0) {
-                txn->Commit();
-            }
+            break;
         }
-        // write the last batch
-        if (count % 1000 != 0) {
+        rmReturn(line);
+        InputType fields[MAX_FIELD_NUM];
+        int field_num = split2fields(line, fields);//按逗号分割成3个字段
+        if (item_id < 1)
+        {
+            printf("field number:%d, %d,%d,%d\n", field_num, fields[0], fields[1], fields[field_num-1]); 
+            datum.set_height(1);
+            datum.set_width( (field_num-1) * sizeof(InputType) );
+        }
+        //将x,y拷贝到一个缓冲区，设置到datum的data字段里
+        int j;
+        int offset = 0;
+        memcpy(databuf, &fields[0], sizeof(InputType)*(field_num-1) );
+        offset += sizeof(InputType)*(field_num-1);
+        datum.set_data(databuf, sizeof(InputType)*(field_num-1) );
+        datum.set_label(fields[field_num-1]); //将分类设置到label字段里
+        if (item_id < 3) 
+        { 
+            printf("label:%d ", datum.label());
+            printf("x:%d, y:%d\n", *(InputType*)(databuf), *(InputType*)(databuf+sizeof(InputType)) ); 
+        }
+        string key_str = caffe::format_int(item_id, 8);
+        datum.SerializeToString(&value);
+        if (item_id < 3) { printf("keystr:%s, value len:%d\n", key_str.c_str(), value.length());}
+        txn->Put(key_str, value);//写入数据库
+        if (++count % 1000 == 0) {
             txn->Commit();
         }
-        db->Close();
-        fclose(fp);
     }
-
+    // write the last batch
+    if (count % 1000 != 0) {
+        txn->Commit();
+    }
+    db->Close();
+    fclose(fp);
+}
+```
 
 [将csv写入lmdb的代码](code/bpclassify/main.cpp)
 
