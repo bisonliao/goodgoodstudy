@@ -139,7 +139,7 @@ caffe框架的两个关键文件：
 # 6.在程序里使用训练出来的模型进行分类 #
 
 在caffe目录下找了个调用模型的代码，改改，实现读入csv文件的x,y，利用模型进行分类，并与实际分类进行比对，里面关键的数据结构是Mat类和MyClassifier类。
-
+```c
 	int main(int argc, char** argv) {
 	  if (argc != 6) {
 		std::cerr << "Usage: " << argv[0]
@@ -179,35 +179,35 @@ caffe框架的两个关键文件：
 		  int field_num = split2fields(line, fields);
 
 
-​		  
-​		  cv::Mat img(1, sizeof(InputType)*(field_num-1), CV_8UC1);
-​		  for(f_idx = 0; f_idx < field_num-1; f_idx++)
-​		  {
-​				  unsigned char * p = (unsigned char*)&fields[f_idx]; 
-​	
-​				  for (j = 0; j < sizeof(InputType); ++j)
-​				  {
-​						  img.at<unsigned char>(0,f_idx*sizeof(InputType)+j)= *(p+j);
-​				  }
-​		  }
-​	
-​	#if 1
-​		  CHECK(!img.empty()) << "Unable to decode image " << file;
-​		  std::vector<Prediction> predictions = classifier.Classify(img);
-​	
-​		  /* Print the top N predictions. 0.9980 - "0 NO" */
-​		  for (size_t i = 0; i < predictions.size(); ++i) {
-​			  Prediction p = predictions[i];
-​			  std::cout << std::fixed << std::setprecision(4) << p.second << " - \""
-​				  << p.first << "\"" << std::endl;
-​		  }
-​	#endif
-​		  
-​		  std::cout << "actually:" << fields[field_num-1] << std::endl << std::endl;
-​	
-​	  }
-​	}
-
+		  
+		  cv::Mat img(1, sizeof(InputType)*(field_num-1), CV_8UC1);
+		  for(f_idx = 0; f_idx < field_num-1; f_idx++)
+		  {
+				  unsigned char * p = (unsigned char*)&fields[f_idx]; 
+	
+				  for (j = 0; j < sizeof(InputType); ++j)
+				  {
+						  img.at<unsigned char>(0,f_idx*sizeof(InputType)+j)= *(p+j);
+				  }
+		  }
+	
+	#if 1
+		  CHECK(!img.empty()) << "Unable to decode image " << file;
+		  std::vector<Prediction> predictions = classifier.Classify(img);
+	
+		  /* Print the top N predictions. 0.9980 - "0 NO" */
+		  for (size_t i = 0; i < predictions.size(); ++i) {
+			  Prediction p = predictions[i];
+			  std::cout << std::fixed << std::setprecision(4) << p.second << " - \""
+				  << p.first << "\"" << std::endl;
+		  }
+	#endif
+		  
+		  std::cout << "actually:" << fields[field_num-1] << std::endl << std::endl;
+	
+	  }
+	}
+```
 [详细代码下载](code/bpclassify/classification.cpp)
 
 还要用到一个deploy.prototxt：
@@ -220,17 +220,19 @@ caffe框架的两个关键文件：
 
 结果如下：
 
-	1.0000 - "1 c1"
-	0.0000 - "2 c2"
-	0.0000 - "0 c0"
-	0.0000 - "3 c3"
-	actually:1
-	
-	1.0000 - "3 c3"
-	0.0000 - "2 c2"
-	0.0000 - "0 c0"
-	0.0000 - "1 c1"
-	actually:3
+```c
+1.0000 - "1 c1"
+0.0000 - "2 c2"
+0.0000 - "0 c0"
+0.0000 - "3 c3"
+actually:1
+
+1.0000 - "3 c3"
+0.0000 - "2 c2"
+0.0000 - "0 c0"
+0.0000 - "1 c1"
+actually:3
+```
 
 **还有一种调用的方式，使用了另外一组API，似乎更加底层更灵活：直接将图片的像素/输入的结构化数据拷贝到net的输入层，执行forward()函数，然后查看最后一层的输出值。**
 
@@ -240,40 +242,44 @@ caffe框架的两个关键文件：
 
 拷贝图片像素到一个三维数组：
 
-	float data_input[input_channel][input_size][input_size];
-	int width, height, chn;
-	for (height = 0; height < input_size; ++height)
+```c
+float data_input[input_channel][input_size][input_size];
+int width, height, chn;
+for (height = 0; height < input_size; ++height)
+{
+	for (width = 0; width < input_size; ++width)
 	{
-		for (width = 0; width < input_size; ++width)
-		{
-			cv::Point3_<uchar>* p = img.ptr<cv::Point3_<uchar> >(height, width);
-			data_input[0][height][width] = p->x;//B
-			data_input[1][height][width] = p->y;//G
-			data_input[2][height][width] = p->z;//R
-	
-		}
+		cv::Point3_<uchar>* p = img.ptr<cv::Point3_<uchar> >(height, width);
+		data_input[0][height][width] = p->x;//B
+		data_input[1][height][width] = p->y;//G
+		data_input[2][height][width] = p->z;//R
+
 	}
+}
+```
 
 将数组里的值拷贝到网络的第一层的输入：
 
-	Blob<float>* input_blobs = net->input_blobs()[0];
-	printf("input blobs size:%d, uchar count:%d\n", net->input_blobs().size(), input_blobs->count());
+```c
+Blob<float>* input_blobs = net->input_blobs()[0];
+printf("input blobs size:%d, uchar count:%d\n", net->input_blobs().size(), input_blobs->count());
+
+switch (Caffe::mode())
+{
+case Caffe::CPU:
+	memcpy(input_blobs->mutable_cpu_data(), data_ptr,
+		sizeof(float) * input_blobs->count());
+	break;
+case Caffe::GPU:
 	
-	switch (Caffe::mode())
-	{
-	case Caffe::CPU:
-		memcpy(input_blobs->mutable_cpu_data(), data_ptr,
-			sizeof(float) * input_blobs->count());
-		break;
-	case Caffe::GPU:
-		
-		cudaMemcpy(input_blobs->mutable_gpu_data(), data_ptr,
-		sizeof(float) * input_blobs->count(), cudaMemcpyHostToDevice);
-		break;
-	default:
-		LOG(FATAL) << "Unknown Caffe mode.";
-	}
-	net->Forward();
+	cudaMemcpy(input_blobs->mutable_gpu_data(), data_ptr,
+	sizeof(float) * input_blobs->count(), cudaMemcpyHostToDevice);
+	break;
+default:
+	LOG(FATAL) << "Unknown Caffe mode.";
+}
+net->Forward();
+```
 
 查看网络的最后一层的输出：
 
