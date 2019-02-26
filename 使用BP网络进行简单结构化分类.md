@@ -108,8 +108,8 @@
 ​    
 ​            if (item_id < 3) { printf("keystr:%s, value len:%d\n", key_str.c_str(), value.length());}
 ​    
-            txn->Put(key_str, value);//写入数据库
-    
+​            txn->Put(key_str, value);//写入数据库
+​    
             if (++count % 1000 == 0) {
                 txn->Commit();
             }
@@ -224,8 +224,8 @@ caffe框架的两个关键文件：
 ​		  }
 ​	#endif
 ​		  
-		  std::cout << "actually:" << fields[field_num-1] << std::endl << std::endl;
-	
+​		  std::cout << "actually:" << fields[field_num-1] << std::endl << std::endl;
+​	
 	  }
 	}
 
@@ -253,11 +253,11 @@ caffe框架的两个关键文件：
 	0.0000 - "1 c1"
 	actually:3
 
-还有一种调用的方式，使用了另外一组API，似乎更加底层更灵活：
+**还有一种调用的方式，使用了另外一组API，似乎更加底层更灵活：直接将图片的像素/输入的结构化数据拷贝到net的输入层，执行forward()函数，然后查看最后一层的输出值。**
 
-以一个判断脸部图片性别的模型为例（模型来自caffe model zoo中的一个项目：https://gist.github.com/GilLevi/c9e99062283c719c03de）
+以一个判断脸部图片性别的模型为例：
 
-直接将图片的像素/输入的结构化数据拷贝到net的输入层，执行forward()函数，然后查看最后一层的输出值。
+该模型来自[caffe model zoo](https://github.com/BVLC/caffe/wiki/Model-Zoo)中的一个网友分享的模型：https://gist.github.com/GilLevi/c9e99062283c719c03de
 
 拷贝图片像素到一个三维数组：
 
@@ -335,7 +335,11 @@ caffe框架的两个关键文件：
 
 用上述例子验证caffe安装是否正确，遇到一个坑：在windows下，指定lmdb数据源的方式，不像linux下面那样“路径+lmdb文件名”的方式，而是要指定一个目录，该目录下有两个固定的文件，一个叫data.mdb，一个叫lock.mdb，前者是实际的lmdb数据文件，后者是lmdb自动产生的用于访问控制的。
 
+
+
 如果不按照上面的规则来做，caffe.exe会报错，提示也是莫名其妙的：系统找不到指定路径。 compute_image_mean.exe更离谱，错误信息都不报，就是没有反应，也不计算均值。
+
+
 
 另外，在windows下用vs2015编写程序生成训练数据，将坐标/分类这些信息写入lmdb的时候，也遇到了比较多需要修改的地方，主要是访问lmdb的方式，使用mdb_env_create等函数。 这些函数的具体说明，在lmdb位于github的官网上的一个简单的文本文件里说明了。
 
