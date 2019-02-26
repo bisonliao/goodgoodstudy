@@ -65,14 +65,11 @@
                 break;
             }
             rmReturn(line);
-    
             InputType fields[MAX_FIELD_NUM];
-    
             int field_num = split2fields(line, fields);//按逗号分割成3个字段
             if (item_id < 1)
             {
                 printf("field number:%d, %d,%d,%d\n", field_num, fields[0], fields[1], fields[field_num-1]); 
-    
                 datum.set_height(1);
                 datum.set_width( (field_num-1) * sizeof(InputType) );
             }
@@ -92,7 +89,6 @@
             datum.SerializeToString(&value);
             if (item_id < 3) { printf("keystr:%s, value len:%d\n", key_str.c_str(), value.length());}
             txn->Put(key_str, value);//写入数据库
-    
             if (++count % 1000 == 0) {
                 txn->Commit();
             }
@@ -332,5 +328,7 @@ caffe框架的两个关键文件：
 
 
 
+
+```
 
 ```
