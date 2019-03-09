@@ -60,7 +60,18 @@ int draw_box_on_image(Mat & img, bbox_t box[], int boxnum, Mat & outputImg, bool
 
 	//namedWindow("template", WINDOW_AUTOSIZE);
 	//imshow("template", dest);                // Show our image inside it.
-
+#if 1
+	static int checkFlag = 1;
+	if (checkFlag)
+	{
+		checkFlag = 0;
+		namedWindow("Display window", WINDOW_AUTOSIZE);
+		imshow("Display window", img);                // Show our image inside it.
+		waitKey(0); // Wait for a keystroke in the window
+		imshow("Display window", dest);                // Show our image inside it.
+		waitKey(0); // Wait for a keystroke in the window
+	}
+#endif
 	outputImg = dest;
 	
 	return 0;
@@ -122,6 +133,19 @@ int draw_segm_on_image(Mat & img, const char * jsonstr, Mat & outputImg, bool is
 	tmp = img;
 	resize(tmp, img, Size(CROP_SZ, CROP_SZ), 0, 0, INTER_CUBIC);
 
+#if 1
+	static int checkFlag = 1;
+	if (checkFlag)
+	{
+		checkFlag = 0;
+		namedWindow("Display window", WINDOW_AUTOSIZE);
+		imshow("Display window", img);                // Show our image inside it.
+		waitKey(0); // Wait for a keystroke in the window
+		imshow("Display window", dest);                // Show our image inside it.
+		waitKey(0); // Wait for a keystroke in the window
+	}
+#endif
+
 	outputImg = dest;
 
 	for (int i = 0; i < dest.rows; ++i)
@@ -167,9 +191,92 @@ int write_to_directory(const Mat data[], const Mat label[])
 }
 
 // write image to HDF5, my train procedure use this input type
-int write_to_hdf5(const char * hdf5file, const Mat data[], const Mat label[])
+int write_to_hdf5_color(const char * hdf5file, const Mat data[], const Mat label[])
 {
 	hid_t       file_id, dataset_id, dataspace_id;
+	
+
+	if (data[0].channels() != 3)
+	{
+		return -1;
+	}
+	if (label[0].channels() != 1)
+	{
+		return -2;
+	}
+
+	file_id = H5Fcreate(hdf5file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+	hsize_t dims[4];
+	dims[0] = BATCH_SZ;
+	dims[1] = 3;
+	dims[2] = CROP_SZ;
+	dims[3] = CROP_SZ;
+
+	
+
+	static unsigned char  buffer[BATCH_SZ][3][CROP_SZ][CROP_SZ];
+	static unsigned char  labelBuffer[BATCH_SZ][1][CROP_SZ][CROP_SZ];
+	int i, j, k,m;
+
+	dataspace_id = H5Screate_simple(4, dims, NULL);
+	
+
+	dataset_id = H5Dcreate(file_id, "/data", H5T_STD_I8BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	for (i = 0; i < BATCH_SZ; ++i)
+	{
+		for (j = 0; j < CROP_SZ; ++j)//row
+		{
+			const uchar * rowScanPtr = data[i].ptr<uchar>(j);
+			for (k = 0; k < CROP_SZ; ++k)//col
+			{
+				for (m = 0; m < 3; ++m)
+				{
+					buffer[i][m][j][k] = *rowScanPtr - 127;
+					rowScanPtr++;
+
+				}
+			}
+		}
+	
+	}
+	H5Dwrite(dataset_id, H5T_NATIVE_UCHAR, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer);
+	H5Dclose(dataset_id);
+	H5Sclose(dataspace_id);
+
+	dims[1] = 1;
+	dataspace_id = H5Screate_simple(4, dims, NULL);
+	dataset_id = H5Dcreate(file_id, "/label", H5T_STD_U8BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	for (i = 0; i < BATCH_SZ; ++i)
+	{
+		for (j = 0; j < CROP_SZ; ++j)
+		{
+			for (k = 0; k < CROP_SZ; ++k)
+			{
+				labelBuffer[i][0][j][k] = label[i].at<uchar>(j, k);
+			}
+		}
+	}
+	H5Dwrite(dataset_id, H5T_NATIVE_UCHAR, H5S_ALL, H5S_ALL, H5P_DEFAULT, labelBuffer);
+	H5Dclose(dataset_id);
+	H5Sclose(dataspace_id);
+
+	H5Fclose(file_id);
+	return 0;
+}
+int write_to_hdf5_gray(const char * hdf5file, const Mat data[], const Mat label[])
+{
+	hid_t       file_id, dataset_id, dataspace_id;
+
+	int channelNum = data[0].channels();
+
+	if (channelNum != 1)
+	{
+		return -1;
+	}
+	if (label[0].channels() != 1)
+	{
+		return -2;
+	}
 
 	file_id = H5Fcreate(hdf5file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 	hsize_t dims[4];
@@ -178,26 +285,28 @@ int write_to_hdf5(const char * hdf5file, const Mat data[], const Mat label[])
 	dims[2] = CROP_SZ;
 	dims[3] = CROP_SZ;
 
-	static unsigned char  buffer[BATCH_SZ][1][CROP_SZ][CROP_SZ];
-	int i, j, k;
+
+
+	static unsigned char  buffer[BATCH_SZ][3][CROP_SZ][CROP_SZ];
+	int i, j, k, m;
 
 	dataspace_id = H5Screate_simple(4, dims, NULL);
-	
-
-	dataset_id = H5Dcreate(file_id, "/data", H5T_STD_I8BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	for (i = 0; i < BATCH_SZ; ++i)
 	{
 		for (j = 0; j < CROP_SZ; ++j)
 		{
 			for (k = 0; k < CROP_SZ; ++k)
 			{
-				buffer[i][0][j][k] = data[i].at<uchar>(j, k)- 127;
+				buffer[i][0][j][k] = data[i].at<uchar>(j, k);
 			}
 		}
 	}
+
+	dataset_id = H5Dcreate(file_id, "/data", H5T_STD_I8BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	
 	H5Dwrite(dataset_id, H5T_NATIVE_UCHAR, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer);
 	H5Dclose(dataset_id);
-
+	
 	dataset_id = H5Dcreate(file_id, "/label", H5T_STD_U8BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	for (i = 0; i < BATCH_SZ; ++i)
 	{
@@ -211,7 +320,6 @@ int write_to_hdf5(const char * hdf5file, const Mat data[], const Mat label[])
 	}
 	H5Dwrite(dataset_id, H5T_NATIVE_UCHAR, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer);
 	H5Dclose(dataset_id);
-
 
 	H5Sclose(dataspace_id);
 	H5Fclose(file_id);
@@ -258,17 +366,7 @@ int gene_train_data_segm(const char * filename)
 		input[count] = img;
 		label[count] = outputImg;
 		count++;;
-#if 1
-		if (checkFlag && (count % 13) == 8)
-		{
-			checkFlag = 0;
-			namedWindow("Display window", WINDOW_AUTOSIZE);
-			imshow("Display window", img);                // Show our image inside it.
-			waitKey(0); // Wait for a keystroke in the window
-			imshow("Display window", outputImg);                // Show our image inside it.
-			waitKey(0); // Wait for a keystroke in the window
-		}
-#endif
+
 		if ((count % 43) == 3)
 		{
 			printf("processed %d image\n", count);
@@ -278,9 +376,9 @@ int gene_train_data_segm(const char * filename)
 		{
 			count = 0;
 			char filename[1024];
-			snprintf(filename,sizeof(filename), "E:\\DeepLearning\\data\\coco\\HDF5\\train_%d.h5", file_idx++);
-			//write_to_hdf5(filename, input, label);
-			write_to_directory(input, label);
+			snprintf(filename,sizeof(filename), "E:\\DeepLearning\\data\\coco\\HDF5_color\\train_%d.h5", file_idx++);
+			write_to_hdf5_color(filename, input, label);
+			//write_to_directory(input, label);
 
 			printf("begin a new batch, size:%d\n", BATCH_SZ);
 		}
@@ -373,7 +471,7 @@ int gene_train_data_bbox(const char * filename)
 			count = 0;
 			char filename[1024];
 			snprintf(filename, sizeof(filename), "E:\\DeepLearning\\data\\coco\\HDF5\\train_%d.h5", file_idx++);
-			write_to_hdf5(filename, input, label);
+			write_to_hdf5_gray(filename, input, label);
 
 			printf("begin a new batch, size:%d\n", BATCH_SZ);
 		}

@@ -46,7 +46,7 @@ layer {
 
 
 layer {
-  name: "conv1_1_bison"
+  name: "conv1_1"
   type: "Convolution"
   bottom: "data"
   top: "conv1_1"
@@ -63,6 +63,12 @@ layer {
     pad: 100
     kernel_size: 3
     stride: 1
+   weight_filler {
+      type: "xavier"
+   }
+   bias_filler {
+      type: "xavier"
+   }
   }
 }
 layer {

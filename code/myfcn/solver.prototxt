@@ -2,20 +2,20 @@
 net: "train_fcn.prototxt"
 test_iter: 100
 # Carry out testing every 500 training iterations.
-test_interval: 7500
+test_interval: 2000
 # The base learning rate, momentum and the weight decay of the network.
 average_loss: 20
 lr_policy: "fixed"
 # lr for unnormalized softmax
-base_lr: 1e-6
+base_lr: 1e-14
 # high momentum
 momentum: 0.99
 # no gradient accumulation
 iter_size: 1
-max_iter: 100000
+max_iter: 30000
 weight_decay: 0.0005
 display: 100
-snapshot: 10000
+snapshot: 2000
 snapshot_prefix: "myrpn"
 # solver mode: CPU or GPU
 solver_mode: GPU
