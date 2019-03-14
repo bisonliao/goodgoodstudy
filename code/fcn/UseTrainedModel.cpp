@@ -72,6 +72,11 @@ void classify(boost::shared_ptr<Net<float> > net, const Mat & img)
 			data_input[0][height][width] = p->x;//B
 			data_input[1][height][width] = p->y;//G
 			data_input[2][height][width] = p->z;//R
+			//训练的时候，输入数据减过均值127，那么调用的时候也减一下才对
+			data_input[0][height][width] -= 127;
+			data_input[1][height][width] -= 127;
+			data_input[2][height][width] -= 127;
+			
 
 		}
 	}
@@ -104,14 +109,7 @@ void classify(boost::shared_ptr<Net<float> > net, const Mat & img)
 	boost::shared_ptr<Blob<float> > blob = net->blobs()[index];
 	unsigned int num_data = blob->count();
 	printf("output blob index:%d,  y count:%d\n", index, blob->count());
-#if 0
-	int i;
-	const float *blob_ptr = (const float *)blob->cpu_data();
-	for (i = 0; i < num_data; ++i)
-	{	
-		printf("%f\n", *(blob_ptr+i));
-	}
-#endif
+
 	int class_idx;
 	Mat result(input_size, input_size, CV_8UC1, Scalar(0));
 	const int CLASS_NUM = 2;
@@ -139,13 +137,16 @@ void classify(boost::shared_ptr<Net<float> > net, const Mat & img)
 		}
 	}
 	namedWindow("Display window", WINDOW_AUTOSIZE);
+	Mat toShow;
+	cvtColor(inputMat, toShow, COLOR_BGR2GRAY);
+	toShow.push_back(result);
 
-	imshow("Display window", inputMat);                // Show our image inside it.
+	imshow("Display window", toShow);                // Show our image inside it.
 	waitKey(0); // Wait for a keystroke in the window
-
+/*
 	imshow("Display window", result);                // Show our image inside it.
 	waitKey(0); // Wait for a keystroke in the window
-	
+*/	
 	return;
 
 
@@ -167,7 +168,7 @@ int main(int argc, char **argv) {
 
 
 	const char *proto = "E:\\DeepLearning\\myRPN\\deploy_fcn.prototxt";
-	const char *model = "E:\\DeepLearning\\myRPN\\myrpn_iter_30000.caffemodel";
+	const char *model = "E:\\DeepLearning\\myRPN\\myrpn_iter_20000.caffemodel";
 	Phase phase = TEST;
 	Caffe::set_mode(Caffe::GPU); 
 	
