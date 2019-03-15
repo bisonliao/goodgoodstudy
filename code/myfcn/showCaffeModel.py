@@ -18,14 +18,6 @@ for param_name in net.params.keys():
     weight = net.params[param_name][0].data
                      
     pf_dat = open('./weight/'+param_name+'.txt', 'w')
-    len_w=len(weight.shape)
-    if (len_w==4):##conv layer
-        byte1=struct.pack('i',weight.shape[3])
-        byte3=struct.pack('i',weight.shape[1])
-        byte4=struct.pack('i',weight.shape[0])
-    elif(len_w==2):##fc layer
-        byte1=struct.pack('i',weight.shape[1])
-        byte2=struct.pack('i',weight.shape[0])
          
     pf_txt.write(param_name)
     pf_txt.write('\n')
