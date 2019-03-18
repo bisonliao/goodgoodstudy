@@ -133,18 +133,7 @@ int draw_segm_on_image(Mat & img, const char * jsonstr, Mat & outputImg, bool is
 	tmp = img;
 	resize(tmp, img, Size(CROP_SZ, CROP_SZ), 0, 0, INTER_CUBIC);
 
-#if 1
-	static int checkFlag = 1;
-	if (checkFlag)
-	{
-		checkFlag = 0;
-		namedWindow("Display window", WINDOW_AUTOSIZE);
-		imshow("Display window", img);                // Show our image inside it.
-		waitKey(0); // Wait for a keystroke in the window
-		imshow("Display window", dest);                // Show our image inside it.
-		waitKey(0); // Wait for a keystroke in the window
-	}
-#endif
+
 
 	outputImg = dest;
 
@@ -158,6 +147,65 @@ int draw_segm_on_image(Mat & img, const char * jsonstr, Mat & outputImg, bool is
 			}
 		}
 	}
+
+	return 0;
+}
+void salt(cv::Mat& image, int n) //¼ÓµãÔëÉù
+{
+	for (int k = 0; k<n; k++) {
+		int i = rand() % image.cols;
+		int j = rand() % image.rows;
+
+		if (image.channels() == 1) {
+			image.at<uchar>(j, i) = 255;
+		}
+		else {
+			image.at<cv::Vec3b>(j, i)[0] = 255;
+			image.at<cv::Vec3b>(j, i)[1] = 255;
+			image.at<cv::Vec3b>(j, i)[2] = 255;
+		}
+	}
+}
+void makeGroundTruthToSee(const Mat & gt, Mat & toSee)
+{
+	gt.copyTo(toSee);
+	int i, j;
+	for (i = 0; i < toSee.rows; ++i)
+	{
+		for (j = 0; j < toSee.cols; ++j)
+		{
+			if (toSee.at<uchar>(i, j) > 0)
+			{
+				toSee.at<uchar>(i, j) = 255;
+			}
+		}
+	}
+	Mat dst;
+	cvtColor(toSee, dst, COLOR_GRAY2BGR);
+	dst.copyTo(toSee);
+
+}
+int augment_image(const Mat & image, const Mat & groundTruth, vector<Mat> & image_list, vector<Mat>& grdTrth_list)
+{
+	Mat dst;
+	//½·ÑÎÔëÉù
+	image.copyTo(dst);
+	salt(dst, dst.cols * 3);
+	image_list.push_back(dst.clone());
+	grdTrth_list.push_back(groundTruth.clone());
+
+	// ×óÓÒ·­×ª
+	flip(image, dst, 1);
+	image_list.push_back(dst.clone());
+	flip(groundTruth, dst, 1);
+	grdTrth_list.push_back(dst.clone());
+	
+	//Ä£ºý
+	image.copyTo(dst);
+	blur(image, dst, Size(3,3));
+	image_list.push_back(dst.clone());
+	grdTrth_list.push_back(groundTruth.clone());
+
 
 	return 0;
 }
@@ -222,6 +270,7 @@ int write_to_hdf5_color(const char * hdf5file, const Mat data[], const Mat label
 	
 
 	dataset_id = H5Dcreate(file_id, "/data", H5T_STD_I8BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	float meanval[3] = {104, 116, 123};
 	for (i = 0; i < BATCH_SZ; ++i)
 	{
 		for (j = 0; j < CROP_SZ; ++j)//row
@@ -231,7 +280,7 @@ int write_to_hdf5_color(const char * hdf5file, const Mat data[], const Mat label
 			{
 				for (m = 0; m < 3; ++m)
 				{
-					buffer[i][m][j][k] = *rowScanPtr - 127;
+					buffer[i][m][j][k] = *rowScanPtr - meanval[m];
 					rowScanPtr++;
 
 				}
@@ -363,29 +412,58 @@ int gene_train_data_segm(const char * filename)
 		cv::Mat img = imread(imagestr);
 		cv::Mat outputImg;
 		draw_segm_on_image(img,jsonstr, outputImg, false);
+
+		vector<Mat> list1, list2;
+		augment_image(img, outputImg, list1, list2);
 		input[count] = img;
 		label[count] = outputImg;
-		count++;;
+		count++;
+#if 0
+		namedWindow("augment window", WINDOW_AUTOSIZE);
+		Mat toSee;
+		makeGroundTruthToSee(outputImg, toSee);
+		toSee.push_back(img);
+		imshow("augment window", toSee);
+		waitKey(1500);
+#endif
+		int i;
+		
 
+
+		for (i = 0; i < list1.size()&&count<BATCH_SZ; ++i)
+		{
+#if 0
+			printf("size:%d X %d, %d X %d\n", list1[i].cols ,  list1[i].rows, list2[i].cols, list2[i].rows);
+
+			Mat toSee;
+			makeGroundTruthToSee(list2[i], toSee);
+			toSee.push_back(list1[i]);
+			imshow("augment window", toSee);
+			waitKey(1500);
+#endif
+			input[count] = list1[i];
+			label[count] = list2[i];
+			count++;
+			
+		}
+
+	
 		if ((count % 43) == 3)
 		{
 			printf("processed %d image\n", count);
 		}
 
-		if (count == BATCH_SZ)
+		if (count >= BATCH_SZ)
 		{
 			count = 0;
 			char filename[1024];
-			snprintf(filename,sizeof(filename), "E:\\DeepLearning\\data\\coco\\HDF5_color\\train_%d.h5", file_idx++);
+			snprintf(filename,sizeof(filename), "E:\\DeepLearning\\data\\coco\\HDF5_aug\\train_%d.h5", file_idx++);
 			write_to_hdf5_color(filename, input, label);
 			//write_to_directory(input, label);
 
-			printf("begin a new batch, size:%d\n", BATCH_SZ);
+			printf("begin a new batch, size:%d, %d\n", BATCH_SZ, file_idx);
 		}
-		if (file_idx > 130)
-		{
-			break;
-		}
+		
 	
 		
 	}
@@ -491,7 +569,7 @@ int gene_train_data_bbox(const char * filename)
 int main()
 {
 	
-	const char * imagelist = "E:\\DeepLearning\\data\\coco\\imgfile2seg.txt";
+	const char * imagelist = "E:\\DeepLearning\\data\\coco\\imgfile2seg_shuf.txt";
 	gene_train_data_segm(imagelist);
 
 	
