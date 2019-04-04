@@ -1,0 +1,22 @@
+# The train/test net protocol buffer definition
+net: "train_val_fcn.prototxt"
+test_iter: 200
+# Carry out testing every 500 training iterations.
+test_interval: 200000
+# The base learning rate, momentum and the weight decay of the network.
+average_loss: 20
+lr_policy: "fixed"
+# lr for unnormalized softmax
+base_lr: 1e-8
+# high momentum
+momentum: 0.99
+# no gradient accumulation
+iter_size: 1
+max_iter: 100000
+weight_decay: 0.0005
+display: 100
+snapshot: 5000
+snapshot_prefix: "snapshot/colornet"
+# solver mode: CPU or GPU
+solver_mode: GPU
+debug_info:false

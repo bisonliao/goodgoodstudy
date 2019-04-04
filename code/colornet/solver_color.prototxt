@@ -1,0 +1,19 @@
+net: "./train_val_fcn.prototxt"
+test_iter: 100 # number of iterations per step
+test_interval: 500000 # never test
+test_initialization: false # don't run validation when loading
+base_lr: 3.16e-5
+lr_policy: "step"
+gamma: 0.316
+stepsize: 215000
+display: 50
+max_iter: 500000
+momentum: 0.9
+momentum2: 0.99
+weight_decay: 0.001
+snapshot: 5000
+snapshot_prefix: "./snapshot/colornet"
+solver_mode: GPU
+type: "Adam"
+#type: "SGD"
+average_loss: 1000
