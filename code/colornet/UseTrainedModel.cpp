@@ -180,19 +180,22 @@ void classify(boost::shared_ptr<Net<float> > net, const Mat & img)
 	printf("output blob index:%d,  y count:%d\n", index, blob->count());
 
 	int class_idx;
+
+	const int output_size = input_size / 2; // deploy_color.prototxt
+	//const int output_size = input_size; // deploy_fcn.prototxt
 	
-	Mat result(input_size, input_size, CV_8UC2, Scalar(0));
+	Mat result(output_size, output_size, CV_8UC2, Scalar(0));
 	const int CLASS_NUM = 64;
 	const float *blob_ptr = (const float *)blob->cpu_data();
-	for (height = 0; height < input_size; height++)
+	for (height = 0; height < output_size; height++)
 	{
-		for (width = 0; width < input_size; width++)
+		for (width = 0; width < output_size; width++)
 		{
-			float max = blob_ptr[0 * (input_size*input_size) + height * input_size + width];
+			float max = blob_ptr[0 * (output_size*output_size) + height * output_size + width];
 			int max_idx = 0;
 			for (class_idx = 1; class_idx < CLASS_NUM; ++class_idx)
 			{
-				int offset = class_idx * (input_size*input_size) + height * input_size + width;
+				int offset = class_idx * (output_size*output_size) + height * output_size + width;
 				if (blob_ptr[offset] > max)
 				{
 					max = blob_ptr[offset];
@@ -210,7 +213,7 @@ void classify(boost::shared_ptr<Net<float> > net, const Mat & img)
 				printf("max:%d\n", max_idx);
 			}
 			cv::Point_<uchar>* p = result.ptr<cv::Point_<uchar> >(height, width);
-			const cv::Point3_<uchar>* p2 = yuvMat.ptr<cv::Point3_<uchar> >(height, width);
+			const cv::Point3_<uchar>* p2 = yuvMat.ptr<cv::Point3_<uchar> >(height * input_size / output_size, width* input_size / output_size);
 			p->x = p2->x;
 			p->y = max_idx;
 			
@@ -222,8 +225,14 @@ void classify(boost::shared_ptr<Net<float> > net, const Mat & img)
 	Mat img2, toShow(0, resizedMat.cols, CV_8UC3);
 
 	toShow.push_back(resizedMat);
-	from_yuv(result, img2);
 
+	from_yuv(result, img2);
+	if (output_size != input_size)
+	{
+		Mat tmp = img2.clone();
+		resize(tmp, img2, Size(input_size, input_size), 0, 0, INTER_CUBIC);
+	}
+	
 	printf("type:%d, %d,%d\n", img.type(), img2.type(), toShow.type());
 	printf("cols:%d, %d,%d\n", img.cols, img2.cols, toShow.cols);
 	toShow.push_back(img2);
@@ -252,11 +261,14 @@ int main(int argc, char **argv) {
 	
 	
 
-
+#if 0
 
 	const char *proto = "E:\\DeepLearning\\myColor\\deploy_fcn.prototxt";
-	const char *model = "E:\\DeepLearning\\myColor\\snapshot\\colornet_iter_55000.caffemodel";
-	
+	const char *model = "E:\\DeepLearning\\myColor\\snapshot\\colorfcn_iter_55000.caffemodel";
+#else
+	const char *proto = "E:\\DeepLearning\\myColor\\deploy_color.prototxt";
+	const char *model = "E:\\DeepLearning\\myColor\\snapshot\\colornet_iter_15000.caffemodel";
+#endif
 
 	Phase phase = TEST;
 	Caffe::set_mode(Caffe::CPU); 
