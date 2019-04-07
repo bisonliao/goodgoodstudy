@@ -40,6 +40,7 @@ const uint16_t INPUT_SIZE = 224;
 const uint16_t INPUT_SIZE = 224;
 #endif
 
+#define COLOR_NUM 64
 
 using namespace caffe;  // NOLINT(build/namespaces)
 
@@ -61,6 +62,8 @@ void rmReturn(char * line)
 }
 
 int from_yuv(const Mat & src, Mat & dst);
+
+
 
 void check_lmdb(const char * db_path)
 {
@@ -102,7 +105,14 @@ void check_lmdb(const char * db_path)
 	int i;
 	cv::namedWindow("check lmdb", cv::WINDOW_AUTOSIZE);
 
-	for (i = 0; i < 10; i++)
+	map<int, int> stat;
+
+	for (i = 0; i < 64; ++i)
+	{
+		stat.insert(std::pair<int, int>(i, 0));
+	}
+
+	for (i = 0; i < 10000; i++)
 	{
 		if (i > 0) { op = MDB_NEXT; }
 		if (iRet = mdb_cursor_get(cursor, &key, &data, op))
@@ -121,6 +131,8 @@ void check_lmdb(const char * db_path)
 
 			cv::Mat img = cv::Mat::ones(cv::Size(INPUT_SIZE, INPUT_SIZE), CV_8UC2);
 			int height, width;
+			int max = 0;
+			
 			for (height = 0; height < INPUT_SIZE; ++height)
 			{
 				for (width = 0; width < INPUT_SIZE; ++width)
@@ -128,11 +140,19 @@ void check_lmdb(const char * db_path)
 					cv::Point_<uchar>* p = img.ptr<cv::Point_<uchar> >(height, width);
 					p->x = record.data()[0 * INPUT_SIZE * INPUT_SIZE + height * INPUT_SIZE + width];
 					p->y = record.data()[1 * INPUT_SIZE * INPUT_SIZE + height * INPUT_SIZE + width];
-				//	printf("%u ", p -> y);
+					if (p->y > max) { max = p->y; }
+					//printf("%d ", p->y);
+					stat[p->y]++;
+				
 				}
-				//printf("\n");
+				
 			}
-			//printf("\n");
+			for (int j = 0; j < 64; ++j)
+			{
+				printf("%d, %f\n", j, stat.find(j)->second / (float)(INPUT_SIZE*INPUT_SIZE*(i+1)));
+			}
+			printf("\n");
+			printf("max = %d\n", max);
 			Mat img2;
 			from_yuv(img, img2);
 			cv::imshow("check lmdb", img2);
@@ -143,6 +163,38 @@ void check_lmdb(const char * db_path)
 	mdb_cursor_close(cursor);
 	mdb_dbi_close(env, dbi);
 	mdb_env_close(env);
+}
+
+int mulaw(int a /* -128 to 127*/, int u=255)
+{
+	int neg = 0;
+	if (a < 0)
+	{
+		a = -a;
+		neg = 1;
+	}
+	float y = 128 * ::log((float)(1 + u * a / 128.0)) / ::log((float)u + 1);
+	if (neg)
+	{
+		y = -y;
+	}
+	return y;
+}
+int demulaw(int a /* -128 to 127*/, int u = 255)
+{
+	int neg = 0;
+	if (a < 0)
+	{
+		a = -a;
+		neg = 1;
+	}
+	float y = a/128.0 * log((float)u + 1);
+	y = (exp((double)y) - 1) * 128 / u;
+	if (neg)
+	{
+		y = -y;
+	}
+	return y;
 }
 
 void salt(cv::Mat& image, int n) //¼ÓµãÔëÉù
@@ -198,8 +250,41 @@ int to_yuv(const Mat & src, Mat & dst)
 			{
 				const cv::Point3_<uchar>* p = dst.ptr<cv::Point3_<uchar> >(height, width);
 				cv::Point_<uchar> *p2 = result.ptr<cv::Point_<uchar> >(height, width);
-				p2->x = p -> x; //Y
-				p2->y = (p->y & 0xf0) | ( (p->z & 0xf0) >> 4); // compress u / v togethor
+				p2->x = p->x; //L
+				int y = p->y - 128;
+				int z = p->z - 128;
+
+				y = mulaw(y, 10);
+				z = mulaw(z, 10);
+
+#if (COLOR_NUM == 256)
+				y = y / 16;
+				z = z / 16;
+				y = y + 8;
+				z = z + 8;
+				uchar yy = y;
+				uchar zz = z;
+				p2->y = (yy << 4) | zz;
+#elif (COLOR_NUM == 64)
+				y = y / 32;
+				z = z / 32;
+				y = y + 4;
+				z = z + 4;
+				uchar yy = y;
+				uchar zz = z;
+				p2->y = (yy << 3) | zz;
+#elif (COLOR_NUM == 16)
+				y = y / 64;
+				z = z / 64;
+				y = y + 2;
+				z = z + 2;
+				uchar yy = y;
+				uchar zz = z;
+				p2->y = (yy << 2) | zz;
+
+#else
+#error invalid color number!
+#endif
 			}
 		}
 	
@@ -221,14 +306,246 @@ int from_yuv(const Mat & src, Mat & dst)
 		{
 			cv::Point3_<uchar>* p2 = tmp.ptr<cv::Point3_<uchar> >(height, width);
 			const cv::Point_<uchar> *p = src.ptr<cv::Point_<uchar> >(height, width);
-			p2->x = p->x; //Y
-			p2->y = p->y & 0xf0; //u
-			p2->z = (p->y & 0x0f) << 4;//v
+			p2->x = p->x; //L
+
+
+
+#if (COLOR_NUM == 256)
+			int y = (p->y & 0xf0) >> 4;
+			int z = (p->y & 0x0f);
+			y -= 8;
+			z -= 8;
+			y *= 16;
+			z *= 16;
+			
+#elif (COLOR_NUM == 64)
+
+			int y = (p->y & 0x38) >> 3;
+			int z = (p->y & 0x07);
+			y -= 4;
+			z -= 4;
+			y *= 32;
+			z *= 32;
+			
+
+#elif (COLOR_NUM == 16)
+
+			int y = (p->y & 0x0c) >> 2;
+			int z = (p->y & 0x03);
+			y -= 2;
+			z -= 2;
+			y *= 64;
+			z *= 64;
+			
+
+#else
+#error invalid color number!
+#endif
+			y = demulaw(y, 10);
+			z = demulaw(z, 10);
+			y += 128;
+			z += 128;
+			p2->y = y;
+			p2->z = z;
 		}
 	}
 	//printf("ch:%d\n", tmp.channels());
 	cvtColor(tmp, dst, CV_YUV2BGR);
 	return 0;
+}
+#if 0
+int to_Lab(const Mat & src, Mat & dst)
+{
+	cvtColor(src, dst, CV_BGR2Lab);
+	printf("type:%d\n", dst.type()==CV_8UC3);
+	Mat result(src.rows, src.cols, CV_8UC2);
+	int height, width;
+
+	for (height = 0; height < dst.rows; ++height)
+	{
+		for (width = 0; width < dst.cols; ++width)
+		{
+			const cv::Point3_<uchar>* p = dst.ptr<cv::Point3_<uchar> >(height, width);
+			cv::Point_<uchar> *p2 = result.ptr<cv::Point_<uchar> >(height, width);
+			p2->x = p->x; //L
+			int y = p->y - 128;
+			int z = p->z - 128;
+	
+#if (COLOR_NUM == 256)
+			y = y / 16;
+			z = z / 16;
+			y = y + 8;
+			z = z + 8;
+			uchar yy = y;
+			uchar zz = z;
+			p2->y = (yy << 4) | zz;
+#elif (COLOR_NUM == 64)
+			y = y / 32;
+			z = z / 32;
+			y = y + 4;
+			z = z + 4;
+			uchar yy = y;
+			uchar zz = z;
+			p2->y = (yy << 3) | zz;
+#elif (COLOR_NUM == 16)
+			y = y / 64;
+			z = z / 64;
+			y = y + 2;
+			z = z + 2;
+			uchar yy = y;
+			uchar zz = z;
+			p2->y = (yy << 2) | zz;
+														
+#else
+#error invalid color number!
+#endif
+
+		}
+	}
+
+	dst = result.clone();
+	return 0;
+}
+int from_Lab(const Mat & src, Mat & dst)
+{
+
+	if (src.channels() != 2)
+	{
+		fprintf(stderr, "my yuv image must have 2 channels!\n");
+		return -1;
+	}
+	
+	Mat tmp(src.rows, src.cols, CV_8UC3);
+	int height, width;
+	for (height = 0; height < src.rows; ++height)
+	{
+		for (width = 0; width < src.cols; ++width)
+		{
+			cv::Point3_<uchar>* p2 = tmp.ptr<cv::Point3_<uchar> >(height, width);
+			const cv::Point_<uchar> *p = src.ptr<cv::Point_<uchar> >(height, width);
+			p2->x = p->x; //L
+		
+	
+
+#if (COLOR_NUM == 256)
+			int y = (p->y & 0xf0) >> 4;
+			int z = (p->y & 0x0f);
+			y -= 8;
+			z -= 8;
+			y *= 16;
+			z *= 16;
+			y += 128;
+			z += 128;
+			p2->y = y;
+			p2->z = z ;
+		
+#elif (COLOR_NUM == 64)
+
+			int y = (p->y & 0x38) >> 3;
+			int z = (p->y & 0x07);
+			y -= 4;
+			z -= 4;
+			y *= 32;
+			z *= 32;
+			y += 128;
+			z += 128;
+			p2->y = y;
+			p2->z = z;
+
+#elif (COLOR_NUM == 16)
+
+			int y = (p->y & 0x0c) >> 2; 
+			int z = (p->y & 0x03);
+			y -= 2;
+			z -= 2;
+			y *= 64;
+			z *= 64;
+			y += 128;
+			z += 128;
+			p2->y = y;
+			p2->z = z;
+									  
+#else
+#error invalid color number!
+#endif
+		}
+	}
+	//printf("ch:%d\n", tmp.channels());
+	cvtColor(tmp, dst, CV_Lab2BGR);
+	return 0;
+}
+#endif
+void compress_gbr(const char * imgname)
+{
+	Mat pic = imread(imgname);
+
+	if (pic.data == NULL) { return; }
+	Mat toShow(0, pic.cols, CV_8UC3);
+	Mat pic2 = pic.clone();
+
+	int h, w;
+	for (h = 0; h < pic.rows; h++)
+	{
+		for (w = 0; w < pic.cols; ++w)
+		{
+			cv::Point3_<uchar>* p = pic2.ptr<cv::Point3_<uchar> >(h, w);
+			p->x = p->x > 128 ? 255 : 0;
+			p->y = p->y > 128 ? 255 : 0;
+			p->z = p->z > 128 ? 255 : 0;
+		}
+	}
+	toShow.push_back(pic);
+	toShow.push_back(pic2);
+
+	namedWindow("test color");
+	imshow("test color", toShow);
+	waitKey(0);
+}
+void test_color()
+{
+	Mat pic(256, 256, CV_8UC3);
+	uint16_t u,v;
+	int w, h;
+	for (h = 0; h <= 255; h++)
+	{
+		for (w = 0; w<= 255; w++)
+		{
+			cv::Point3_<uchar>* p = pic.ptr<cv::Point3_<uchar> >(h, w);
+			p->x = 100;
+			p->y = w;
+			p->z = h;			
+		}
+	}
+	Mat pic2;
+	cvtColor(pic, pic2, CV_YUV2BGR);
+	namedWindow("test color");
+	imshow("test color", pic2);
+	waitKey(0);
+
+}
+void test_color(const char * imgname)
+{
+	Mat pic = imread(imgname);
+	
+	if (pic.data == NULL) { return; }
+	Mat toShow(0, pic.cols, CV_8UC3);
+	Mat tmp1, tmp2;
+
+	toShow.push_back(pic);
+/*
+	to_Lab(pic, tmp1);
+	from_Lab(tmp1, tmp2);
+	toShow.push_back(tmp2);
+*/	
+	to_yuv(pic, tmp1);
+	from_yuv(tmp1, tmp2);
+	toShow.push_back(tmp2);
+
+	
+
+	namedWindow("test color");
+	imshow("test color", toShow);
+	waitKey(0);
 }
 void convert_dataset(const string & dir, const string & pattern	, const string & db_path) {
 	
@@ -379,10 +696,21 @@ int main()
 	convert_dataset("E:\\DeepLearning\\data\\coco\\val\\", "*.jpg", "E:\\DeepLearning\\myColor\\val_data\\data");
 #endif
 
-#endif
+#else
 
 
 	check_lmdb("E:\\DeepLearning\\myColor\\train_data\\data.mdb");
+#endif
+
+
+	/*
+	test_color("E:\\DeepLearning\\data\\coco\\train2014\\COCO_train2014_000000000030.jpg");
+	test_color("E:\\DeepLearning\\data\\coco\\train2014\\COCO_train2014_000000000009.jpg");
+	test_color("E:\\DeepLearning\\data\\coco\\train2014\\COCO_train2014_000000000025.jpg");
+	test_color("E:\\DeepLearning\\data\\coco\\train2014\\COCO_train2014_000000000036.jpg");
+	test_color("E:\\DeepLearning\\data\\coco\\train2014\\COCO_train2014_000000000071.jpg");
+	*/
+	//printf("%d, %d, %d, %d,%d", demulaw(mulaw(-128)), demulaw(mulaw(-3)), demulaw(mulaw(0)), demulaw(mulaw(64)), demulaw(mulaw(127)));
 #if 0
 	Mat src, dst,dst2;
 	src = imread("E:\\DeepLearning\\data\\coco\\train2014\\COCO_train2014_000000000030.jpg");

@@ -55,13 +55,27 @@ layer {
     stride: 2  
   }
 }
+layer { 
+  name: "data_meansub"
+  type: "Scale"
+  bottom: "data_y"
+  top: "data_y2" 
+  propagate_down: false
+  param {lr_mult: 0 decay_mult: 0}
+  param {lr_mult: 0 decay_mult: 0}
+  scale_param {
+    bias_term: True
+    filler {      type: 'constant'      value: 1    }
+    bias_filler {      type: 'constant'      value: -127    }
+  }
+}
 # *****************
 # ***** conv1 *****
 # *****************
 layer {
   name: "bw_conv1_1"
   type: "Convolution"
-  bottom: "data_y"
+  bottom: "data_y2"
   top: "conv1_1"
   convolution_param {
     num_output: 64

@@ -32,8 +32,86 @@ using namespace cv;
 
 const int input_size = 224;
 
+#define COLOR_NUM 64
+
+int demulaw(int a /* -128 to 127*/, int u = 255)
+{
+	int neg = 0;
+	if (a < 0)
+	{
+		a = -a;
+		neg = 1;
+	}
+	float y = a / 128.0 * log((float)u + 1);
+	y = (exp((double)y) - 1) * 128 / u;
+	if (neg)
+	{
+		y = -y;
+	}
+	return y;
+}
+int from_yuv(const Mat & src, Mat & dst)
+{
+	if (src.channels() != 2)
+	{
+		fprintf(stderr, "my yuv image must have 2 channels!\n");
+		return -1;
+	}
+	Mat tmp(src.rows, src.cols, CV_8UC3);
+	int height, width;
+	for (height = 0; height < src.rows; ++height)
+	{
+		for (width = 0; width < src.cols; ++width)
+		{
+			cv::Point3_<uchar>* p2 = tmp.ptr<cv::Point3_<uchar> >(height, width);
+			const cv::Point_<uchar> *p = src.ptr<cv::Point_<uchar> >(height, width);
+			p2->x = p->x; //L
 
 
+
+#if (COLOR_NUM == 256)
+			int y = (p->y & 0xf0) >> 4;
+			int z = (p->y & 0x0f);
+			y -= 8;
+			z -= 8;
+			y *= 16;
+			z *= 16;
+
+#elif (COLOR_NUM == 64)
+
+			int y = (p->y & 0x38) >> 3;
+			int z = (p->y & 0x07);
+			y -= 4;
+			z -= 4;
+			y *= 32;
+			z *= 32;
+
+
+#elif (COLOR_NUM == 16)
+
+			int y = (p->y & 0x0c) >> 2;
+			int z = (p->y & 0x03);
+			y -= 2;
+			z -= 2;
+			y *= 64;
+			z *= 64;
+
+
+#else
+#error invalid color number!
+#endif
+			y = demulaw(y, 10);
+			z = demulaw(z, 10);
+			y += 128;
+			z += 128;
+			p2->y = y;
+			p2->z = z;
+		}
+	}
+	//printf("ch:%d\n", tmp.channels());
+	cvtColor(tmp, dst, CV_YUV2BGR);
+	return 0;
+}
 unsigned int get_blob_index(boost::shared_ptr< Net<float> > & net, char *query_blob_name)
 {
 	std::string str_query(query_blob_name);
@@ -103,97 +181,63 @@ void classify(boost::shared_ptr<Net<float> > net, const Mat & img)
 
 	int class_idx;
 	
-	Mat result(input_size/2, input_size/2, CV_8UC3, Scalar(0));
-	const int CLASS_NUM = 256;
+	Mat result(input_size, input_size, CV_8UC2, Scalar(0));
+	const int CLASS_NUM = 64;
 	const float *blob_ptr = (const float *)blob->cpu_data();
-	for (height = 0; height < input_size/2; height++)
+	for (height = 0; height < input_size; height++)
 	{
-		for (width = 0; width < input_size/2; width++)
+		for (width = 0; width < input_size; width++)
 		{
-			float max = blob_ptr[0 * (input_size/2*input_size/2) + height * input_size/2 + width];
+			float max = blob_ptr[0 * (input_size*input_size) + height * input_size + width];
 			int max_idx = 0;
 			for (class_idx = 1; class_idx < CLASS_NUM; ++class_idx)
 			{
-				int offset = class_idx * (input_size/2*input_size/2) + height * input_size/2 + width;
+				int offset = class_idx * (input_size*input_size) + height * input_size + width;
 				if (blob_ptr[offset] > max)
 				{
 					max = blob_ptr[offset];
 					max_idx = class_idx;
 				}
-				/*
-				if (width == 0 && height == 0)
+				
+				if (width == 0 && height < 10)
 				{
-					printf("%f ", blob_ptr[offset]);
+					printf("class:%d,prob:%f\n", class_idx, blob_ptr[offset]);
 				}
-				*/
+				
 			}
-			printf("%d ", max_idx);
-			cv::Point3_<uchar>* p = result.ptr<cv::Point3_<uchar> >(height, width);
-			const cv::Point3_<uchar>* p2 = yuvMat.ptr<cv::Point3_<uchar> >(height*2, width*2);
+			if (width == 0 && height < 10)
+			{
+				printf("max:%d\n", max_idx);
+			}
+			cv::Point_<uchar>* p = result.ptr<cv::Point_<uchar> >(height, width);
+			const cv::Point3_<uchar>* p2 = yuvMat.ptr<cv::Point3_<uchar> >(height, width);
 			p->x = p2->x;
-			p->y = max_idx & 0xf0;
-			p->z = (max_idx & 0x0f) << 4;
+			p->y = max_idx;
+			
+			
 		}
-		printf("\n");
+	
 	}
-	printf("\n");
-	resize(result, resizedMat, Size(input_size, input_size), 0, 0, INTER_CUBIC);
-	cvtColor(resizedMat, result, CV_YUV2BGR);
 
-	namedWindow("Display window", WINDOW_AUTOSIZE);
-	Mat toShow;
-	resize(img, toShow, Size(input_size, input_size), 0, 0, INTER_CUBIC);
-	toShow.push_back(result);
+	Mat img2, toShow(0, resizedMat.cols, CV_8UC3);
 
-	imshow("Display window", toShow);                // Show our image inside it.
-	waitKey(0); // Wait for a keystroke in the window
+	toShow.push_back(resizedMat);
+	from_yuv(result, img2);
 
+	printf("type:%d, %d,%d\n", img.type(), img2.type(), toShow.type());
+	printf("cols:%d, %d,%d\n", img.cols, img2.cols, toShow.cols);
+	toShow.push_back(img2);
+
+	namedWindow("show");
+	cv::imshow("show", toShow);
+	cv::waitKey(0);
+	
 	return;
 
 
 }
 
-int denoise(Mat & img)
-{
-	if (img.channels() != 1)
-	{
-		Mat tmp = img;
-		cvtColor(tmp, img, COLOR_BGR2GRAY);
-	}
-	
-	Mat dst;// Mat dst = img ; will result problem!!!
-	int kernel_sz = 5;
-	//Mat kernel = (Mat_<float>(3, 3) <<0.1111, 0.1111, 0.1111, 0.1111, 0.1111, 0.1111, 0.1111, 0.1111, 0.1111);
-	Mat kernel = Mat::ones(kernel_sz, kernel_sz, CV_32F) / (float)(kernel_sz *kernel_sz);
 
-	filter2D(img, dst, -1, kernel);
-	printf("width:%d,%d\n", img.cols, dst.cols);
-	int width, height;
-	for (height = 0; height < dst.rows; ++height)
-	{
-		for (width = 0; width < dst.cols; ++width)
-		{
-			uchar v = dst.at<uchar>(height, width);
-			const uchar thr = 255 * 0.5;
-			if (v < thr)
-			{
-				dst.at<uchar>(height, width) = 0;
-			}
-			else
-			{
-				dst.at<uchar>(height, width) = 255;
-			}	
-		}
-	}
-	namedWindow("Display window", WINDOW_AUTOSIZE);
-	Mat toShow = img;
-	toShow.push_back(dst);
-	imshow("Display window", toShow);
-	waitKey(0);
-
-	dst.copyTo(img);
-	return 0;
-}
 #if 1
 
 
@@ -211,7 +255,7 @@ int main(int argc, char **argv) {
 
 
 	const char *proto = "E:\\DeepLearning\\myColor\\deploy_fcn.prototxt";
-	const char *model = "E:\\DeepLearning\\myColor\\snapshot\\colornet_iter_15000.caffemodel";
+	const char *model = "E:\\DeepLearning\\myColor\\snapshot\\colornet_iter_55000.caffemodel";
 	
 
 	Phase phase = TEST;

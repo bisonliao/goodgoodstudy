@@ -12,7 +12,7 @@ layer {
   }
   data_param {
     source: "E:\\DeepLearning\\myColor\\train_data"
-    batch_size: 2
+    batch_size: 4
     backend: LMDB
   }
 }
@@ -27,7 +27,7 @@ layer {
   }
   data_param {
     source: "E:\\DeepLearning\\myColor\\val_data"
-    batch_size: 2
+    batch_size: 1
     backend: LMDB
   }
 }
@@ -527,7 +527,7 @@ layer {
   }
   convolution_param {
     #num_output: 21
-    num_output: 256
+    num_output: 64
     pad: 0
     kernel_size: 1
   }
@@ -542,7 +542,7 @@ layer {
   }
   convolution_param {
     #num_output: 21
-    num_output: 256
+    num_output: 64
     bias_term: false
     kernel_size: 4
     stride: 2
@@ -563,7 +563,7 @@ layer {
   }
   convolution_param {
     #num_output: 21
-    num_output: 256
+    num_output: 64
     pad: 0
     kernel_size: 1
   }
@@ -599,7 +599,7 @@ layer {
   }
   convolution_param {
     #num_output: 21
-    num_output: 256
+    num_output: 64
     bias_term: false
     kernel_size: 4
     stride: 2
@@ -620,7 +620,7 @@ layer {
   }
   convolution_param {
     #num_output: 21
-    num_output: 256
+    num_output: 64
     pad: 0
     kernel_size: 1
   }
@@ -655,7 +655,7 @@ layer {
     lr_mult: 1
   }
   convolution_param {
-    num_output: 256
+    num_output: 64
     bias_term: false
     kernel_size: 16
     stride: 8
@@ -685,7 +685,7 @@ layer {
   bottom: "label_uv"
   top: "loss"
   loss_param {
-    #ignore_label: 255
+    ignore_label: 36
     normalize: false
   }
 }
