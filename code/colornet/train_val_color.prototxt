@@ -710,7 +710,7 @@ layer {
   bottom: "conv8_3"
   top: "conv9_1"
   convolution_param {
-    num_output: 256
+    num_output: 64
     kernel_size: 4
     pad: 1
     dilation: 1
@@ -751,6 +751,7 @@ layer {
   propagate_down:false
   top: 'loss'
   loss_param{
+      ignore_label:36
       normalization: NONE
  }
 }

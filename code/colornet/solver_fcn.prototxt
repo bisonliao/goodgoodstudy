@@ -16,7 +16,7 @@ max_iter: 100000
 weight_decay: 0.0005
 display: 100
 snapshot: 5000
-snapshot_prefix: "snapshot/colornet"
+snapshot_prefix: "snapshot/colorfcn"
 # solver mode: CPU or GPU
 solver_mode: GPU
 debug_info:false
