@@ -1,4 +1,4 @@
-net: "./train_val_fcn.prototxt"
+net: "./train_val_color.prototxt"
 test_iter: 100 # number of iterations per step
 test_interval: 500000 # never test
 test_initialization: false # don't run validation when loading
