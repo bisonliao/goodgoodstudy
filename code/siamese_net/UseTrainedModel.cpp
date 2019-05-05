@@ -129,7 +129,7 @@ int classify(boost::shared_ptr<Net<float> > net, const Mat & img1, const Mat & i
 	const float *blob_ptr = (const float *)blob->cpu_data();
 	float y = *blob_ptr;
 	
-	if (y > 1)
+	if (y > 0.2)
 	{
 		return 0;
 	}
