@@ -69,7 +69,7 @@ namespace caffe {
 			}
 
 			distance = sqrt(distance);
-#if 1
+
 			if (distance < margin_)
 			{
 				y = 1;
@@ -84,9 +84,11 @@ namespace caffe {
 			{
 				accuracy++;
 			}
-#endif
-		}
 
+		}
+		//LOG(INFO) << accuracy << " in " << N << "," << accuracy / (N*1.0); 
+		//layer的代码只需计算当前批次的准确率。
+		//每次测试，caffe会迭代test_iter个批次，然后计算平均值，作为测试结果输出在终端。
 		top[0]->mutable_cpu_data()[0] = accuracy / (N*1.0);
 
 	}
