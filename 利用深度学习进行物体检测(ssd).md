@@ -114,10 +114,157 @@ I0522 09:08:03.869545 11336 solver.cpp:260]     Train net output #0: mbox_loss =
 I0522 09:08:03.869545 11336 sgd_solver.cpp:138] Iteration 200, lr = 0.0004
 I0522 09:09:37.741247 11336 solver.cpp:244] Iteration 300, loss = 8.08153
 I0522 09:09:37.741247 11336 solver.cpp:260]     Train net output #0: mbox_loss = 6.99807 (* 1 = 6.99807 loss)
+......这中间经过了漫长的5小时
+I0522 14:17:52.310133 11336 solver.cpp:244] Iteration 19700, loss = 6.16242
+I0522 14:17:52.310133 11336 solver.cpp:260]     Train net output #0: mbox_loss = 5.73436 (* 1 = 5.73436 loss)
+I0522 14:17:52.310133 11336 sgd_solver.cpp:138] Iteration 19700, lr = 0.0004
+I0522 14:19:27.979728 11336 solver.cpp:244] Iteration 19800, loss = 5.91935
+I0522 14:19:27.979728 11336 solver.cpp:260]     Train net output #0: mbox_loss = 6.88547 (* 1 = 6.88547 loss)
+I0522 14:19:27.979728 11336 sgd_solver.cpp:138] Iteration 19800, lr = 0.0004
+I0522 14:21:03.791196 11336 solver.cpp:244] Iteration 19900, loss = 5.81281
+I0522 14:21:03.791196 11336 solver.cpp:260]     Train net output #0: mbox_loss = 4.53011 (* 1 = 4.53011 loss)
+I0522 14:21:03.791196 11336 sgd_solver.cpp:138] Iteration 19900, lr = 0.0004
+I0522 14:22:38.869782 11336 solver.cpp:600] Snapshotting to binary proto file snapshot/ssd_iter_20000.caffemodel
+I0522 14:22:39.959810 11336 sgd_solver.cpp:307] Snapshotting solver state to binary proto file snapshot/ssd_iter_20000.solverstate
+I0522 14:22:40.459780 11336 solver.cpp:333] Iteration 20000, loss = 6.18779
+I0522 14:22:40.459780 11336 solver.cpp:338] Optimization Done.
+I0522 14:22:40.459780 11336 caffe.cpp:373] Optimization Done.
 ```
 
-loss不怎么收敛，在8左右晃荡。
+经过5个小时左右的训练，loss不怎么收敛，在6左右晃荡。
+
+### 标注数据的结构
+
+caffe原有的Datum结构不够用来表示ssd需要的标注信息，所以caffe-ssd扩展了标注数据的结构：
+
+```
+// An extension of Datum which contains "rich" annotations.
+message AnnotatedDatum {
+  enum AnnotationType {
+    BBOX = 0;
+  }
+  optional Datum datum = 1;
+  // If there are "rich" annotations, specify the type of annotation.
+  // Currently it only supports bounding box.
+  // If there are no "rich" annotations, use label in datum instead.
+  optional AnnotationType type = 2;
+  // Each group contains annotation for a particular class.
+  repeated AnnotationGroup annotation_group = 3;
+}
+
+// Group of annotations for a particular label.
+message AnnotationGroup {
+  optional int32 group_label = 1;
+  repeated Annotation annotation = 2;
+}
+
+// Annotation for each object instance.
+message Annotation {
+  optional int32 instance_id = 1 [default = 0];
+  optional NormalizedBBox bbox = 2;
+}
+
+// The normalized bounding box [0, 1] w.r.t. the input image size.
+message NormalizedBBox {
+  optional float xmin = 1;
+  optional float ymin = 2;
+  optional float xmax = 3;
+  optional float ymax = 4;
+  optional int32 label = 5;
+  optional bool difficult = 6;
+  optional float score = 7;
+  optional float size = 8;
+}
+```
+
+还是比较直观：
+
+1. 图片数据存储在datum的data字段里，可以是压缩的格式，例如jpg
+2. 每个bbox的标签存储在group_label 里，相同label的bbox被聚类成一个group
+3. bbox的x y坐标都归一化为0~1 的浮点数。
+
+详细的可以见下面展示lmdb里AnnotatedDatum信息的c代码：
+
+```c
+void check_lmdb(const char * db_path)
+{
+	MDB_env *env;
+	MDB_txn * txn;
+	MDB_dbi dbi;
+	MDB_cursor * cursor;
+	int iRet;
+	//这里省略打开lmdb数据库的代码
+	MDB_val key, data;
+	MDB_cursor_op op = MDB_FIRST;
+	int i;
+	cv::namedWindow("check lmdb", cv::WINDOW_AUTOSIZE);
 
 
+	for (i = 0; i < 10000; i++)
+	{
+		if (i > 0) { op = MDB_NEXT; }
+		if (iRet = mdb_cursor_get(cursor, &key, &data, op))
+		{
+			fprintf(stderr, "mdb_cursor_get() failed, iRet=%d\n", iRet);
+			break;
+		}
+		else
+		{
+			string k((const char*)key.mv_data, (size_t)key.mv_size);
+			string v((const char*)data.mv_data, (size_t)data.mv_size);
+			AnnotatedDatum record;
+			record.ParseFromString(v);
+			int width, height, channel;
+			
+			width = record.datum().width();
+			height = record.datum().height();
+			channel = record.datum().channels();
+			const string & datastr = record.datum().data();
+			const uchar * data_ptr = (const uchar*)(datastr.c_str());
+			printf("c:%d,w:%d,h:%d,bytes:%d vs %d \n", channel, width, height, datastr.length(), width*height);
+	
+			std::vector<uchar> vv(datastr.begin(), datastr.end());
+	// load picture
+			cv::Mat img = imdecode(vv, CV_LOAD_IMAGE_COLOR);//解码jpg的图片数据
+		
+			//draw annotation
+			int grp_num = record.annotation_group_size();
+			int i;
+			for (i = 0; i < grp_num; ++i)
+			{
+				const AnnotationGroup & grp = record.annotation_group(i);
+				int  label = grp.group_label();
+				printf("label in group:%s\n", g_labels[label].c_str());
+				int anno_num = grp.annotation_size();
+				int j;
+				for (j = 0; j < anno_num; ++j)
+				{
+					const NormalizedBBox &  bbox = grp.annotation(j).bbox();
+					int x = bbox.xmin() * width;
+					int y = bbox.ymin() * height;
+					int w = (bbox.xmax() - bbox.xmin())*width;
+					int h = (bbox.ymax() - bbox.ymin())*height;
+					cv::Rect rec(x,y,w,h);
+					
+					cv::rectangle(img, rec, cv::Scalar(0, 0, 255));
+					//printf("label in bbox:%s\n", g_labels[bbox.label()].c_str()); // label in bbox is invalid
+	
+				}
+	
+			}
+			cv::imshow("check lmdb", img);
+			cv::waitKey(0);
+		}
+		
+	}
+	mdb_cursor_close(cursor);
+	mdb_dbi_close(env, dbi);
+	mdb_env_close(env);
+}
+```
 
-希望我下来能够鼓起勇气，深入研究清楚，把ssd搞定
+[完整代码在这里](code/ssd/ShowAnnotationInLmdb.cpp)
+
+展示效果如下：
+
+![修改的文件列表](img/ssd/annotation.jpg)
