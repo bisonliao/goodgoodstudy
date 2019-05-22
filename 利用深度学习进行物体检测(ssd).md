@@ -23,7 +23,7 @@ ssd对windows环境不友好，我最终也没有完全搞定，先记录下来�
 
 下面是修改的文件列表：
 
-![修改的文件列表](img/ssd/modified_files.jpg)
+![修改的文件列表](img/ssd/modification.jpg)
 
 其中最坑的是annotated_data_layer.hpp用来防止多次包含的宏名字写错了，#ifndef CAFFE_DATA_LAYER_HPP_
 
