@@ -9,7 +9,7 @@ ssd对windows环境不友好，我最终也没有完全搞定，先记录下来�
 1. create_list.sh和create_data.sh生成训练数据和test_name_size.txt，后者据说是用来存储测试用图片文件名和大小
 2. ssd_pascal.py 脚本生成 prototxt文件，并可以拉起caffe.exe  train命令行
 
-## 编译安装caffe-ssd
+## 1、编译安装caffe-ssd
 
 首先是在windows上安装caffe-ssd 
 
@@ -19,7 +19,13 @@ ssd对windows环境不友好，我最终也没有完全搞定，先记录下来�
 2. 拉起cmake-gui工具configure\generate
 3. 使用vs2015编译caffe.sln解决方案
 
-但是我错了！很折腾，修改了很多代码，但最终还是成功编译，简单的mnist项目验证也ok。
+但是我错了！很折腾，修改了很多代码，但最终还是成功编译出caffe-ssd.exe可执行程序，简单的mnist项目验证也ok。
+
+但pycaffe子项目编译总报错，所以python接口使用上应该会有问题。
+
+```
+_caffe.obj : error LNK2019: 无法解析的外部符号 "class caffe::Solver<float> const volatile * __cdecl boost::get_pointer...
+```
 
 下面是修改的文件列表：
 
@@ -29,7 +35,7 @@ ssd对windows环境不友好，我最终也没有完全搞定，先记录下来�
 
 导致编译莫名其妙错误，折腾大半天。
 
-### 生成训练数据
+### 2、生成训练数据
 
 我装了个cygwin，希望可以执行修改修改后的的create_list.sh和create_data.sh。cygwin下，可以通过/cygdrive/d/a/b这样的路径来访问原生windows下的 d:\a\b 文件
 
@@ -75,9 +81,9 @@ convert_annoset ^
  E:\DeepLearning\data\VOCdevkit\ D:\software\caffe_install\caffe-ssd\data\VOC0712\trainval.txt E:\DeepLearning\ssd\train_lmdb
 ```
 
-### 生成prototxt文件
+### 3、生成prototxt文件
 
-官网提供了ssd_pascal.py这样的脚本来生成prototxt文件，我试了一下总报错，提示什么xxx库不能import啥的。我对python又一知半解，所以放弃。
+官网提供了ssd_pascal.py这样的脚本来生成prototxt文件，我试了一下总报错，提示什么xxx库不能import啥的，可能和pycaffe编译失败有关。我对python又一知半解，所以放弃。
 
 在网上好不容易找到了一个小伙贴的ssd的train.prototxt文件，拿下来改改，可以跑起来。
 
@@ -88,7 +94,7 @@ convert_annoset ^
 
 [好心人提供的prototxt文件在这里](code/ssd/)
 
-### 训练
+### 4、训练
 
 执行命令：
 
@@ -133,7 +139,7 @@ I0522 14:22:40.459780 11336 caffe.cpp:373] Optimization Done.
 
 经过5个小时左右的训练，loss不怎么收敛，在6左右晃荡。
 
-### 标注数据的结构
+### 5、标注数据的结构
 
 caffe原有的Datum结构不够用来表示ssd需要的标注信息，所以caffe-ssd扩展了标注数据的结构：
 
@@ -179,7 +185,7 @@ message NormalizedBBox {
 
 还是比较直观：
 
-1. 图片数据存储在datum的data字段里，可以是压缩的格式，例如jpg
+1. 图片数据存储在datum的data字段里，可以是压缩的格式，例如jpg。是否压缩取决于生成LMDB的时候convert_annoset工具的参数设置
 2. 每个bbox的标签存储在group_label 里，相同label的bbox被聚类成一个group
 3. bbox的x y坐标都归一化为0~1 的浮点数。
 
@@ -268,3 +274,57 @@ void check_lmdb(const char * db_path)
 展示效果如下：
 
 ![修改的文件列表](img/ssd/annotation.jpg)
+
+### 6、模型调用
+
+caffe-ssd的代码目录examples/ssd下有个文件：ssd_detect.cpp是原作者用来演示如何调用模型的。
+
+[模型的deploy.prototxt文件在这里](code/ssd/deploy2.prototxt)
+
+也是好心人帮我用ssd_pascal.py生成的。
+
+我其实对ssd网络的细节一知半解，重点是抓住最后一层DetectionOutputLayer的输出blob，它的形状是[1, 1, n, 7]，n是检测到的bbox的个数，每个bbox信息是7个浮点数，分别表示图片id、标签、置信度以及4个坐标。
+
+所以模型调用输出结果的时候，有这样的代码：
+
+```c
+net->Forward();
+Blob<float>* result_blob = net->output_blobs()[0];
+// shape is [ 1, 1, num_det, 7], 输出每行7个数，分别表示图片id、标签、置信度以及4个坐标
+const float* result = result_blob->cpu_data(); 
+const int num_det = result_blob->height();
+printf("detect %d bbox\n", num_det);
+for (int k = 0; k < num_det; ++k) {
+	if (result[0] == -1) {
+		// Skip invalid detection.
+		result += 7;
+		continue;
+     }
+	float xmin = *(result + 3);
+	float ymin = *(result + 4);
+	float xmax = *(result + 5);
+	float ymax = *(result + 6);
+
+	int x = xmin * input_size;
+	int y = ymin * input_size;
+	int w = (xmax - xmin)*input_size;
+	int h = (ymax - ymin)*input_size;
+	cv::Rect rec(x, y, w, h);
+	cv::rectangle(img2, rec, cv::Scalar(0, 0, 255));
+	
+	result += 7;
+}
+```
+
+[模型调用的c代码在这里](code/ssd/UseTrainedModel.cpp)
+
+用我前面5个小时迭代2万次的那个模型来试一下，效果意料之中的差：
+
+![](img/ssd/UseModel1.jpg)
+
+后续改进计划：
+
+0、试一下原作者已经训练好的模型
+1、增加数据和迭代次数
+2、减少分类
+3、加入test看看准确率
