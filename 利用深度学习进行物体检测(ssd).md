@@ -358,7 +358,7 @@ d:\software\caffe_install\caffe-ssd\build\examples\ssd\Release\ssd_detect.exe \
 
 效果不错：
 
-![](img/ssd/UseModel2.jpg)
+![](img/ssd/UseModel4.jpg)
 
 
 
