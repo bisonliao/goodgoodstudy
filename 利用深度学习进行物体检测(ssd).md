@@ -92,10 +92,9 @@ convert_annoset ^
 
 在网上好不容易找到了一个小伙贴的ssd的train.prototxt文件，拿下来改改，可以跑起来。
 
-但遇到两个问题：
+但遇到下面问题：
 
 1. 不能直接修改最后的分类数目，否则会报错。我理解是最后loss层的各bottom输入的blob尺寸不一致。需要同样的修改后向的相关层的输出尺寸，研究了一下未果，这应该也是为什么作者用了一个python脚本来产生prototxt文件的原因，牵一发动全身。
-2. 中途中断的caffe-ssd.exe train命令，生成的solvestate文件，下次启动的使用，通过--snapshot参数加载不起来。原因未知
 
 [好心人提供的prototxt文件在这里](code/ssd/)
 
