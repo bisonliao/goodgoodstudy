@@ -38,7 +38,7 @@ _caffe.obj : error LNK2019: 无法解析的外部符号 "class caffe::Solver<flo
 其中比较坑的几个问题是：
 
 1. annotated_data_layer.hpp用来防止多次包含的宏名字写错了，#ifndef CAFFE_DATA_LAYER_HPP_，导致编译莫名其妙错误，折腾大半天。
-2. io.cpp的ReadProtoFromBinaryFile函数中打开文件，在windows下应该指明O_BINARY，否则caffe-ssd.exe不能“断点续train”，读取solverstat文件有问题。
+2. io.cpp的ReadProtoFromBinaryFile函数中打开文件，在windows下应该指明O_BINARY，否则caffe-ssd.exe不能“断点续train”，读取solverstat文件有问题。这个问题还导致ssd_detect.exe工具表现异常，让我一度怀疑官网提供的训练好了的模型有问题！！！
 
 ### 2、生成训练数据
 
@@ -344,7 +344,7 @@ for (int k = 0; k < num_det; ++k) {
 https://drive.google.com/open?id=0BzKzrI_SkD1_WVVTSmQxU0dVRzA
 ```
 
-下载下来后，用caffe-ssd自带的ssd_detect.exe工具加载模型，对图片进行物体检测，不知道什么原因，效果不好：
+下载下来后，用caffe-ssd自带的ssd_detect.exe工具加载模型，对图片进行物体检测：
 
 ```
 d:\software\caffe_install\caffe-ssd\build\examples\ssd\Release\ssd_detect.exe \
@@ -356,15 +356,9 @@ d:\software\caffe_install\caffe-ssd\build\examples\ssd\Release\ssd_detect.exe \
                                                                  pic_list.txt
 ```
 
-对于一张明显没有sheep也没有tvmonitor的图片，检测出很多小框框说有sheep和tvmonitor：
+效果不错：
 
 ![](img/ssd/UseModel2.jpg)
-
-百思不得其解，甚至每次运行ssd_detect.ext，输出还不一样。
-
-不止如此，用caffe-ssd.exe train命令基于VGG_VOC0712_SSD_300x300_iter_120000.caffemodel进行finetune，一开始测试的准确率也很低：detection_eval=0.002，这也是不符合预期的。
-
-继续训练的话，detection_eval值会逐渐上升，经过2万次迭代可达到0.11。
 
 
 
