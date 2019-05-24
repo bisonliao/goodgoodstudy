@@ -1,0 +1,22 @@
+net: "train2.prototxt"
+test_iter: 1414
+test_interval: 0
+base_lr: 0.0004
+display: 100
+max_iter: 20000
+lr_policy: "step"
+gamma: 0.1
+momentum: 0.9
+weight_decay: 0.0005
+stepsize: 40000
+snapshot: 2000
+snapshot_prefix: "snapshot/ssd"
+solver_mode: GPU
+device_id: 0
+debug_info: false
+average_loss: 10
+iter_size: 2
+type: "SGD"
+#eval_type: "detection"
+#ap_version: "11point"
+

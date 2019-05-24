@@ -2,6 +2,10 @@ ssd的官网：
 
 https://github.com/weiliu89/caffe/tree/ssd
 
+ssd原理，知乎上有不错的一些文章做通俗解释，例如下面这篇：
+
+https://zhuanlan.zhihu.com/p/59101820
+
 ssd对windows环境不友好，我最终也没有完全搞定，先记录下来一些进展。
 
 官网上的指引应该说还是写得很详细的，作者的工程习惯也很好。由于训练用的数据结构和网络结构都比较复杂，所以作者用了大量python和shell脚本来生成数据和网络prototxt文件：
