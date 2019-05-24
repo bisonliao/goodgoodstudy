@@ -35,9 +35,10 @@ _caffe.obj : error LNK2019: 无法解析的外部符号 "class caffe::Solver<flo
 
 ![修改的文件列表](img/ssd/modification.jpg)
 
-其中最坑的是annotated_data_layer.hpp用来防止多次包含的宏名字写错了，#ifndef CAFFE_DATA_LAYER_HPP_
+其中比较坑的几个问题是：
 
-导致编译莫名其妙错误，折腾大半天。
+1. annotated_data_layer.hpp用来防止多次包含的宏名字写错了，#ifndef CAFFE_DATA_LAYER_HPP_，导致编译莫名其妙错误，折腾大半天。
+2. io.cpp的ReadProtoFromBinaryFile函数中打开文件，在windows下应该指明O_BINARY，否则caffe-ssd.exe不能“断点续train”，读取solverstat文件有问题。
 
 ### 2、生成训练数据
 
@@ -359,4 +360,78 @@ d:\software\caffe_install\caffe-ssd\build\examples\ssd\Release\ssd_detect.exe \
 
 ![](img/ssd/UseModel2.jpg)
 
-我怎么这么命苦！
+百思不得其解，甚至每次运行ssd_detect.ext，输出还不一样。
+
+不止如此，用caffe-ssd.exe train命令基于VGG_VOC0712_SSD_300x300_iter_120000.caffemodel进行finetune，一开始测试的准确率也很低：detection_eval=0.002，这也是不符合预期的。
+
+继续训练的话，detection_eval值会逐渐上升，经过2万次迭代可达到0.11。
+
+
+
+在网上搜一些资料，看到opencv 3.3以后的版本提供了DNN的能力，所以换一种方式验证这个模型，代码如下：
+
+```c
+int main(int argc, char ** argv)
+{
+	//string imagefile = "E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2011_001126.jpg";
+	string imagefile = "E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2008_002809.jpg";
+	string deploy_prototxt = "E:\\DeepLearning\\ssd\\official_model\\models\\VGGNet\\VOC0712\\SSD_300x300\\deploy.prototxt";
+	string model = "E:\\DeepLearning\\ssd\\official_model\\models\\VGGNet\\VOC0712\\SSD_300x300\\VGG_VOC0712_SSD_300x300_iter_120000.caffemodel";
+	float confidence_default = 0.2;
+
+	string classes[] = { "background", "aeroplane", "bicycle", "bird", "boat",
+	"bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
+	"dog", "horse", "motorbike", "person", "pottedplant", "sheep",
+	"sofa", "train", "tvmonitor" };
+	cv::dnn::experimental_dnn_34_v11::Net net = cv::dnn::readNetFromCaffe(deploy_prototxt, model);
+	cv::Mat img = cv::imread(imagefile);
+	cv::Mat resized = img.clone();
+	cv::resize(resized, img, cv::Size(300, 300));
+	cv::Mat blob = cv::dnn::experimental_dnn_34_v11::blobFromImage(img, 1.0, cv::Size(300,300), cv::Scalar(104.0, 117.0, 123.0));
+	net.setInput(blob);
+	cv::Mat detect = net.forward();
+	cv::MatSize sz = detect.size;
+	printf("dim:%d, [%d,%d,%d,%d]\n", sz.dims(), sz[0], sz[1], sz[2], sz[3]);
+	
+	int det_num = sz[2];
+	int i;
+	const float * result = detect.ptr<float>(); // imageid,label,score, bbox position
+	cv::Mat image2 = img.clone();
+	for (i = 0; i < det_num; ++i)
+	{
+		if (result[0] < 0 || result[2] < 0.8)
+		{
+			result = result + 7;
+			continue;
+		}
+		int index = result[1];
+		float xmin = *(result + 3);
+		float ymin = *(result + 4);
+		float xmax = *(result + 5);
+		float ymax = *(result + 6);
+	
+		int x = xmin * 300;
+		int y = ymin * 300;
+		int w = (xmax - xmin)*300;
+		int h = (ymax - ymin)*300;
+	
+		printf("%s, %.2f, [%d, %d, %d, %d]\n", classes[index].c_str(), result[2], x, y, w, h);	
+
+		cv::Rect rec(x, y, w, h);
+		cv::rectangle(image2, rec, cv::Scalar(0, 0, 255));
+		
+		result = result + 7;
+	}
+	cv::namedWindow("bison", cv::WINDOW_AUTOSIZE);
+	cv::imshow("bison", image2);
+	cv::waitKey(0);
+    return 0;
+}
+```
+
+输出漂亮极了，说明官网提供的caffemodel文件没有问题。
+
+![](img/ssd/UseModel3.jpg)
+
+[详细的代码在这里](code/ssd/UseOpenCV.cpp)
+
