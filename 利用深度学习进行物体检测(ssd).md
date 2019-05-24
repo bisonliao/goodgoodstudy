@@ -277,6 +277,8 @@ void check_lmdb(const char * db_path)
 
 ### 6、模型调用
 
+#### 6.1自训练的模型调用效果
+
 caffe-ssd的代码目录examples/ssd下有个文件：ssd_detect.cpp是原作者用来演示如何调用模型的。
 
 [模型的deploy.prototxt文件在这里](code/ssd/deploy2.prototxt)
@@ -324,7 +326,33 @@ for (int k = 0; k < num_det; ++k) {
 
 后续改进计划：
 
-0、试一下原作者已经训练好的模型
-1、增加数据和迭代次数
-2、减少分类
-3、加入test看看准确率
+1. 试一下原作者已经训练好的模型
+2. 增加数据和迭代次数
+3. 减少分类
+4. 加入test网络看看准确率
+
+#### 6.2 官方提供的预先训练好的模型调用效果
+
+官网上提供了一个预先训练好的模型和相关prototxt文件，我一开始其实也发现了，但是由于局域网问题没有能够成功打开这个链接，所以前面为了获取prototxt文件还到处求爷爷告奶奶。
+
+```
+https://drive.google.com/open?id=0BzKzrI_SkD1_WVVTSmQxU0dVRzA
+```
+
+下载下来后，用caffe-ssd自带的ssd_detect.exe工具加载模型，对图片进行物体检测，不知道什么原因，效果不好：
+
+```
+d:\software\caffe_install\caffe-ssd\build\examples\ssd\Release\ssd_detect.exe \
+
+                                                              deploy.prototxt \
+
+                               VGG_VOC0712_SSD_300x300_iter_120000.caffemodel \
+
+                                                                 pic_list.txt
+```
+
+对于一张明显没有sheep也没有tvmonitor的图片，检测出很多小框框说有sheep和tvmonitor：
+
+![](img/ssd/UseModel2.jpg)
+
+我怎么这么命苦！
