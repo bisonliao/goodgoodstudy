@@ -136,56 +136,57 @@ void check_lmdb(const char * db_path)
 			AnnotatedDatum record;
 			record.ParseFromString(v);
 			int width, height, channel;
-			
+
 			width = record.datum().width();
 			height = record.datum().height();
 			channel = record.datum().channels();
 			const string & datastr = record.datum().data();
 			const uchar * data_ptr = (const uchar*)(datastr.c_str());
 			printf("c:%d,w:%d,h:%d,bytes:%d vs %d \n", channel, width, height, datastr.length(), width*height);
-
-			std::vector<uchar> vv(datastr.begin(), datastr.end());
-
-			cv::Mat img = imdecode(vv, CV_LOAD_IMAGE_COLOR);
-		
-			int h, w;
-		
 			// load picture
-
-#if 0
-			
-			for (h = 0; h < height; ++h)
+			cv::Mat img;
+			if (record.datum().encoded())
 			{
-				for (w = 0; w < width; ++w)
-				{
-					if (channel == 3)
-					{
-						img = cv::Mat::ones(cv::Size(width, height), CV_8UC3);
-						cv::Point3d * p = img.ptr<cv::Point3d>(h, w);
-						
-						p->x = record.datum().data()[0 * height * width + h * width + w];
-						p->y = record.datum().data()[1 * height * width + h * width + w];
-						p->z = record.datum().data()[2 * height * width + h * width + w];	
-					
-					}
-					else if (channel == 1)
-					{
-						img = cv::Mat::ones(cv::Size( width,height), CV_8UC1);
+				std::vector<uchar> vv(datastr.begin(), datastr.end());
 
-						img.at<uchar>(h,w) = data_ptr[ h * width + w];
-			
-					
-					}
-					else
-					{
-						fprintf(stderr, "invalid channels!\n");
-						return;
-					}
-				
-				}
-				
+				cv::Mat img = imdecode(vv, CV_LOAD_IMAGE_COLOR);
+
 			}
-#endif
+			else
+			{
+				int h, w;
+				for (h = 0; h < height; ++h)
+				{
+					for (w = 0; w < width; ++w)
+					{
+						if (channel == 3)
+						{
+							img = cv::Mat::ones(cv::Size(width, height), CV_8UC3);
+							cv::Point3d * p = img.ptr<cv::Point3d>(h, w);
+
+							p->x = record.datum().data()[0 * height * width + h * width + w];
+							p->y = record.datum().data()[1 * height * width + h * width + w];
+							p->z = record.datum().data()[2 * height * width + h * width + w];
+
+						}
+						else if (channel == 1)
+						{
+							img = cv::Mat::ones(cv::Size(width, height), CV_8UC1);
+
+							img.at<uchar>(h, w) = data_ptr[h * width + w];
+
+
+						}
+						else
+						{
+							fprintf(stderr, "invalid channels!\n");
+							return;
+						}
+
+					}
+				}
+			}
+
 #if 1
 			//draw annotation
 			int grp_num = record.annotation_group_size();
