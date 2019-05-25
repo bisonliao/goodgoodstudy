@@ -38,7 +38,7 @@ _caffe.obj : error LNK2019: 无法解析的外部符号 "class caffe::Solver<flo
 其中比较坑的几个问题是：
 
 1. annotated_data_layer.hpp用来防止多次包含的宏名字写错了，#ifndef CAFFE_DATA_LAYER_HPP_，导致编译莫名其妙错误，折腾大半天。
-2. io.cpp的ReadProtoFromBinaryFile函数中打开文件，在windows下应该指明O_BINARY，否则读到的文件不正确。它导致了下面三个隐蔽的问题，每个都折腾死我：
+2. io.cpp的ReadProtoFromBinaryFile函数中打开文件，在windows下应该指明O_BINARY，否则读到的文件不正确。它导致了下面三个隐蔽的问题，我都花了不少时间：
    1. caffe-ssd.exe不能“断点续train”，读取solverstat文件有问题。
    2. 导致ssd_detect.exe工具表现异常，让我一度怀疑官网提供的预训练好的模型有问题
    3. 导致我的UseTrainedModel代码运行不正确，但是又没有报错
@@ -408,7 +408,7 @@ E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2011_001126.jpg train 0.839578
 
 ### 7、 官方提供的预先训练好的模型调用效果
 
-前面提到官网上也提供了一个预先训练好的模型：
+前面提到官网上提供了一个预先训练好的模型：
 
 ```
 https://drive.google.com/open?id=0BzKzrI_SkD1_WVVTSmQxU0dVRzA
