@@ -121,7 +121,7 @@ int classify(boost::shared_ptr<Net<float> > net, const Mat & img1, Mat & img2)
 		for (width = 0; width < input_size; ++width)
 		{
 			
-			//为什么下面这种方式取不到有效值呢？我以前还经常这样用...
+			//为什么下面这种方式取不到有效值呢？
 		/*
 			cv::Point3f *p = resized.ptr<cv::Point3f>(height, width);
 			if (height == 0 && width == 0)
