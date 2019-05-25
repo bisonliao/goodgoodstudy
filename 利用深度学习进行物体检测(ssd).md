@@ -423,7 +423,7 @@ ssd_detect.exe deploy.prototxt VGG_VOC0712_SSD_300x300_iter_120000.caffemodel pi
 
 
 
-输出ok，说明官网提供的caffemodel文件没有问题。
+说明官网提供的caffemodel文件没有问题。
 
 用前面提到的OpenCV方式验证也ok。
 
