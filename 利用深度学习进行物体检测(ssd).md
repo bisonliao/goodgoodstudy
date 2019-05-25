@@ -378,7 +378,7 @@ int main(int argc, char ** argv)
 
 输出是ok的：
 
-![](F:/GitHub/goodgoodstudy/img/ssd/UseModel3.jpg)
+![](img/ssd/UseModel3.jpg)
 
 #### 6.3、用ssd_detect.exe工具验证模型
 
