@@ -90,13 +90,19 @@ convert_annoset ^
 
 官网提供了ssd_pascal.py这样的脚本来生成prototxt文件，我试了一下总报错，提示什么xxx库不能import啥的，可能和pycaffe编译失败有关。我对python又一知半解，所以放弃。
 
-在网上好不容易找到了一个小伙贴的ssd的train.prototxt文件，拿下来改改，可以跑起来。
+官网上提供了一个预先训练好的模型和相关prototxt文件，
+
+```
+https://drive.google.com/open?id=0BzKzrI_SkD1_WVVTSmQxU0dVRzA
+```
+
+下载下来后可以基于这里的prototxt文件启动训练。
 
 但遇到下面问题：
 
 1. 不能直接修改最后的分类数目，否则会报错。我理解是最后loss层的各bottom输入的blob尺寸不一致。需要同样的修改后向的相关层的输出尺寸，研究了一下未果，这应该也是为什么作者用了一个python脚本来产生prototxt文件的原因，牵一发动全身。
 
-[好心人提供的prototxt文件在这里](code/ssd/)
+[prototxt文件在这里](code/ssd/)
 
 ### 4、训练
 
@@ -106,42 +112,24 @@ convert_annoset ^
 caffe-ssd.exe train --solver=solve.prototxt --weights=vgg16.caffemodel
 ```
 
-输出如下：
+经过漫长的24个小时，迭代88000次，loss由20左右降低到3；测试的detection_eval从0.002上升到0.78左右：
 
 ```
-I0522 09:04:55.152274 11336 caffe.cpp:274] Finetuning from vgg16.caffemodel
-I0522 09:04:55.262374 11336 caffe.cpp:370] Starting Optimization
-I0522 09:04:55.262374 11336 solver.cpp:295] Solving VGG_VOC0712_SSD_300x300_train
-I0522 09:04:55.262374 11336 solver.cpp:296] Learning Rate Policy: step
-I0522 09:04:56.352274 11336 solver.cpp:244] Iteration 0, loss = 21.3669
-I0522 09:04:56.352274 11336 solver.cpp:260]     Train net output #0: mbox_loss = 21.2487 (* 1 = 21.2487 loss)
-I0522 09:04:56.352274 11336 sgd_solver.cpp:138] Iteration 0, lr = 0.0004
-I0522 09:06:29.354743 11336 solver.cpp:244] Iteration 100, loss = 8.80909
-I0522 09:06:29.354743 11336 solver.cpp:260]     Train net output #0: mbox_loss = 9.36699 (* 1 = 9.36699 loss)
-I0522 09:06:29.354743 11336 sgd_solver.cpp:138] Iteration 100, lr = 0.0004
-I0522 09:08:03.869545 11336 solver.cpp:244] Iteration 200, loss = 8.03628
-I0522 09:08:03.869545 11336 solver.cpp:260]     Train net output #0: mbox_loss = 7.82754 (* 1 = 7.82754 loss)
-I0522 09:08:03.869545 11336 sgd_solver.cpp:138] Iteration 200, lr = 0.0004
-I0522 09:09:37.741247 11336 solver.cpp:244] Iteration 300, loss = 8.08153
-I0522 09:09:37.741247 11336 solver.cpp:260]     Train net output #0: mbox_loss = 6.99807 (* 1 = 6.99807 loss)
-......这中间经过了漫长的5小时
-I0522 14:17:52.310133 11336 solver.cpp:244] Iteration 19700, loss = 6.16242
-I0522 14:17:52.310133 11336 solver.cpp:260]     Train net output #0: mbox_loss = 5.73436 (* 1 = 5.73436 loss)
-I0522 14:17:52.310133 11336 sgd_solver.cpp:138] Iteration 19700, lr = 0.0004
-I0522 14:19:27.979728 11336 solver.cpp:244] Iteration 19800, loss = 5.91935
-I0522 14:19:27.979728 11336 solver.cpp:260]     Train net output #0: mbox_loss = 6.88547 (* 1 = 6.88547 loss)
-I0522 14:19:27.979728 11336 sgd_solver.cpp:138] Iteration 19800, lr = 0.0004
-I0522 14:21:03.791196 11336 solver.cpp:244] Iteration 19900, loss = 5.81281
-I0522 14:21:03.791196 11336 solver.cpp:260]     Train net output #0: mbox_loss = 4.53011 (* 1 = 4.53011 loss)
-I0522 14:21:03.791196 11336 sgd_solver.cpp:138] Iteration 19900, lr = 0.0004
-I0522 14:22:38.869782 11336 solver.cpp:600] Snapshotting to binary proto file snapshot/ssd_iter_20000.caffemodel
-I0522 14:22:39.959810 11336 sgd_solver.cpp:307] Snapshotting solver state to binary proto file snapshot/ssd_iter_20000.solverstate
-I0522 14:22:40.459780 11336 solver.cpp:333] Iteration 20000, loss = 6.18779
-I0522 14:22:40.459780 11336 solver.cpp:338] Optimization Done.
-I0522 14:22:40.459780 11336 caffe.cpp:373] Optimization Done.
+I0525 21:45:43.951828 17584 sgd_solver.cpp:307] Snapshotting solver state to binary proto file snapshot/ssd_iter_88000.solverstate
+I0525 21:45:44.454669 17584 solver.cpp:437] Iteration 88000, Testing net (#0)
+I0525 21:45:44.464684 17584 net.cpp:694] Ignoring source layer mbox_loss
+I0525 21:46:09.703951 17584 solver.cpp:550]     Test net output #0: detection_eval = 0.78188
+I0525 21:46:10.007618 17584 solver.cpp:244] Iteration 88000, loss = 2.72072
+I0525 21:46:10.007618 17584 solver.cpp:260]     Train net output #0: mbox_loss = 2.74998 (* 1 = 2.74998 loss)
+I0525 21:46:10.007618 17584 sgd_solver.cpp:138] Iteration 88000, lr = 0.0001
+I0525 21:47:35.335769 17584 solver.cpp:244] Iteration 88100, loss = 2.98027
+I0525 21:47:35.335769 17584 solver.cpp:260]     Train net output #0: mbox_loss = 4.12712 (* 1 = 4.12712 loss)
+I0525 21:47:35.335769 17584 sgd_solver.cpp:138] Iteration 88100, lr = 0.0001
+I0525 21:48:53.253927 17584 solver.cpp:600] Snapshotting to binary proto file snapshot/ssd_iter_88192.caffemodel
+I0525 21:48:54.589516 17584 sgd_solver.cpp:307] Snapshotting solver state to binary proto file snapshot/ssd_iter_88192.solverstate
+I0525 21:48:54.939554 17584 solver.cpp:317] Optimization stopped early.
+I0525 21:48:54.939554 17584 caffe.cpp:373] Optimization Done.
 ```
-
-经过5个小时左右的训练，loss不怎么收敛，在6左右晃荡。
 
 ### 5、标注数据的结构
 
@@ -281,15 +269,9 @@ void check_lmdb(const char * db_path)
 
 ### 6、模型调用
 
-#### 6.1自训练的模型调用效果
+#### 6.1自己编码验证模型
 
-caffe-ssd的代码目录examples/ssd下有个文件：ssd_detect.cpp是原作者用来演示如何调用模型的。
-
-[模型的deploy.prototxt文件在这里](code/ssd/deploy2.prototxt)
-
-也是好心人帮我用ssd_pascal.py生成的。
-
-我其实对ssd网络的细节一知半解，重点是抓住最后一层DetectionOutputLayer的输出blob，它的形状是[1, 1, n, 7]，n是检测到的bbox的个数，每个bbox信息是7个浮点数，分别表示图片id、标签、置信度以及4个坐标。
+我对ssd网络的细节一知半解，重点是抓住最后一层DetectionOutputLayer的输出blob，它的形状是[1, 1, n, 7]，n是检测到的bbox的个数，每个bbox信息是7个浮点数，分别表示图片id、标签、置信度以及4个坐标。
 
 所以模型调用输出结果的时候，有这样的代码：
 
@@ -324,52 +306,22 @@ for (int k = 0; k < num_det; ++k) {
 
 [模型调用的c代码在这里](code/ssd/UseTrainedModel.cpp)
 
-用我前面5个小时迭代2万次的那个模型来试一下，效果意料之中的差：
+发现这样调用有问题，还没有找到原因所在：
 
 ![](img/ssd/UseModel1.jpg)
 
-后续改进计划：
-
-1. 试一下原作者已经训练好的模型
-2. 增加数据和迭代次数
-3. 减少分类
-4. 加入test网络看看准确率
-
-#### 6.2 官方提供的预先训练好的模型调用效果
-
-官网上提供了一个预先训练好的模型和相关prototxt文件，我一开始其实也发现了，但是由于局域网问题没有能够成功打开这个链接，所以前面为了获取prototxt文件还到处求爷爷告奶奶。
-
-```
-https://drive.google.com/open?id=0BzKzrI_SkD1_WVVTSmQxU0dVRzA
-```
-
-下载下来后，用caffe-ssd自带的ssd_detect.exe工具加载模型，对图片进行物体检测：
-
-```
-d:\software\caffe_install\caffe-ssd\build\examples\ssd\Release\ssd_detect.exe \
-
-                                                              deploy.prototxt \
-
-                               VGG_VOC0712_SSD_300x300_iter_120000.caffemodel \
-
-                                                                 pic_list.txt
-```
-
-效果不错：
-
-![](img/ssd/UseModel4.jpg)
 
 
+#### 6.2、用OpenCV的DNN能力验证模型
 
-在网上搜一些资料，看到opencv 3.3以后的版本提供了DNN的能力，所以换一种方式验证这个模型，代码如下：
+在网上搜一些资料，看到opencv 3.3以后的版本提供了DNN的能力，所以换一种方式验证我的模型，示意代码如下：
 
 ```c
 int main(int argc, char ** argv)
 {
-	//string imagefile = "E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2011_001126.jpg";
 	string imagefile = "E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2008_002809.jpg";
-	string deploy_prototxt = "E:\\DeepLearning\\ssd\\official_model\\models\\VGGNet\\VOC0712\\SSD_300x300\\deploy.prototxt";
-	string model = "E:\\DeepLearning\\ssd\\official_model\\models\\VGGNet\\VOC0712\\SSD_300x300\\VGG_VOC0712_SSD_300x300_iter_120000.caffemodel";
+	string deploy_prototxt = "E:\\DeepLearning\\ssd\\deploy.prototxt";
+	string model = "E:\\DeepLearning\\ssd\\snapshot\\ssd_iter_88000.caffemodel";
 	float confidence_default = 0.2;
 
 	string classes[] = { "background", "aeroplane", "bicycle", "bird", "boat",
@@ -422,9 +374,56 @@ int main(int argc, char ** argv)
 }
 ```
 
-输出漂亮极了，说明官网提供的caffemodel文件没有问题。
-
-![](img/ssd/UseModel3.jpg)
-
 [详细的代码在这里](code/ssd/UseOpenCV.cpp)
+
+输出是ok的：
+
+![](F:/GitHub/goodgoodstudy/img/ssd/UseModel3.jpg)
+
+#### 6.3、用ssd_detect.exe工具验证模型
+
+caffe-ssd的代码目录examples/ssd下有个文件：ssd_detect.cpp，是原作者用来调用模型的。可编译出ssd_detect.exe工具。
+
+用该工具对我训练出来的模型进行测试，并过滤掉80%以下置信度的bbox，输出是ok的：
+
+```
+d:\software\caffe_install\caffe-ssd\build\examples\ssd\Release\ssd_detect.exe deploy.prototxt snapshot\ssd_iter_88000.caffemodel pic_list.txt
+
+E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2007_000121.jpg tvmonitor 0.96901 16 18 273 269
+E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2007_000121.jpg tvmonitor 0.954291 241 22 476 265
+E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2007_000123.jpg train 0.990297 7 30 346 337
+E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2007_000129.jpg bicycle 0.977855 98 187 295 489
+E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2007_000129.jpg person 0.981457 78 22 291 474
+E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2007_000170.jpg person 0.987324 3 23 471 371
+E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2008_002809.jpg person 0.982972 68 118 150 223
+E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2008_002809.jpg person 0.920222 44 119 419 378
+E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2008_002809.jpg person 0.897774 299 104 489 361
+E:/DeepLearning/data/VOCdevkit/VOC2012/JPEGImages/2011_001126.jpg train 0.839578 3 178 493 366
+```
+
+
+
+### 7、 官方提供的预先训练好的模型调用效果
+
+前面提到官网上也提供了一个预先训练好的模型：
+
+```
+https://drive.google.com/open?id=0BzKzrI_SkD1_WVVTSmQxU0dVRzA
+```
+
+下载后，用caffe-ssd自带的ssd_detect.exe工具加载模型，对图片进行物体检测：
+
+```
+ssd_detect.exe deploy.prototxt VGG_VOC0712_SSD_300x300_iter_120000.caffemodel pic_list.txt
+```
+
+效果不错：
+
+![](img/ssd/UseModel4.jpg)
+
+
+
+输出ok，说明官网提供的caffemodel文件没有问题。
+
+用前面提到的OpenCV方式验证也ok。
 

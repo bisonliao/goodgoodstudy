@@ -20,14 +20,14 @@ layer {
     }
   }
   data_param {
-    source: "examples/VOC0712/VOC0712_test_lmdb"
+    source: "E:/DeepLearning/ssd/test_lmdb"
     batch_size: 8
     backend: LMDB
   }
   annotated_data_param {
     batch_sampler {
     }
-    label_map_file: "data/VOC0712/labelmap_voc.prototxt"
+    label_map_file: "D:/software/caffe_install/caffe-ssd/data/VOC0712/labelmap_voc.prototxt"
   }
 }
 layer {
@@ -1640,8 +1640,8 @@ layer {
     save_output_param {
       output_name_prefix: "comp4_det_test_"
       output_format: "VOC"
-      label_map_file: "data/VOC0712/labelmap_voc.prototxt"
-      name_size_file: "data/VOC0712/test_name_size.txt"
+      label_map_file: "D:/software/caffe_install/caffe-ssd/data/VOC0712/labelmap_voc.prototxt"
+      name_size_file: "D:/software/caffe_install/caffe-ssd/data/VOC0712/val_name_size.txt"
       num_test_image: 4952
     }
     code_type: CENTER_SIZE
@@ -1663,7 +1663,7 @@ layer {
     background_label_id: 0
     overlap_threshold: 0.5
     evaluate_difficult_gt: false
-    name_size_file: "data/VOC0712/test_name_size.txt"
+      name_size_file: "D:/software/caffe_install/caffe-ssd/data/VOC0712/val_name_size.txt"
   }
 }
 
