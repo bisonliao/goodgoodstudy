@@ -38,7 +38,10 @@ _caffe.obj : error LNK2019: 无法解析的外部符号 "class caffe::Solver<flo
 其中比较坑的几个问题是：
 
 1. annotated_data_layer.hpp用来防止多次包含的宏名字写错了，#ifndef CAFFE_DATA_LAYER_HPP_，导致编译莫名其妙错误，折腾大半天。
-2. io.cpp的ReadProtoFromBinaryFile函数中打开文件，在windows下应该指明O_BINARY，否则caffe-ssd.exe不能“断点续train”，读取solverstat文件有问题。这个问题还导致ssd_detect.exe工具表现异常，让我一度怀疑官网提供的训练好了的模型有问题！！！
+2. io.cpp的ReadProtoFromBinaryFile函数中打开文件，在windows下应该指明O_BINARY，否则读到的文件不正确。它导致了下面三个隐蔽的问题，每个都折腾死我：
+   1. caffe-ssd.exe不能“断点续train”，读取solverstat文件有问题。
+   2. 导致ssd_detect.exe工具表现异常，让我一度怀疑官网提供的预训练好的模型有问题
+   3. 导致我的UseTrainedModel代码运行不正确，但是又没有报错
 
 ### 2、生成训练数据
 
@@ -306,7 +309,7 @@ for (int k = 0; k < num_det; ++k) {
 
 [模型调用的c代码在这里](code/ssd/UseTrainedModel.cpp)
 
-发现这样调用有问题，还没有找到原因所在：
+效果不错，但也存在漏检的情况，例如椅子：
 
 ![](img/ssd/UseModel1.jpg)
 
@@ -425,5 +428,5 @@ ssd_detect.exe deploy.prototxt VGG_VOC0712_SSD_300x300_iter_120000.caffemodel pi
 
 说明官网提供的caffemodel文件没有问题。
 
-用前面提到的OpenCV方式验证也ok。
+用前面提到的OpenCV方式和我自己写的代码验证也ok。
 
