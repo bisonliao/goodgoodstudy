@@ -1,6 +1,6 @@
 ## 异常检测
 
-来自吴恩达老师的机器学习第九章 anomaly detection。
+来自吴恩达老师在Coursera上的机器学习第九章 anomaly detection。
 
 我理解，严格的说这不是机器学习的方法，更像传统的一种数据统计算法。常用于正样本非常少的欺诈检测和生产中的次品检测。如果使用机器学习分类的方式来处理，会面临不平衡类问题。
 
@@ -65,3 +65,111 @@ https://www.cnblogs.com/Deribs4/p/5265192.html
 1. 多变量高斯适合n比较小的情况，协方差矩阵是nXn大小的，太大求逆求行列式计算都很复杂。
 2. m必须大于n，否则协方差矩阵不可逆。
 
+### 练习
+
+#### 1、特征分布调整为高斯分布
+
+我试了一下教程中的指数函数、对数函数的方法，不凑效。但使用高考标准分的方式是确定ok的，代码如下：
+
+```
+ClearAll["Global`*"];
+geneData[] := Module[{x, cnt, j, i},
+   x = {};
+   Do[
+    cnt = 200/(i^0.5);
+    For[j = 0, j < cnt, j = j + 1,
+     AppendTo[x, i + RandomReal[3]];
+     ];
+    ,
+    {i, 1, 100}
+    ];
+   x
+   ];
+convert2Std[x_] := Module[{},
+   xx = Sort[x, Less];
+   flags = {1};(*我前面有多少人*)
+   max = xx[[1]];
+   len = Length[xx];
+
+   For[i = 2, i <= len, ++i,
+    If[xx[[i]] > max, AppendTo[flags, i]; max = xx[[i]],  
+      AppendTo[flags, Last[flags]]];
+    ];
+   {xx, flags/(len + 1)}
+   ];
+
+x = geneData[];
+u = Mean[x];
+v = Sqrt[Variance[x]];
+Print["u:", u, " stdvar:", v];
+xx = convert2Std[x];
+cdf = InverseCDF[NormalDistribution[], xx[[2]]];
+
+xx = u + v*cdf;
+Histogram[x, 20]
+Histogram[xx, 20]
+```
+
+输出如下：
+
+![](img/anomaly_detect/anomaly_detect7.jpg)
+
+#### 2、多变量的高斯分布
+
+​	
+
+```
+ClearAll["Global`*"];
+cdf[x_] = CDF[NormalDistribution[50, 20], x];
+geneData[] := Module[{result, sum, i, j, cnt, x2},
+   result = {};
+   sum = cdf[0];
+   For[i = 1, i < 100, i = i + 1,
+    cnt = (cdf[i] - sum)*1000 ;
+    cnt = Ceiling[cnt];
+    For[j = 0, j < cnt, j = j + 1,
+     AppendTo[result, i];
+     ];
+    sum = cdf[i];
+   ];
+   x2 =  Table[ 2 x + RandomReal[{-100, 100}], {x, result}];
+   {result, x2}
+];
+
+getSigma[x_, u_] := Module[{len, result, i},
+   len = Length[x];
+   result = {0, 0};
+   For[i = 1, i <= len, i = i + 1,
+    onesample = {x[[i]] - u}; (* 形状如{{1,2}} *)
+    (*If[i \[Equal] 1, Print[N[x[[i]]]];Print[N[onesample]];Print[N[
+    Transpose[onesample] .onesample]],null];*)
+    result = result + Transpose[onesample] .onesample;
+    ];
+   result = result / len;
+   result
+];
+   
+getp[x_, u_, s_] := Module[{n, det, xu, si},
+   n = Length[x[[1]]];
+   det = Det[s];
+   xu = {x - u};
+   si = Inverse[s];
+   1/(2 (Pi)^(n/2)*Sqrt[det]) * Exp[-0.5 *( xu.si.Transpose[xu])]
+];
+
+{x1, x2} = geneData[];
+Print[Histogram[x1, 100]];
+Print[Histogram[x2, 50]];
+x =Transpose[{x1, x2}];(*每行一个样本，100个样本100行*)
+Print[Histogram3D[x, 50]];
+u = Total[x]/Length[x];
+sigma = getSigma[x, u];
+Plot3D[getp[{x, y}, u, sigma], {x, 0, 100}, {y, -50, 250}, 
+ PlotRange -> All]
+ContourPlot[getp[{x, y}, u, sigma], {x, 0, 100}, {y, -50, 250}, 
+ PlotRange -> All]
+```
+
+输出如下：
+
+![](img/anomaly_detect/anomaly_detect8.jpg)
