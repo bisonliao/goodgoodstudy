@@ -1,3 +1,6 @@
+'''
+推荐系统中的潜在因子模型算法的demo
+'''
 import csv
 import random
 import pickle
@@ -9,9 +12,9 @@ compute=False
 # 限于内存大小，通过限制最大的用户Id和电影Id，取部分数据
 maxUserID = 20000
 maxMovieID = 3000
-factorNum = 100 #隐藏因子的个数
+factorNum = 16 #隐藏因子的个数，太大似乎也不一定有益、相同的迭代次数，factorNum为100比16的测试准确率要差
 context = mx.gpu(0)
-epochs = 20000
+epochs = 10000
 lr = 0.00001 #由于backup（）没有带batchsz，所以lr很小，而且要根据训练数据的大小适当调整
 
 # 从开源的电影评价数据集中构建评价矩阵用于训练和测试
@@ -61,9 +64,10 @@ else:
 rate_num = nd.sum(flags).asscalar()
 print("rate numbers:", rate_num)
 
-def my_loss(y, label, flags):
-    nameda = 0.0001
-    return nd.sum((y - label)*(y-label)*flags)   #+nd.sum(nameda * U*U) + nd.sum(nameda*V*V) #后面两项是L2正则项防止过拟合
+def my_loss(y, label, flags, U, V):
+    nameda = 0.001
+    # 到4000次epoch的时候，测试准确率开始下降，训练损失函数还会继续收敛，出现了过拟合。加上L2正则化也没有起作用
+    return nd.sum((y - label)*(y-label)*flags)   +nd.sum(nameda * U*U) + nd.sum(nameda*V*V) #后面两项是L2正则项防止过拟合
 
 # 根据评价矩阵，训练出U和V满足 U.V = train_data
 def train(train_data, test_data, flags, epochs, start_ep = 0):
@@ -79,7 +83,7 @@ def train(train_data, test_data, flags, epochs, start_ep = 0):
         V.attach_grad()
         with autograd.record():
             Y = nd.dot(U,V)
-            L = my_loss(Y, train_data, flags)
+            L = my_loss(Y, train_data, flags, U, V)
         L.backward()
         if e % 100 == 0 and e > 0:
             avgLoss = L.asscalar()/rate_num
@@ -90,7 +94,7 @@ def train(train_data, test_data, flags, epochs, start_ep = 0):
         V = V - lr * V.grad
         if e % 1000 == 0 and e > 0:
             acc = test2(test_data, U, V)
-            print("test acc:", acc)
+            print("test acc:%.4f"%(acc))
             with open("./data/U.data."+str(e), "wb") as f:
                 pickle.dump(U, f)
             with open("./data/V.data."+str(e), "wb") as f:
@@ -103,15 +107,15 @@ def test2(test_data, U, V):
         for m in range(maxMovieID):
             label = test_data[u, m].asscalar()
             if label > 0:
-                total += 1
-                if total > 1000:
-                    return right_num / total
                 y = nd.dot(U[u, :].reshape((1, factorNum)), V[:, m].reshape((factorNum, 1)))
                 y = y[0, 0].asscalar()
                 right = 1 if y / label > 0.9 and y / label < 1.1 else 0  # 只要预测的评分不要差的太多，我都算你对
                 #print("%.2f %.2f %d" % (label, y, right))
                 if right > 0:
                     right_num += 1
+                total += 1
+                if total > 200:
+                    return right_num / total
     return right_num / total
 
 def test(test_data, ep):
