@@ -29,7 +29,7 @@ def load_data():
             m = int(rec['movieId'])
             if float(r) < 4:
                 continue
-            if random.randint(0,9) == 7:
+            if random.randint(0,9) > 7:
                 if not users_test.__contains__(u):
                     users_test[u] = {m}
                 else:
@@ -64,19 +64,39 @@ else:
 
 print("size:%d,%d"%(len(users),len(movies)) )
 
+# 分析电影的观看人数，太热门的电影的用户其实不一定有很多共同点，找到一个阈值，观看人数大于该阈值的电影就不用来计算相似用户了
+def analyze_movie_distribution(movies):
+    total = 0
+    num_list = list()
+    for (m, userlist) in movies.items():
+        total += len(userlist)
+        num_list.append(len(userlist))
+    num_list.sort(reverse=True)
+    #print(num_list)
+    total2 = 0
+    for num in num_list:
+        total2 += num
+        if (total2 > total*0.05):
+            return num
+
+
+
+abnormal = analyze_movie_distribution(movies)
+
 # 根据  电影-用户列表 ，返回 用户-用户的相似性
 # 字典的key是用户id，value一个字典，里面保存了与该用户的相似 用户和相似度
-def find_similar_user(movies,users):
+def find_similar_user(movies,users, abnormal):
     similar_users = dict()
     number = 0
     for (k,userlist) in movies.items():
+        if len(userlist) > abnormal: #太火的电影或者书籍没有说服力，都买《新华字典》不能说明两个用户有多大的共性，都买《深度学习》才有说服力
+            continue
         for u1 in userlist:
             for u2 in userlist:
                 if u1 == u2:
                     continue
                 number += 1
-                #if number % 1000000 == 0:
-                    #print("processed %d u-u with same movies"%(number))
+
                 if not similar_users.__contains__(u1):
                     similar_users[u1] = {u2:1}
                 else:
@@ -98,7 +118,7 @@ def find_similar_user(movies,users):
     return similar_users
 
 if compute:
-    similar_users = find_similar_user(movies,users)
+    similar_users = find_similar_user(movies,users, abnormal)
     with open("./data/similar_users.data", "wb") as f:
         pickle.dump(similar_users,f)
 else:
@@ -108,23 +128,44 @@ else:
 print("similar_users size:", len(similar_users))
 
 # 根据前面的数据，生成推荐的电影列表
-def recommend(u, similar_users, users, k=5):
+def recommend(u, similar_users, users, k=5, max=1000):
     sim_userlist = sorted(similar_users[u].items(), key=lambda x:x[1], reverse=True) #按value（相似度）降序排列
-    print(sim_userlist)
+    #print(sim_userlist)
     cnt = 0
     items=set()
     for (u2,v) in sim_userlist:
         cnt += 1
-        if cnt > k:
+        if cnt > k or len(items) > max:
             break
         items = items.union(users[u2])
-    return items
+    return items.difference(users[u])
 
-rec1551 = recommend(1551, similar_users, users, 1)
-label = users_test[1551]
-print("recommend:", rec1551)
-print("test:", label)
-print("match:", label.intersection(rec1551))
+
+def test():
+    cnt = 0
+    print("precision, recall, rec_size")
+    for (u, _) in users.items():
+        if not users_test.__contains__(u):
+            continue
+        rec = recommend(u, similar_users, users, 5,100)
+        if len(rec) == 0:
+            continue
+        label = users_test[u]
+        match = label.intersection(rec)
+        precision = len(match)/len(rec)
+        recall = len(match)/len(label)
+        print(">>%.4f,%.4f,%d"%(precision, recall, len(rec)))
+
+        '''if (recall > 0.75 or precision > 0.10):
+            print(rec)
+            print(label)
+            print(match)'''
+        cnt += 1
+        if cnt > 1000:
+            break
+
+test()
+
 
 
 
