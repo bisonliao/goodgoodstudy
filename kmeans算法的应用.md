@@ -101,6 +101,14 @@ compressImg("e:\\bazha.jpg")
 
 ![这里有张图片](img/kmeans/pallete.jpg)
 
+调色板用散点图的方式直观的展示出来，也可以看出，kmeans的调色板的连续性和过渡要好很多。
+
+每个点所在的XYZ坐标分别为原始RGB值，点的颜色为所应用到的调色板的颜色：
+
+![这里有张图片](img/kmeans/pallete2.jpg)
+
+[详细代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/kmeans_ColorQuantize.py)
+
 sklearn官网上也有类似的一个试验：
 
 ```
