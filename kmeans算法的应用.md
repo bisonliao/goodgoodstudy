@@ -18,7 +18,7 @@
 
 KDTree比较好理解，通过根据某个维度的值对向量空间进行二分，将库里的向量划分为若干小格子，这些小格子用二叉树的方式组织起来，查找某个向量的近似向量的时候，比对它所在格子里的其他向量，或者二叉树往上一层扩大比对的范围，所以KDTree是一种近似的搜索算法：
 
-![](img/kmeans/KDTree.jpg)
+![这里有张图片](img/kmeans/KDTree.jpg)
 
 还有一种更适合分布式环境的方法是：
 
@@ -99,7 +99,7 @@ compressImg("e:\\bazha.jpg")
 
 效果图如下，可能需要下载下来放大才看的清楚对比效果：
 
-![](img/kmeans/pallete.jpg)
+![这里有张图片](img/kmeans/pallete.jpg)
 
 sklearn官网上也有类似的一个试验：
 
