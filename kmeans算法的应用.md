@@ -20,11 +20,62 @@ KDTree比较好理解，通过根据某个维度的值对向量空间进行二�
 
 ![这里有张图片](img/kmeans/kdtree.jpg)
 
+词向量相似度比较是采取余弦相似度。sklearn包中的KDTree和BallTree都不支持余弦距离。
+
+使用其他距离度量方式会引入额外的误差，但从试验代码结果来看，能work。
+
+scikit-learn包中的KDTree和BallTree支持的度量方式有：
+
+```python
+print(KDTree.valid_metrics)
+print(BallTree.valid_metrics)
+
+['l2', 'chebyshev', 'l1', 'cityblock', 'minkowski', 'manhattan', 'infinity', 'euclidean', 'p']
+['russellrao', 'braycurtis', 'l2', 'chebyshev', 'mahalanobis', 'hamming', 'l1', 'haversine', 'jaccard', 'cityblock', 'minkowski', 'canberra', 'manhattan', 'dice', 'infinity', 'matching', 'sokalsneath', 'wminkowski', 'sokalmichener', 'euclidean', 'kulsinski', 'rogerstanimoto', 'pyfunc', 'p', 'seuclidean']
+
+```
+
+BallTree支持自定义距离度量方式，可以自己实现余弦距离，所以更适合词向量查询：
+
+```python
+from sklearn.neighbors import BallTree
+from sklearn.neighbors import KDTree
+import numpy as np
+
+def cosDist(v1:np.ndarray,v2:np.ndarray):
+    return 1 - np.dot(v1,v2)/(np.linalg.norm(v1,ord=2)*np.linalg.norm(v2, ord=2))
+
+X = np.random.randint(0, 2, (4, 10))
+tree = BallTree(X, metric="pyfunc", func=cosDist)
+print(tree.query(X[0:1], k = 4))
+```
+
 还有一种更适合分布式环境的方法是：
 
 对这些向量进行聚类（可以使用KMeans算法），每个向量归属为其中一类。查找某个向量的相似向量的时候，与该向量所属聚类内的所有向量进行逐一比对，或者根据该向量与各个簇中心的距离，把比对范围扩展到距离比较近的几个簇内的所有向量。同样的，这也是一种近似的搜索算法。
 
 [这里的代码演示了上面的思路，效果还可以](https://github.com/bisonliao/daydayup/blob/master/mxnet/fastText_LoadVecFileOnly.py)
+
+如果使用KMeanse算法进行聚类，因为算法过程中需要计算平均的质心导致距离的度量是欧式距离，所以用于相似词向量查找，在距离度量上又进行了一次近似。DBScan聚类算法支持cosine距离，可能比KMeans更适合词向量场景，但这个鬼似乎没有predict函数：
+
+```python
+from sklearn.cluster import DBSCAN
+import numpy as np
+
+X = np.array([[1,2],
+              [2,4.1],
+              [2.1,4],
+              [-2,-1],
+              [-4,-2],
+              [-5,-2.3]])
+c = DBSCAN(metric='cosine',min_samples=2, eps=0.5)
+c.fit(X)
+print(c.labels_)
+'''
+符合预期，输出X中6个元素的类标签为：
+[0 0 0 1 1 1]
+'''
+```
 
 ## 场景二、调色板与量化颜色
 
