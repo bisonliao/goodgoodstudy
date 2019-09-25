@@ -49,7 +49,7 @@ print(cl.fit_predict(m))
 
 可视化显示出来如下：
 
-![](img/network_embedding/position1.jpg)
+![](img/network_embedding/position.jpg)
 
 节点2的最近5个点是3、1、4、6、5，前面的小数是余弦相似度：
 
