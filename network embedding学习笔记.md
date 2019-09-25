@@ -2,7 +2,7 @@
 
 network，是指例如社交应用中用户之间的好友关系形成的一张网，或者博客应用中用户、博客之间的关注、订阅关系，或者web网页相互之间的link诸如此类的等等网络形态
 
-network embedding，类似nlp中的词向量，就是要对network中的实体/节点用向量表示，向量之间的距离表示实体之间的相似度。是网络中分类、聚类、推荐等应用的基础设施。
+network embedding，类似nlp中的词向量，就是要对network中的实体（节点或者边）用向量表示，向量之间的距离表示实体之间的相似度。是网络中分类、聚类、推荐等应用的基础设施。
 
 网友有一张图很好的展现了他们之间的关系：
 
@@ -64,3 +64,16 @@ print(cl.fit_predict(m))
 ```
 
 对1万多个节点的BlogCatalog进行embedding，与官方的embedding结果对比，同一个节点（#58）的top5相似节点集合不一致，交集为0。与类似节点的相邻节点集合比较jaccard相似度，两个实现的jaccard相似度接近。
+
+## 2、node2vec算法
+
+node2vec算法类似DeepWalk算法，通过两个参数p、q来控制游走过程中的策略：
+
+![](img/network_embedding/node2vec.jpg)
+
+没有太能理解p、q对相似性的影响的理解。下面是P、Q两种典型情况：
+
+![](img/network_embedding/node2vec_2.jpg)
+
+[python示例代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_Node2Vec.py)
+
