@@ -11,13 +11,9 @@ network embedding，类似nlp中的词向量，就是要对network中的实体�
 该图引用自下面的文章，该文章也是ne方面很全面的信息索引。
 
 ```
-https://github.com/chihming/awesome-network-embedding
-```
-
-网上可下载的公开数据集：
-
-```
-http://socialcomputing.asu.edu/pages/datasets
+https://github.com/chihming/awesome-network-embedding #论文与实现的索引
+http://networkx.github.io/  # 网络操作python库
+http://socialcomputing.asu.edu/pages/datasets # 公开的数据集
 ```
 
 ## 1、DeepWalk算法
@@ -76,4 +72,21 @@ node2vec算法类似DeepWalk算法，通过两个参数p、q来控制游走过�
 ![](img/network_embedding/node2vec_2.jpg)
 
 [python示例代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_Node2Vec.py)
+
+pip3可以安装一个叫做node2vec的包，它使用gensim.models.word2vec.Word2Vec来训练词向量。官网在：
+
+```
+https://github.com/eliorc/node2vec
+```
+
+对比效果如下：
+
+![](img/network_embedding/node2vec_3.jpg)
+
+对1万多个节点的网络进行简单对比，发现节点2的相似节点，两者给出的答案不一致：
+
+```
+the similar node of #2: 3400 2241 1739 4123 4007 2090 1509 4209 407 8061
+the similar node of #2: 7389 3017 3050 3400 3345 7578 4372 7589 7113 4780 
+```
 
