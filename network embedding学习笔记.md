@@ -93,7 +93,17 @@ c1, c2 size:186,72
 13392 avg edges dense between cluster:0.00717
 ```
 
-与node2vec包的结果对比，发现节点2的相似节点，两者给出的答案不一致：
+node2vec包的embedding后的聚类效果也不比我的代码的效果好：
+
+```
+c1, c2 size:111,192
+6105 avg cos distances in cluster:0.75
+21312 avg cos distances between cluster:0.81
+6105 avg edges dense in cluster:0.00426
+21312 avg edges dense between cluster:0.00511
+```
+
+节点2的相似节点，两者给出的答案也不一致：
 
 ```
 the similar node of #2: 3400 2241 1739 4123 4007 2090 1509 4209 407 8061
