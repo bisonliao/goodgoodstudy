@@ -71,7 +71,7 @@ node2vec算法类似DeepWalk算法，通过两个参数p、q来控制游走过�
 
 ![](img/network_embedding/node2vec_2.jpg)
 
-[python示例代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_Node2Vec.py)
+[我自己的python示例代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_Node2Vec.py)
 
 pip3可以安装一个叫做node2vec的包，它使用gensim.models.word2vec.Word2Vec来训练词向量。官网在：
 
@@ -83,12 +83,24 @@ https://github.com/eliorc/node2vec
 
 ![](img/network_embedding/node2vec_3.jpg)
 
-对1万多个节点的网络进行简单对比，发现节点2的相似节点，两者给出的答案不一致：
+我自己的代码对13000多个节点的实际网络进行embedding（P和Q等于1），抽查聚类后的簇内的边的密度和簇间的边的密度，发现差异很小，簇内和簇间的平均余弦距离也没有明显差异，不太符合预期，说明embedding效果不好：
+
+```
+c1, c2 size:186,72
+17205 avg cos distances in cluster:0.72
+13392 avg cos distances between cluster:0.77
+17205 avg edges dense in cluster:0.01267
+13392 avg edges dense between cluster:0.00717
+```
+
+与node2vec包的结果对比，发现节点2的相似节点，两者给出的答案不一致：
 
 ```
 the similar node of #2: 3400 2241 1739 4123 4007 2090 1509 4209 407 8061
 the similar node of #2: 7389 3017 3050 3400 3345 7578 4372 7589 7113 4780 
 ```
+
+[pip3 node2vec包调用的代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_Node2Vec_official.py)
 
 ## 3、基于图的因子分解的算法
 
@@ -126,13 +138,36 @@ ep:9900, loss:0.1072
 
 ![](img/network_embedding/graph_factorization1.jpg)
 
-对1万多个节点的网络进行测试，节点#2的相似节点有：
+对13000多个节点的实际网络进行测试，对embedding进行聚类，对比簇内和簇间的边的密度、簇内和簇间的cosin距离。
+
+可以看到：通过调整epsilon参数，DBScan算法将embedding后的网络节点分为17个簇，另外有1314个节点被认为是噪声点没有归入任何一簇。标签为0的簇特别大，包含了8930个节点。
+
+任意抽查两个簇，簇内的边的密度为0.25，簇之间的边密度为0。
+
+符合预期。
 
 ```
-[567,  27, 879, 972, 898, 133]
+#DBScan聚类效果
+cluster labels: {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, -1}
+noisy node: 1314
+c1, c2 size:8,6
+28 avg cos distances in cluster:0.26
+48 avg cos distances between cluster:0.67
+28 avg edges dense in cluster:0.25
+48 avg edges dense between cluster:0.00
+#kmeans聚类效果，指定簇个数为100：
+cluster labels: {0, 1, 2, 3,..., 98, 99}
+noisy node: 0
+c1, c2 size:17,355
+136 avg cos distances in cluster:0.61
+6035 avg cos distances between cluster:1.23
+136 avg edges dense in cluster:0.35
+6035 avg edges dense between cluster:0.01
 ```
-
-暂时也没有特别好的办法验证大的网络。
 
 [python示例代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_GraphFactor.py)
 
+这个算法很明显的优势是：
+
+1. 训练速度快
+2. 方便分块进行计算，或者分布式计算
