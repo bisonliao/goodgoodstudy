@@ -16,9 +16,22 @@ http://networkx.github.io/  # 网络操作python库
 http://socialcomputing.asu.edu/pages/datasets # 公开的数据集
 ```
 
+两个顶点之间的相似度包括两方面：
+
+1. 一阶相似度：即顶点之间连接的边的权重，没有边连接，一阶相似度为0。例如下图中的顶点6和7是一阶相似的。
+2. 二阶相似度：两个顶点他们邻近网络结构之间的相似度，他们分别与所有其他顶点之间一阶相似度决定了二阶相似度。例如下面图中，顶点5和6有相同的邻接顶点（1,2,3,4），他们的二阶相似性很强。如果两个顶点没有共同的邻接顶点，那么他们的二阶相似性为0
+
+![](img/network_embedding/similarity.jpg)
+
 ## 1、DeepWalk算法
 
 DeepWalk算法思想比较简单直观：在网络中随机游走，将路径记录下来，每条路径看做一个句子，经过的节点看做是句子中的词，然后使用skip gram算法训练词向量。
+
+论文地址：
+
+```
+https://arxiv.org/abs/1403.6652
+```
 
 [python示例代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_DeepWalk.py)
 
@@ -65,6 +78,12 @@ node2vec算法类似DeepWalk算法，通过两个参数p、q来控制游走过�
 
 ![](img/network_embedding/node2vec.jpg)
 
+论文地址：
+
+```
+https://cs.stanford.edu/people/jure/pubs/node2vec-kdd16.pdf
+```
+
 没有太能理解p、q对相似性的影响的理解。下面是P、Q两种典型情况：
 
 ![](img/network_embedding/node2vec_2.jpg)
@@ -110,9 +129,9 @@ the similar node of #2: 7389 3017 3050 3400 3345 7578 4372 7589 7113 4780
 
 [pip3 node2vec包调用的代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_Node2Vec_official.py)
 
-## 3、基于图的因子分解的算法
+## 3、基于图的因子分解的算法(GF)
 
-基本思想是：将邻接矩阵 Y 分解为 U 点乘 U的转置的形式。U的每一行就是一个节点的embedding。
+基本思想是：将邻接矩阵 Y 分解为 U 点乘 U的转置的形式。U的每一行就是一个节点的embedding。适合无向图网络。
 
 假设网络中有N个节点，那么Y的shape是(N, N)， network embedding的维度假设是r，那么U的shape是    （N，r），U的转置的shape是（r，N）。
 
@@ -126,7 +145,7 @@ $$
 
 1. 如果两个顶点之间有边直接连接（邻接矩阵对应元素为1），学习到的他们embedding向量点乘的结果趋近1， 那么这两个向量的cosin相似度趋近1，距离很近
 2. 如果两个顶点连个节点之间没有边直接连接，学习到的他们embedding向量点乘的结果趋近0， 那么这两个向量的cosin相似度趋近0，这两个向量正交，距离较远
-3. 相互间边密度较大的一组顶点，他们的embedding向量将距离较近
+3. 相互间边密度较大的一组顶点，他们的embedding向量将距离较近。这样也就考虑到了二阶相似性。
 
 一般而言，邻接矩阵 对角线上的元素可能为0，但U和U的转置的点积结果的对角线元素会大于0，这里需要特殊处理一下。可以有两种方式：
 
@@ -188,3 +207,21 @@ c1, c2 size:17,355
 
 1. 训练速度快
 2. 方便分块进行计算，或者分布式计算
+
+## 3、LINE算法
+
+LINE是large-scale Information Network Embedding的首字母缩写，可用于有向图、无向图、有权图、无权图。
+
+论文：
+
+```
+http://www.www2015.it/documents/proceedings/proceedings/p1067.pdf
+```
+
+LINE的损失函数分两部分，其中O1描述一阶相似度损失，O2描述二阶相似度损失：
+
+![](img/network_embedding/line_obj.jpg)
+
+所以，LINE又分为LINE-1st 和LINE-2nd，分别对应一阶相似度和二阶相似度。如果要同时考虑两部分相似度，先分开训练，然后把学习到的两种向量concat起来（居然不是加起来）。
+
+可以看出上面的计算量很大，对于大的网络无法简单适配到单机内存。论文里提出了优化方案，还没有看懂...
