@@ -174,39 +174,17 @@ ep:9900, loss:0.1072
 
 ![](img/network_embedding/graph_factorization1.jpg)
 
-对13000多个节点的实际网络进行测试，对embedding进行聚类，对比簇内和簇间的边的密度、簇内和簇间的cosin距离。
-
-可以看到：通过调整epsilon参数，DBScan算法将embedding后的网络节点分为17个簇，另外有1314个节点被认为是噪声点没有归入任何一簇。标签为0的簇特别大，包含了8930个节点。
-
-任意抽查两个簇，簇内的边的密度为0.25，簇之间的边密度为0。
-
-符合预期。
+对13000多个节点的实际网络进行测试，对embedding进行聚类，对比簇内和簇间的边的密度、簇内和簇间的cosin距离。聚类效果不是很明显：
 
 ```
-#DBScan聚类效果
-cluster labels: {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, -1}
-noisy node: 1314
-c1, c2 size:8,6
-28 avg cos distances in cluster:0.26
-48 avg cos distances between cluster:0.67
-28 avg edges dense in cluster:0.25
-48 avg edges dense between cluster:0.00
-#kmeans聚类效果，指定簇个数为100：
-cluster labels: {0, 1, 2, 3,..., 98, 99}
-noisy node: 0
-c1, c2 size:17,355
-136 avg cos distances in cluster:0.61
-6035 avg cos distances between cluster:1.23
-136 avg edges dense in cluster:0.35
-6035 avg edges dense between cluster:0.01
+c1, c2 size:108,101
+5778 avg cos distances in cluster:0.33
+10908 avg cos distances between cluster:0.45
+5778 avg edges dense in cluster:0.01021
+10908 avg edges dense between cluster:0.01018
 ```
 
 [python示例代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_GraphFactor.py)
-
-这个算法很明显的优势是：
-
-1. 训练速度快
-2. 方便分块进行计算，或者分布式计算
 
 ## 3、LINE算法
 
