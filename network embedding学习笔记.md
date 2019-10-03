@@ -177,11 +177,8 @@ ep:9900, loss:0.1072
 对13000多个节点的实际网络进行测试，对embedding进行聚类，对比簇内和簇间的边的密度、簇内和簇间的cosin距离。聚类效果不是很明显：
 
 ```
-c1, c2 size:108,101
-5778 avg cos distances in cluster:0.33
-10908 avg cos distances between cluster:0.45
-5778 avg edges dense in cluster:0.01021
-10908 avg edges dense between cluster:0.01018
+avg edges dense in cluster:0.13215
+avg edges dense between cluster:0.07859
 ```
 
 [python示例代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_GraphFactor.py)
