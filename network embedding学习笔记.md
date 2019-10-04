@@ -100,27 +100,21 @@ https://github.com/eliorc/node2vec
 
 ![](img/network_embedding/node2vec_3.jpg)
 
-我自己的代码对13000多个节点的BlogCatalog实际网络进行embedding（P和Q等于1），抽查聚类后的簇内的边的密度和簇间的边的密度，发现差异很小，簇内和簇间的平均余弦距离也没有明显差异，不太符合预期，说明embedding效果不好：
+我自己的代码对13000多个节点的BlogCatalog实际网络进行embedding（P和Q等于1），抽查聚类后的簇内的边的密度和簇间的边的密度，符合预期：
 
 ```
-c1, c2 size:186,72
-17205 avg cos distances in cluster:0.72
-13392 avg cos distances between cluster:0.77
-17205 avg edges dense in cluster:0.01267
-13392 avg edges dense between cluster:0.00717
+avg edges dense in cluster:0.05517
+avg edges dense between cluster:0.00279
 ```
 
-node2vec包的embedding后的聚类效果也不比我的代码的效果好：
+node2vec包的embedding后的聚类效果：
 
 ```
-c1, c2 size:111,192
-6105 avg cos distances in cluster:0.75
-21312 avg cos distances between cluster:0.81
-6105 avg edges dense in cluster:0.00426
-21312 avg edges dense between cluster:0.00511
+avg edges dense in cluster:0.11051
+avg edges dense between cluster:0.01579
 ```
 
-节点2的相似节点，两者给出的答案也不一致：
+节点2的相似节点，两者给出的答案不一致：
 
 ```
 the similar node of #2: 3400 2241 1739 4123 4007 2090 1509 4209 407 8061
@@ -129,7 +123,13 @@ the similar node of #2: 7389 3017 3050 3400 3345 7578 4372 7589 7113 4780
 
 [pip3 node2vec包调用的代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_Node2Vec_official.py)
 
-## 3、基于图的因子分解的算法(GF)
+## 3、矩阵因子分解的算法
+
+这一类算法是把网络表示为矩阵，对矩阵进行分解来得到各个顶点的向量。这类算法有很多。例如：
+
+### 3.1 图分解
+
+两个顶点向量的点积结果，等价于他们的之间的边。
 
 基本思想是：将邻接矩阵 Y 分解为 U 点乘 U的转置的形式。U的每一行就是一个节点的embedding。适合无向图网络。
 
@@ -174,16 +174,36 @@ ep:9900, loss:0.1072
 
 ![](img/network_embedding/graph_factorization1.jpg)
 
-对13000多个节点的实际网络进行测试，对embedding进行聚类，对比簇内和簇间的边的密度、簇内和簇间的cosin距离。聚类效果不是很明显：
+对13000多个节点的实际网络进行测试，对embedding进行聚类，对比簇内和簇间的边的密度、簇内和簇间的cosin距离。聚类效果不明显：
 
 ```
-avg edges dense in cluster:0.13215
-avg edges dense between cluster:0.07859
+avg edges dense in cluster:0.12388
+avg edges dense between cluster:0.11402
 ```
 
 [python示例代码在这里](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_GraphFactor.py)
 
-## 3、LINE算法
+### 3.2 局部线性嵌入（Locally Linear Embedding）
+
+思想是：各顶点的向量，等于其他所有顶点向量的线性组合，而这个线性组合的系数，就是邻接矩阵对应的行。即满足：
+$$
+U = AdjMat . U
+$$
+要使用梯度下降的方法学习得到U，还需要一个损失函数，损失函数就是上式等号两边的矩阵差值的模：
+$$
+L = || U - AdjMat.U||^2
+$$
+为了避免U逐步退化为0矩阵，要加一些约束。
+
+我的python示例代码没有搞定
+
+### 3.3 拉普拉斯特征映射（Laplacian Eigenmaps ）
+
+思想是：如果两个结点它们之间的连边对应的权重越大，则表明这两个节点越相近，因此在embedding之后对应的值应该越相近。 因此可以得到一下最优化目标：
+
+![](img/network_embedding/laplace.jpg)
+
+## 4、LINE算法
 
 LINE是large-scale Information Network Embedding的首字母缩写，可用于有向图、无向图、有权图、无权图。
 
@@ -197,6 +217,6 @@ LINE的损失函数分两部分，其中O1描述一阶相似度损失，O2描述
 
 ![](img/network_embedding/line_obj.jpg)
 
-所以，LINE又分为LINE-1st 和LINE-2nd，分别对应一阶相似度和二阶相似度。如果要同时考虑两部分相似度，先分开训练，然后把学习到的两种向量concat起来（居然不是加起来）。
+所以，LINE算法又分为LINE-1st 和LINE-2nd，分别对应一阶相似度和二阶相似度。如果要同时考虑两部分相似度，先分开训练，然后把学习到的两种向量concat起来（居然不是加起来）。
 
 可以看出上面的计算量很大，对于大的网络无法简单适配到单机内存。论文里提出了优化方案，还没有看懂...
