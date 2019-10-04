@@ -193,7 +193,9 @@ $$
 $$
 L = || U - AdjMat.U||^2
 $$
-为了避免U逐步退化为0矩阵，加一些约束，但我使用梯度下降方法最后没有成功，embedding效果不好。
+为了避免U逐步退化为0矩阵，加一些约束，例如1/U的模不能太大。
+
+我使用梯度下降方法最后没有成功，embedding效果不好。
 
 仔细观察，可以看出U的每一列就是邻接矩阵的一个特征向量。所以采取求特征值特征向量的方法可以完成embedding，小规模网络应用效果不错：
 
@@ -201,7 +203,14 @@ $$
 
 [python示例代码](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_localLinearEmb.py)
 
+还是求特征向量的方法，对1.3万个节点的实际网络进行测试，抽查聚类后簇中的边密度和簇间的边密度，聚类效果较明显：
 
+```
+avg edges dense in cluster:0.19932
+avg edges dense between cluster:0.07237
+```
+
+求巨型矩阵的特征向量，不是一件容易的事情。查了一下wiki，没有发现比较简单的算法。
 
 ### 3.3 拉普拉斯特征映射（Laplacian Eigenmaps ）
 
