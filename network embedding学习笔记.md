@@ -193,9 +193,15 @@ $$
 $$
 L = || U - AdjMat.U||^2
 $$
-为了避免U逐步退化为0矩阵，要加一些约束。
+为了避免U逐步退化为0矩阵，加一些约束，但我使用梯度下降方法最后没有成功，embedding效果不好。
 
-我的python示例代码没有搞定
+仔细观察，可以看出U的每一列就是邻接矩阵的一个特征向量。所以采取求特征值特征向量的方法可以完成embedding，小规模网络应用效果不错：
+
+![](img/network_embedding/localLinearEmb.jpg)
+
+[python示例代码](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_localLinearEmb.py)
+
+
 
 ### 3.3 拉普拉斯特征映射（Laplacian Eigenmaps ）
 
