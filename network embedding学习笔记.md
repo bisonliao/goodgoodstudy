@@ -235,3 +235,25 @@ LINE的损失函数分两部分，其中O1描述一阶相似度损失，O2描述
 所以，LINE算法又分为LINE-1st 和LINE-2nd，分别对应一阶相似度和二阶相似度。如果要同时考虑两部分相似度，先分开训练，然后把学习到的两种向量concat起来（居然不是加起来）。
 
 可以看出上面的计算量很大，对于大的网络无法简单适配到单机内存。论文里提出了优化方案，还没有看懂...
+
+LINE-1st对上面15个顶点的小网络进行embedding，发现聚类效果不好，修改损失函数，增加一项：没有边连接的顶点之间，他们的点积的绝对值尽量的小，聚类效果就很好了，如下图：
+
+![](img/network_embedding/line1.jpg)
+
+损失函数：
+
+```python
+def my_loss(adj:nd.NDArray, U:nd.NDArray):
+    # 有边相连的两个顶点向量的点积要尽量的大，也就是cos相似度尽量的大
+    diff = nd.dot(U,U.transpose())*(-1) #type:nd.NDArray
+    diff = 1/(1+diff.exp())#type:nd.NDArray
+    diff = diff.log()
+    diff = adj * diff * (-1)
+    # LINE-1st是没有这一项的，发现聚类效果不好。我修正一下：
+    # 没有边相连的两个顶点向量的点积的绝对值要尽量的小，也就是cos相似度为0
+    diff2 = (nd.ones_like(adj, ctx=context) - adj)*nd.dot(U,U.transpose())
+    return  diff.sum()+nd.norm(diff2, ord=2)
+```
+
+[python示例代码LINE-1st](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_LINE1.py)
+
