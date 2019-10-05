@@ -100,7 +100,7 @@ https://github.com/eliorc/node2vec
 
 ![](img/network_embedding/node2vec_3.jpg)
 
-我自己的代码对13000多个节点的BlogCatalog实际网络进行embedding（P和Q等于1），抽查聚类后的簇内的边的密度和簇间的边的密度，符合预期：
+我自己的代码对1万多个节点的BlogCatalog实际网络进行embedding（P和Q等于1），抽查聚类后的簇内的边的密度和簇间的边的密度，符合预期：
 
 ```
 avg edges dense in cluster:0.05517
@@ -174,7 +174,7 @@ ep:9900, loss:0.1072
 
 ![](img/network_embedding/graph_factorization1.jpg)
 
-对13000多个节点的实际网络进行测试，对embedding进行聚类，对比簇内和簇间的边的密度、簇内和簇间的cosin距离。聚类效果不明显：
+对1万多个节点的实际网络进行测试，对embedding进行聚类，对比簇内和簇间的边的密度、簇内和簇间的cosin距离。聚类效果不明显：
 
 ```
 avg edges dense in cluster:0.12388
@@ -203,7 +203,7 @@ $$
 
 [python示例代码](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_localLinearEmb.py)
 
-还是求特征向量的方法，对1.3万个节点的实际网络进行测试，抽查聚类后簇中的边密度和簇间的边密度，聚类效果较明显：
+还是求特征向量的方法，对1万个节点的实际网络进行测试，抽查聚类后簇中的边密度和簇间的边密度，聚类效果较明显：
 
 ```
 avg edges dense in cluster:0.19932
@@ -240,6 +240,8 @@ LINE-1st对上面15个顶点的小网络进行embedding，发现聚类效果不�
 
 ![](img/network_embedding/line1.jpg)
 
+跟前面的图分解算法的结果很接近。
+
 损失函数：
 
 ```python
@@ -255,5 +257,11 @@ def my_loss(adj:nd.NDArray, U:nd.NDArray):
     return  diff.sum()+nd.norm(diff2, ord=2)
 ```
 
-[python示例代码LINE-1st](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_LINE1.py)
+对1万个节点的实际网络进行测试，符合预期：
 
+```
+avg edges dense in cluster:0.09559
+avg edges dense between cluster:0.02555
+```
+
+[python示例代码LINE-1st](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_LINE1.py)
