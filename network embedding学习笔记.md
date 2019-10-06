@@ -265,3 +265,7 @@ avg edges dense between cluster:0.02555
 ```
 
 [python示例代码LINE-1st](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_LINE1.py)
+
+我对LINE-2nd的试验失败了，还没有找到原因
+
+[python示例代码LINE-2nd](https://github.com/bisonliao/daydayup/blob/master/mxnet/networkEmbedding_LINE2.py)
