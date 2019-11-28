@@ -101,6 +101,14 @@ docker run –it centos:latest /bin/bash
 
 ![](img/docker_guide/image11.png)
 
+docker对网络的使用，有bridge、host等几种方式。默认是bridge方式。
+
+bridge使得各个容器之间的网络是隔离的，各容器有各自的虚拟网络和ip，通过NAT的方式访问宿主机器和外部网络， docker run -p可以指定端口映射关系。
+
+host是直接使用宿主机的ip和网络栈，各容器之间没有网络隔离。
+
+详细情况请见相关文档。
+
 ## 授之以渔
 
 `docker --help`可以查看有哪些子命令
