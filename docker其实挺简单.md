@@ -38,6 +38,8 @@ docker ps
 
 # 以centos为例来使用docker
 
+## 获取一个镜像
+
 从仓库拉一个centos 的镜像（很重要的概念，类似一个可执行文件）下来：
 
 ```bash
@@ -55,6 +57,8 @@ docker pull daocloud.io/centos
 成功拉下来后，用images命令可以查看到：
 
 ![](img/docker_guide/image2.png)
+
+## 启动一个容器
 
 用run命令执行它：
 
@@ -83,6 +87,18 @@ docker run –it centos:latest /bin/bash
 
 ![](img/docker_guide/image6.png)
 
+## “登录”一个容器
+
+对于已经在“后台”执行的容器，可以通过exec命令“登录”它，就相当于进入到一个os系统中。即使该容器创建时候的COMMAND不是shell，也可以登录这镜像，这是相比attach不一样的地方：
+
+```
+docker exec -it 50b71b1b4408 /bin/bash
+```
+
+上面的50b71b1b4408是具体的容器ID，-it表示采取交互式tty，/bin/bash表示启动一个bash命令用于交互。
+
+## 保存容器中的修改
+
 如果我想在虚拟机里面装个自己的应用程序或者装个mysql，并且希望下次启动虚拟机这些程序还在，怎么弄呢，那就装好这些程序后，用`docker commit`命令提交为一个新的镜像
 
 ![](img/docker_guide/image7.png)
@@ -101,6 +117,8 @@ docker run –it centos:latest /bin/bash
 
 ![](img/docker_guide/image11.png)
 
+## 关于网络
+
 docker对网络的使用，有bridge、host等几种方式。默认是bridge方式。
 
 bridge使得各个容器之间的网络是隔离的，各容器有各自的虚拟网络和ip，通过NAT的方式访问宿主机器和外部网络， docker run -p可以指定端口映射关系。
@@ -108,6 +126,8 @@ bridge使得各个容器之间的网络是隔离的，各容器有各自的虚�
 host是直接使用宿主机的ip和网络栈，各容器之间没有网络隔离。
 
 详细情况请见相关文档。
+
+
 
 ## 授之以渔
 
