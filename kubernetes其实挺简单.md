@@ -55,7 +55,7 @@ k8s集群内自动扩缩容的单位是pod。一个pod包含一个或者多个�
 
 通过clusterIP、pod IP访问服务的方式，只是在k8s集群内部可行。外部是无法通过这种方式来访问的。解决的办法有：
 
-1. NodePort的方式：在node机器的外部可见的IP上暴露一个端口，通过该端口可以映射转发访问到k8s集群内部的服务。（我没有从外部成功访问到）
+1. NodePort的方式：在node机器的外部可见的IP上暴露一个端口，通过该端口可以映射转发访问到k8s集群内部的服务。
 2. ingress方式？
 3. 公有云的loadbalance方式？
 
@@ -158,7 +158,7 @@ kubectl delete rc centos7
 kubectl apply -f centos_7.yaml 
 ```
 
-### 2.3 访问服务
+### 2.3 三种方式访问服务
 
 查看pod副本的pod IP
 
@@ -206,7 +206,40 @@ abcd
 Connection closed by foreign host.
 ```
 
+创建NodePort，使得外部模块可以访问kubernetes集群内的服务：
 
+```
+apiVersion: v1
+kind: Service
+metadata:
+   name: svc-centos7
+   labels:
+     name: svc-centos7
+spec:
+   type: NodePort
+   ports:
+   - protocol: TCP
+     port: 12345
+     targetPort: 12345
+     nodePort: 31245
+   # selector的条件需要重点注意。前面我的centos7这个pod的label是写
+   # 的app: centos7，所以我也写对应的selector，注意不要和name: centos7
+   # 混淆了。我一开始就是写错了，导致这个问题3天没有进展
+   selector:
+     app: centos7  
+```
+
+外部模块使用物理机器的IP加暴露的NodePort访问服务：
+
+```
+[root@master ~]# telnet 172.19.0.2 31245
+Trying 172.19.0.2...
+Connected to 172.19.0.2.
+Escape character is '^]'.
+request string 
+request string 
+Connection closed by foreign host.   
+```
 
 ### 2.4 使用静态pod与volume
 
