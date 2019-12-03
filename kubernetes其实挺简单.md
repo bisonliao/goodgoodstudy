@@ -155,7 +155,7 @@ kubectl describe pod
 ```
 kubectl delete -f mysql_rc.yaml
 kubectl delete rc centos7 
-kubectl apply -f centos_7.yaml 
+kubectl replace -f centos_7.yaml 
 ```
 
 ### 2.3 三种方式访问服务
@@ -313,3 +313,111 @@ https://blog.csdn.net/lanwp5302/article/details/87348132
 https://www.jianshu.com/p/916f9b111b23
 ```
 
+## 3、REST API和各种编程语言接口
+
+kubernetes的API Server提供了RESTful 接口协议和java等语言的API库，可以编程的方式来管理kubernetes集群。
+
+详细文档见：
+
+```
+https://kubernetes.io/docs/reference/
+https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#-strong-api-overview-strong-
+```
+
+直接使用curl命令访问API Server的端口会返回没有权限的错误信息。
+
+解决方案是使用kubectl启动一个代理进程，该进程会访问本地.kube/config等配置文件获取用户信息，并接受curl等外部工具的请求：
+
+```
+kubectl proxy --accept-hosts='^*$' --address="0.0.0.0"&
+```
+
+上述命令可以通过accept-host  accept-paths等等参数实现复杂的白名单控制。
+
+curl等外部工具通过访问上述代理进程的8001端口，协议格式还是k8s的RESTful 协议格式，例如获取service的信息：
+
+```
+[root@static-pod ~]# curl -X GET http://master:8001/api/v1/namespaces/default/services/centos7
+#下面是k8s集群的返回：
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "centos7",
+    "namespace": "default",
+    "selfLink": "/api/v1/namespaces/default/services/centos7",
+    "uid": "11770cef-14df-11ea-aadc-525400c3782d",
+    "resourceVersion": "248829",
+    "creationTimestamp": "2019-12-02T08:38:09Z",
+    "labels": {
+      "app": "centos7"
+    }
+  },
+  "spec": {
+    "ports": [
+      {
+        "protocol": "TCP",
+        "port": 12345,
+        "targetPort": 12345
+      }
+    ],
+    "selector": {
+      "app": "centos7"
+    },
+    "clusterIP": "10.99.211.145",
+    "type": "ClusterIP",
+    "sessionAffinity": "None"
+  },
+  "status": {
+    "loadBalancer": {}
+  }
+}
+```
+
+有例如，通过POST方式创建一个pod：
+```
+curl -X POST -H 'content-type: application/yaml' http://master:8001/api/v1/namespaces/default/pods -d '
+apiVersion: v1 
+kind: Pod
+metadata:
+  name: pod-example
+spec:
+  containers:
+  - name: ubuntu
+    image: ubuntu:trusty
+    command: ["echo"]
+    args: ["Hello World"]
+'
+```
+
+成功返回该pod的信息：
+
+```
+{
+  "kind": "Pod",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "pod-example",
+    "namespace": "default",
+    "selfLink": "/api/v1/namespaces/default/pods/pod-example",
+    "uid": "376ecddc-1594-11ea-aadc-525400c3782d",
+    "resourceVersion": "358770",
+    "creationTimestamp": "2019-12-03T06:14:51Z"
+  },
+  "spec": {
+    "volumes": [
+   #只展示上面部分，截断...
+```
+
+python API 列出所有pod的代码示例：
+```python
+from kubernetes import client, config
+
+#Configs can be set in Configuration class directly or using helper utility
+config.load_kube_config()
+v1 = client.CoreV1Api()
+print("Listing pods with their IPs:")
+ret = v1.list_pod_for_all_namespaces(watch=False)
+for i in ret.items:
+    print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+```
