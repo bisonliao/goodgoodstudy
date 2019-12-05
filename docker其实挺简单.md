@@ -126,9 +126,49 @@ host是直接使用宿主机的ip和网络栈，各容器之间没有网络隔�
 
 详细情况请见相关文档。
 
+## 2.6 Dockerfile
 
+Dockerfile类似makefile，指导docker如何构建一个定制化的镜像。例如下面这个Dockerfile，就是基于仓库里的centos，安装python，并拷贝start.sh文件到镜像里：
 
-## 2.6 授之以渔
+```
+FROM centos
+RUN ["/usr/bin/yum", "install", "-y", "python3"]
+COPY start.sh /start.sh
+RUN /usr/bin/chmod a+x /start.sh
+CMD /start.sh
+```
+
+用下面的命令build，并把镜像在本地保存为centos:bobo
+
+```
+docker build -t centos:bobo .
+```
+
+```
+[root@master ~/dockerfile]# docker build -t centos:bobo .
+Sending build context to Docker daemon 3.072 kB
+Step 1/5 : FROM centos
+ ---> 0f3e07c0138f
+Step 2/5 : RUN /usr/bin/yum install -y python3
+ ---> Running in b19e3cc7be5b
+#这里省略yum的大量输出...
+Step 3/5 : COPY start.sh /start.sh
+ ---> 0f87537c65ac
+Removing intermediate container aa4712ad9563
+Step 4/5 : RUN /usr/bin/chmod a+x /start.sh
+ ---> Running in 275692de7c66
+ ---> 6e7f3a93de23
+Removing intermediate container 275692de7c66
+Step 5/5 : CMD /start.sh
+ ---> Running in 45bbb2b7b8c6
+ ---> 1dc6c360ff07
+Removing intermediate container 45bbb2b7b8c6
+Successfully built 1dc6c360ff07
+```
+
+从输出可以看到，docker build的过程和我们手工操作原理是类似的：run一个容器，修改，commit为镜像。
+
+## 2.7 授之以渔
 
 `docker --help`可以查看有哪些子命令
 
