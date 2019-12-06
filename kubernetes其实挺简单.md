@@ -4,13 +4,9 @@
 
 之前比较早就耳闻k8s，简单了解功能后也挺兴奋：这就是我们团队过去10年想要的技术运营框架！
 
-无奈操作起来挺麻烦，经历了从入门到放弃的过程。
+无奈操作起来挺麻烦，k8s官网安装文档跟一坨屎一样的，经历了从入门到放弃的过程。
 
-最近又捡起来，还是搞不定：单机版本情境下get nodes没有资源！
-
-另外太多概念和组件也让人头大：证书、token、cni、proxy方式...
-
-不过这次稍有进展，一位仁兄发扬共产主义精神，他提供了比较方便的安装包和指导文件：
+最近稍有进展，一位仁兄发扬共产主义精神，他提供了比较方便的安装包和指导文件：
 
 ```
 https://blog.csdn.net/qq_33236487/article/details/83896051
@@ -293,7 +289,7 @@ systemctl start kubelet
 
 主要就是看kubelet的日志和状态：
 
-```
+```shell
 systemctl status kubelet
 journalctl  -u kubelet  >/tmp/bison
 journalctl  -f -u kubelet
@@ -301,7 +297,7 @@ journalctl  -f -u kubelet
 
 还有就是exec到docker的容器里去看看启动的服务情况，例如我可以进到mysql这个容器里去增删改查数据：
 
-```
+```shell
 docker exec -it 50b71b1b4408 /bin/bash
 ```
 
@@ -421,3 +417,166 @@ ret = v1.list_pod_for_all_namespaces(watch=False)
 for i in ret.items:
     print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
 ```
+
+## 4、安装过程
+
+不甘心使用前辈的现成的安装包，想自己一步一步安装一下k8s集群。
+
+不得不说k8s官网的安装文档跟屎一样，各种踩坑折腾，最后成功安装起来了，记录一下。
+
+前面4.1-4.3， master和node都需要执行。
+
+### 4.1 修改基础环境：
+
+准备两台机器，一台叫master，一台叫node1，分别修改他们的hostname，并修改/etc/hosts文件：
+
+```shell
+hostnamectl set-hostname master
+hostnamectl set-hostname node1
+/etc/hosts
+172.19.0.11 master
+172.19.0.15 node1
+```
+
+修改网络参数：
+
+```shell
+cat <<EOF >  /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+sysctl --system
+```
+
+### 4.2 安装docker
+
+```shell
+yum install -y docker
+systemctl enable docker
+systemctl start docker 
+docker ps
+```
+
+没有问题的话，docker ps命令会输出一些字段标题
+
+### 4.3 安装kubeadm/kubectl/kubelet
+
+centos yum库里的kubernetes版本太低，需要修改yum库的配置。
+
+kubernetes官网给出的yum库配置不可用！
+
+最后找到一个可用的阿里云的yum库配置。
+
+```shell
+cat <<EOF >/etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=http://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+gpgkey=http://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg
+       http://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+EOF
+
+setenforce 0
+sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+
+systemctl enable --now kubelet
+```
+
+### 4.4 继续安装master
+
+```shell
+ kubeadm init 
+```
+
+上面命令没有问题的话，会输出很多信息，包括node加入集群的命令。
+
+然后准备kubectl的配置文件：
+
+```shell
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+安装网络插件：
+
+```shell
+kubectl apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
+```
+
+至此，kubectl命令可以使用了，可以用kubectl get nodes试一试。
+
+用docker ps也可以看到启动了很多容器，有kube-apiserver kube-cotrollermanager kube-scheduler等等。
+
+### 4.5 继续安装node
+
+在node上执行：
+
+```shell
+kubeadm join 172.19.0.11:6443 --token r5ct19.rted6y03glhqoiyz  --discovery-token-ca-cert-hash sha256:5b02d4c6662bd3a5f9a85767c116ed6dd5984023d826e7bdd022fc6d69090bf3 
+```
+
+这条命令来自前面kubeadm init的输出。
+
+没有问题的话，可以看到kubelet、kube-proxy进程在node节点启动了。
+
+过一会（可能10分钟后），在master上执行kubectl get node就可以看到新安装的node是ready状态了。
+
+### 4.6 测试启动一个pod
+
+还是前面的mysql_rc.yaml：
+
+```
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  selector:
+    app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: docker.io/mysql
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "123456"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+```
+
+```
+kubectl create -f mysql_rc.yaml
+```
+
+```shell
+[root@VM_0_11_centos ~]# kubectl get pods -o wide
+NAME          READY   STATUS    RESTARTS   AGE   IP                NODE    NOMINATED NODE   READINESS GATES
+mysql-cnqpl   1/1     Running   0          28m   192.168.166.129   node1   <none>           <none>
+```
+
+
+
+### 4.7 参考文档
+
+参考了屎一样的官方文档：
+
+```
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/
+```
+
