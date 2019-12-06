@@ -446,6 +446,7 @@ net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
 EOF
 sysctl --system
+echo 1 > /proc/sys/net/ipv4/ip_forward
 ```
 
 ### 4.2 安装docker
