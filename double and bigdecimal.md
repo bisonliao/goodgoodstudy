@@ -47,7 +47,7 @@ Java码农做金融，就不得不说double与BigDecimal数据类型。本小文
 
 先看一张来自wikipedia上该词条的图片：
 
-![这里有张图片](./img/double/double structure.png)
+![这里有张图片](./img/double/double_structure.png)
 
 
 
@@ -117,7 +117,7 @@ IEEE 754标准没有对字节序做明确规定，所以在不同的cpu上面，
 
 任意两个连续的double内存状态之间有无穷多个实数，如果运算结果落在其中的某个实数，double就只能用附近的这两个状态中的一个来表示，误差由此产生了。而且越靠近实数轴的两侧，误差越大。
 
-![这里有张图片](./img/double/real axis.jpg)
+![这里有张图片](./img/double/real_axis.jpg)
 
 根据前面的例子可以看出，只有小数部分能拆解为1/2、1/4、1/8、...、这些有理数的和的实数才可以被double准确的表示，例如：
 
