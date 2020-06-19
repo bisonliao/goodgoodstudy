@@ -1,6 +1,6 @@
 # 1 YOLO的基本原理
 
-论文地址：
+论文地址如下，应该是YOLOv1版本吧，文中没有特别说明就是基于此版本阐述：
 
 ```
 https://arxiv.org/abs/1506.02640
@@ -40,7 +40,7 @@ C = Pr(Object) * IOU(pred, truth)
 
 **疑问：Pr(obj)应该是网络的输出吧？**
 
-即，如果没有物体的中心落在该cell里面，则Pr(Object)取0，那么confidence为0；否则confidence等于预测的bbox和标注的bbox的IoU值（两个矩形相交面积比并集面积）。
+即，如果没有物体的中心落在该cell里面，则Pr(Object)输出0，那么confidence为0；否则confidence等于预测的bbox和标注的bbox的IoU值（两个矩形相交面积比并集面积）。
 
 如果我没有理解错的话，可以看出：只有那些 “有幸” 被ground truth 标注物体的中心点砸中的cell（的预测输出）才会被关注。
 
