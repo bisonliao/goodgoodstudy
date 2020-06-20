@@ -141,9 +141,20 @@ https://github.com/eriklindernoren/PyTorch-YOLOv3
 
 coco train2014目录下2464张火车图片作为训练集，其中100张作为valid集。训练8个小时后，loss值从200多收敛到2左右，mAP提升到91%：
 
+```
+sh create_custom_model.sh 1
+mv yolov3-custom.cfg yolov3-bison.cfg
+
+python train.py --model_def config/yolov3-bison.cfg --data_config=config/bison.data --batch_size=4
+```
+
 ![结果图片](img/yolo/result1.jpg)
 
 
+
+```
+python detect.py --model_def config\yolov3-bison.cfg --class_path=data\bison\classes.names --weights_path=checkpoints\yolov3_ckpt_99.pth
+```
 
 效果并不好，误检率很高，召回率还可以：
 
