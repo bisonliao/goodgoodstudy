@@ -156,9 +156,19 @@ python detect.py --model_def config\yolov3-bison.cfg --class_path=data\bison\cla
 
 是怎么回事呢？ 继续训练？
 
-又继续训练了100个epoch， 上面的鸟、球员、马没有被误检了，但是有其他东西还是被检测为火车，心情很差：
+又继续训练了100个epoch， loss下降到1以下，偶尔会上到1.0以上。上面的鸟、球员、马没有被误检了，但是有其他东西还是被检测为火车，心情很差：
 
 ![结果图片](img/yolo/result3.jpg)
+
+进一步的，我通过调大损失函数里的一个系数，增大对“假阳性”（不是火车但识别为火车）的惩罚，这样召回率确实会下降一些，但照顾了精度：
+
+```
+models.py : line # 188
+
+self.noobj_scale = 1000 # original value is 100, bison increase it to reduce misdetect
+```
+
+![结果图片](img/yolo/result4.jpg)
 
 参考文档：
 
