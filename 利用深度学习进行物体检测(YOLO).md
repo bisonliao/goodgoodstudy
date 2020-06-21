@@ -1,6 +1,6 @@
 # 1 YOLO的基本原理
 
-论文地址如下，应该是YOLOv1版本吧，文中没有特别说明就是基于此版本阐述：
+论文地址如下，应该是YOLOv1版本，文中没有特别说明就是基于此版本阐述：
 
 ```
 https://arxiv.org/abs/1506.02640
@@ -101,11 +101,9 @@ YOLO predicts multiple bounding boxes per grid cell. At training time we only wa
 
 **疑问：C hat（confidence）的truth值是什么？1.0吗？**
 
-# 2 进一步的细节
+## 1.4 锚定
 
-上面的基本原理还是挺简单的，但细节处理上会有些需要注意的。
-
-## 2.1 锚定
+YOLO v1版本相对比较简单，YOLO v3版本引入了anchor box。
 
 网络预测的bbox的宽和高会导致不稳定的梯度，一种应对方法是使用预先定义的bbox进行锚定，即Anchor Boxes 。
 
@@ -117,13 +115,9 @@ t 是网络预测的bbox的尺寸和位置，经过锚定后的尺寸和位置�
 
 可以看出tx, ty经过sigmoid函数后，会归一化为[0, 1]。
 
-## 2.2 NMS（Non-maximum suppression）
 
-好几个bbox都检测到了物体，消除多余的框，找到一个最合适的框。
 
-**疑问：不是只有一个cell的一个bbox对标注的物体负责么？**
-
-# 3 实操
+# 2 实操
 
 有个牛人实现了：
 
@@ -139,7 +133,7 @@ https://github.com/eriklindernoren/PyTorch-YOLOv3
 
 ## 3.1 只训练一个物体的检测
 
-coco train2014目录下2464张火车图片作为训练集，其中100张作为valid集。训练8个小时后，loss值从200多收敛到2左右，mAP提升到91%：
+coco train2014目录下2464张火车图片， 其中2364张作为训练集，其中100张作为valid集。训练8个小时后，loss值从200多收敛到2左右，mAP提升到91%：
 
 ```
 sh create_custom_model.sh 1
