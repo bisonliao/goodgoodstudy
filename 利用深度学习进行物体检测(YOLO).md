@@ -162,6 +162,8 @@ python detect.py --model_def config\yolov3-bison.cfg --class_path=data\bison\cla
 
 进一步的，我通过调大损失函数里的一个系数，增大对“假阳性”（不是火车但识别为火车）的惩罚，这样召回率确实会下降一些，但照顾了精度：
 
+![调整系数](img/yolo/noobj_scale.jpg)
+
 ```
 models.py : line # 188
 
