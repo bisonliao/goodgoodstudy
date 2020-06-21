@@ -150,11 +150,15 @@ python train.py --model_def config/yolov3-bison.cfg --data_config=config/bison.d
 python detect.py --model_def config\yolov3-bison.cfg --class_path=data\bison\classes.names --weights_path=checkpoints\yolov3_ckpt_99.pth
 ```
 
-效果并不好，误检率很高，召回率还可以：
+效果并不好，误检率很高，召回率很好：
 
 ![结果图片](img/yolo/result2.jpg)
 
-是怎么回事呢？ 继续训练？还是说加入更多负样本?
+是怎么回事呢？ 继续训练？
+
+又继续训练了100个epoch， 上面的鸟、球员、马没有被误检了，但是有其他东西还是被检测为火车，心情很差：
+
+![结果图片](img/yolo/result3.jpg)
 
 参考文档：
 
