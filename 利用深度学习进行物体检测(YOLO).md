@@ -68,11 +68,11 @@ ground truth标注一条狗（黄框框），黄框框的中心落在这个红�
 
 ## 1.2 网络结构
 
-网络结构就是普通常见的卷积网络，由大量的卷积层和max pooling层叠加，最后跟两个全连接层。我看不同版本实现有些差异，YOLO v3还有类似残差网络的中间短路的方式，且有多种cell划分方式来组合检测：13 X 13, 26 X 26, 52 X 52。
+网络结构就是普通常见的卷积网络，由大量的卷积层和max pooling层叠加，最后跟两个全连接层。YOLO v3还有类似残差网络的中间短路的方式，且有多种cell划分方式来组合检测：13 X 13, 26 X 26, 52 X 52。
 
 ![网络结构](img/yolo/network.jpg)
 
-**疑问：上图中的好几个卷积核写在一起是什么意思？输出concat在一起？ 好像尺寸也不匹配啊。 好像没什么意思？**
+上图中的好几个卷积核写在一起是从上到下一层一层顺序传递，没有其他特殊的意思。
 
 ## 1.3  损失函数
 
@@ -103,7 +103,7 @@ YOLO predicts multiple bounding boxes per grid cell. At training time we only wa
 
 ## 1.4 锚定
 
-YOLO v1版本相对比较简单，YOLO v3版本引入了anchor box。
+YOLO v1版本相对比较简单，YOLO v2和 v3版本引入了anchor box。
 
 网络预测的bbox的宽和高会导致不稳定的梯度，一种应对方法是使用预先定义的bbox进行锚定，即Anchor Boxes 。
 
