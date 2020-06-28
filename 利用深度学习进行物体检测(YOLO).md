@@ -21,7 +21,7 @@ YOLO是如何编码它的预测输出的呢？
 每个cell会预测输出B个bbox位置（例如3个）、C个物体分类。每个bbox有5个预测分量：
 
 ```
-(x, y, w, h, C)
+(x, y, w, h, conf)
 ```
 
 (x, y)是对bbox中心点坐标的预测，相对所属cell的左上角的坐标，取值范围 [0, 1]。如果这个bbox的中心不在该cell范围内，那么该bbox就不属于该cell。
@@ -32,10 +32,10 @@ YOLO是如何编码它的预测输出的呢？
 
 ![例子图片](img/yolo/eagle.jpg)
 
-C置信度这个字段这样计算：
+conf置信度这个字段这样计算：
 
 ```
-C = Pr(Object) * IOU(pred, truth) 
+conf = Pr(Object) * IOU(pred, truth) 
 ```
 
 **疑问：Pr(obj)应该是网络的输出吧？**
@@ -171,6 +171,12 @@ self.noobj_scale = 1000 # original value is 100, bison increase it to reduce mis
 ```
 
 ![结果图片](img/yolo/result4.jpg)
+
+## 3.2 自己从头实现
+
+[][自己实现的代码]
+
+[自己实现的代码](code/yolo/MyYOLOv1.py)
 
 参考文档：
 
