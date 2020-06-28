@@ -16,9 +16,9 @@ batchsz=16
 device ='cuda:0'
 compute=True
 lr =0.0001
-epochnm=20
-start_ep=85
-pretrained='./MyYOLOv1_12.tar'
+epochnm=100
+start_ep=0
+pretrained=''
 classes = 2
 
 def show_img(img:torch.Tensor):
@@ -73,7 +73,7 @@ class myDataset(dataset.Dataset):
         self.transform = transform
         fh.close()
 
-    def to_tensor(self, labelPath):
+    def label2tensor(self, labelPath):
         fh = open(labelPath, "r")
         labelList = fh.readlines()
         fh.close()
@@ -104,11 +104,11 @@ class myDataset(dataset.Dataset):
             if retTensor[0][x_index][y_index] == 1: # there is already a label
                 continue;
             retTensor[0][x_index][y_index] = 1.0 # confidence
-            retTensor[1][x_index][y_index] == x
-            retTensor[2][x_index][y_index] == y
-            retTensor[3][x_index][y_index] == w
-            retTensor[4][x_index][y_index] == h
-            retTensor[int(5+c)][x_index][y_index] == 1 # classification label
+            retTensor[1][x_index][y_index] = x
+            retTensor[2][x_index][y_index] = y
+            retTensor[3][x_index][y_index] = w
+            retTensor[4][x_index][y_index] = h
+            retTensor[int(5+c)][x_index][y_index] = 1 # classification label
 
         return retTensor
 
@@ -128,7 +128,7 @@ class myDataset(dataset.Dataset):
 
         #对应的label文件路径稍有不同，是文本文件，每行一个bbox标注，以此用空格隔开的有五个字段：类 中心点x 中心点y 宽度w 高度h， 后面四个都是相对于图片宽高的比，取值0-1
         labelPath = imagePath.replace("images", "labels").replace(".jpg", ".txt")
-        label = self.to_tensor(labelPath)
+        label = self.label2tensor(labelPath)
 
         return img, label
 
@@ -137,14 +137,14 @@ class myDataset(dataset.Dataset):
         return len(self.images)
 
 def calc_iou(a:torch.Tensor, b:torch.Tensor, x_cellindex, y_cellindex, cellnr=7):
-    _, x1, y1, w1, h1 = a.detach().cpu().numpy()
-    _, x2, y2, w2, h2 = b.detach().cpu().numpy()
+    _, ox1, oy1, w1, h1 = a.detach().cpu().numpy()
+    _, ox2, oy2, w2, h2 = b.detach().cpu().numpy()
 
     #相对位置转绝对位置
-    x1 = x_cellindex/cellnr + x1/cellnr
-    x2 = x_cellindex / cellnr + x2 / cellnr
-    y1 = y_cellindex/cellnr+y1/cellnr
-    y2 = y_cellindex / cellnr + y1 / cellnr
+    x1 = x_cellindex/cellnr + ox1/cellnr
+    x2 = x_cellindex / cellnr + ox2 / cellnr
+    y1 = y_cellindex/cellnr+oy1/cellnr
+    y2 = y_cellindex / cellnr + oy2 / cellnr
 
     #交集区域的上下左右边界
     left1, right1, top1, bottom1 = (
@@ -161,7 +161,7 @@ def calc_iou(a:torch.Tensor, b:torch.Tensor, x_cellindex, y_cellindex, cellnr=7)
         y2 + h2 / 2
     )
     #assert left1>=0 and left1 <= 1 and right1 >=0 and right1<=1 and top1>=0 and top1<=1 and bottom1>=0 and bottom1<=1
-    assert left2 >= 0 and left2 <= 1 and right2 >= 0 and right2 <= 1 and top2 >= 0 and top2 <= 1 and bottom2 >= 0 and bottom2 <= 1
+    assert left2 >= -0.01 and left2 <= 1.01 and right2 >= -0.01 and right2 <= 1.01 and top2 >= -0.01 and top2 <= 1.01 and bottom2 >= -0.01 and bottom2 <= 1.01
 
     inter_left = max(left1, left2)
     inter_right = min(right1, right2)
@@ -169,7 +169,7 @@ def calc_iou(a:torch.Tensor, b:torch.Tensor, x_cellindex, y_cellindex, cellnr=7)
     inter_bottom = max(bottom1, bottom2)
 
     #交集的面积
-    if inter_left>inter_right or inter_bottom > inter_top:
+    if inter_left>inter_right or inter_bottom < inter_top:
         intersection = 0
     else:
         intersection = (inter_right-inter_left)*(inter_bottom-inter_top)
@@ -253,7 +253,7 @@ if len(pretrained) > 0:  # load from a pretrained file
 print("start training...")
 minbatch = 0
 loss_sum = 0
-for e in range(epochnm):
+for e in range(start_ep, epochnm):
     for imgs, labels in train_data:
         imgs = imgs.to("cuda:0")
         labels = labels.to("cuda:0")
@@ -268,7 +268,7 @@ for e in range(epochnm):
 
         loss_sum += L.to("cpu").data.numpy()
         minbatch += 1
-        if (minbatch % 100) == 0:
+        if (minbatch % 30) == 0:
             print(e, "loss:", loss_sum)
             loss_sum = 0
     torch.save((model.state_dict(), trainer.state_dict()), "./MyYOLOv1_%d.tar" % (e))
