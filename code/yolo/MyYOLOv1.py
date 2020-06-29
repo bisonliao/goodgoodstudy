@@ -5,20 +5,22 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
-from PIL import Image
+from PIL import Image,ImageDraw
 import numpy
 import torch.nn as nn
 import torch.utils.data.dataset as dataset
 import torch.utils.data.dataloader as dataloader
+import os
 
 
 batchsz=16
 device ='cuda:0'
 compute=True
-lr =0.0001
+#lr = 0.0001 # for ep 0-31
+lr =0.00005
 epochnm=100
-start_ep=0
-pretrained=''
+start_ep=45
+pretrained='./MyYOLOv1_45.tar'
 classes = 2
 
 def show_img(img:torch.Tensor):
@@ -42,13 +44,25 @@ class YOLOv1(nn.Module):
         self.C = num_classes
         self.device = device
         self.B = 2 # bbox num per cell
-        self.backbone=models.densenet121(num_classes=10)
+
         if len(pretrained_backbone_weights) > 0:
+            self.backbone = models.densenet121(num_classes=10)
             mdict, tdict = torch.load(pretrained_backbone_weights)
             self.backbone.load_state_dict(mdict)
+        else:
+            self.backbone = models.densenet121(pretrained=True)
 
         self.detector = nn.Sequential(
-            nn.Conv2d(1024, (5 * self.B + self.C), 1),
+            # version#1
+            #nn.Conv2d(1024, (5 * self.B + self.C), 1),
+            #nn.Sigmoid()
+
+            #version#2
+            nn.AdaptiveAvgPool2d(1),
+            torch.nn.Flatten(1),
+            nn.Linear(1024, 512),
+            nn.ReLU(),
+            nn.Linear(512, self.CELL*self.CELL*(5 * self.B + self.C)),
             nn.Sigmoid()
 
         )
@@ -60,7 +74,8 @@ class YOLOv1(nn.Module):
             raise Exception('input size invalid!')
         features = self.backbone.features(x)
         out = self.detector(features)
-        return out
+        newshape=(out.shape[0], -1, self.CELL, self.CELL)
+        return out.reshape(newshape)
 
 class myDataset(dataset.Dataset):
     def __init__(self, imagePathList, isTrain=True, transform=None, num_classes=2):
@@ -103,6 +118,8 @@ class myDataset(dataset.Dataset):
                     break
             if retTensor[0][x_index][y_index] == 1: # there is already a label
                 continue;
+
+            #标注就按这样的方式来组织，和图片像素的NCHW组织没有关系
             retTensor[0][x_index][y_index] = 1.0 # confidence
             retTensor[1][x_index][y_index] = x
             retTensor[2][x_index][y_index] = y
@@ -224,51 +241,131 @@ def MyLoss(predict:torch.Tensor, target:torch.Tensor, cellnr=7, B=2, C=classes):
                     loss += loss_h
                     loss += loss_conf
                     loss += loss_class
-                else:
-                    loss_conf = predict[batch_index, 0, x_cellindex, y_cellindex] - target[
-                        batch_index, 0, x_cellindex, y_cellindex]
-                    loss_conf = loss_conf * loss_conf
-                    loss += loss_conf
 
-                    loss_conf = predict[batch_index, 5, x_cellindex, y_cellindex] - target[
-                        batch_index, 0, x_cellindex, y_cellindex]
-                    loss_conf = loss_conf * loss_conf
-                    loss += loss_conf
+                    #没有命中的bbox，是confidence的负样本
+                    for box_index in range(B):
+                        if box_index == response_box_index:
+                            continue
+                        loss_conf = predict[batch_index, 0+box_index*5, x_cellindex, y_cellindex] - target[
+                            batch_index, 0, x_cellindex, y_cellindex]
+                        loss_conf = loss_conf * loss_conf
+                        loss += loss_conf
+                else:
+                    # 没有命中的cell，是confidence的负样本
+                    for box_index in range(B):
+                        loss_conf = predict[batch_index, 0+box_index*5, x_cellindex, y_cellindex] - target[
+                            batch_index, 0, x_cellindex, y_cellindex]
+                        loss_conf = loss_conf * loss_conf
+                        loss += loss_conf
+
+
 
     return loss
 
 
 
 
+def train():
+    set1 = myDataset("E:\\DeepLearning\\PyTorch-YOLOv3-master\\data\\bison\\train.txt", num_classes=classes)
+    train_data = dataloader.DataLoader(set1, batchsz, False)# type:dataloader.DataLoader
+    #model = YOLOv1(num_classes=classes, pretrained_backbone_weights="E:\\DeepLearning\\mxnet\\pyproject\\untitled\\denseNet_cifa_10_saved.torch.load").to(device)#type:YOLOv1
+    model = YOLOv1(num_classes=classes).to(device)#type:YOLOv1
+    trainer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=0.0005)  # type:torch.optim
+    if len(pretrained) > 0:  # load from a pretrained file
+        mdict, tdict = torch.load(pretrained)
+        model.load_state_dict(mdict)
+        # trainer.load_state_dict(tdict)
 
-set1 = myDataset("E:\\DeepLearning\\PyTorch-YOLOv3-master\\data\\bison\\train.txt", num_classes=classes)
-train_data = dataloader.DataLoader(set1, batchsz, False)# type:dataloader.DataLoader
-model = YOLOv1(num_classes=classes, pretrained_backbone_weights="E:\\DeepLearning\\mxnet\\pyproject\\untitled\\denseNet_cifa_10_saved.torch.load").to("cuda:0")
-trainer = torch.optim.SGD(model.parameters(), lr, momentum=0.9)  # type:torch.optim
-if len(pretrained) > 0:  # load from a pretrained file
+    print("start training...")
+    minbatch = 0
+    loss_sum = 0
+    for e in range(start_ep, epochnm):
+        model.train()
+        for imgs, labels in train_data:
+            imgs = imgs.to(device)
+            labels = labels.to(device)
+            trainer.zero_grad()
+            y = model(imgs)
+
+            L = MyLoss(y, labels)
+
+
+            L.backward()
+            trainer.step()
+
+            loss_sum += L.to("cpu").data.numpy()
+            minbatch += 1
+            if (minbatch % 20) == 0:
+                print(e, "loss:", loss_sum)
+                loss_sum = 0
+        torch.save((model.state_dict(), trainer.state_dict()), "./MyYOLOv1_%d.tar" % (e))
+
+def detect(pretrained_model:str, samples_path:str, cellnr=7, B=2, C=classes):
+    model = YOLOv1(num_classes=classes)  # type:YOLOv1
+    # load from a pretrained file
     mdict, tdict = torch.load(pretrained)
     model.load_state_dict(mdict)
-    # trainer.load_state_dict(tdict)
+    model.eval()
+    for file in os.listdir(samples_path):
+        filename = os.path.join(samples_path, file)
+        if not os.path.isfile(filename) or filename.find(".jpg")<0:
+            continue
 
-print("start training...")
-minbatch = 0
-loss_sum = 0
-for e in range(start_ep, epochnm):
-    for imgs, labels in train_data:
-        imgs = imgs.to("cuda:0")
-        labels = labels.to("cuda:0")
-        trainer.zero_grad()
-        y = model(imgs)
+        fh = Image.open(filename)  # use pillow to open a file
+        fh = fh.resize((224, 224))  # resize the file to 256x256
+        fh = fh.convert('RGB')
+        img = numpy.asarray(fh)  # type:numpy.ndarray
+        fh.close()
+        img = img.transpose(2, 0, 1)  # we have to change the dimensions from width x height x channel (WHC) to channel x width x height (CWH)
+        img = torch.from_numpy(img).type(torch.float32) / 255.0  # type:torch.Tensor
 
-        L = MyLoss(y, labels)
+        input = torch.zeros((1, 3, 224,224))
+        input[0] = img
+        out = model(input) #type:torch.Tensor
+
+        fh = Image.open(filename) #type:Image.Image
+        draw = ImageDraw.Draw(fh)
+        for x_cellindex in range(cellnr):
+            for y_cellindex in range(cellnr):
+                response_box_index = 0
+                max_conf = 0
+                for box_index in range(B):
+                    conf = out[0, 0 + 5 * box_index, x_cellindex, y_cellindex].cpu().item()
+                    if conf > max_conf:
+                        max_conf = conf
+                        response_box_index = box_index
+                conf = out[0, 0 + 5 * response_box_index, x_cellindex, y_cellindex].cpu().item()
+                if conf < 0.6:
+                    continue
+
+                conf, ox, oy, w, h = out[0, 5 * response_box_index:5+5 * response_box_index, x_cellindex, y_cellindex].detach().cpu().numpy()
 
 
-        L.backward()
-        trainer.step()
+                # 中心点相对位置转绝对位置
+                x = x_cellindex / cellnr + ox / cellnr
+                y = y_cellindex / cellnr + oy / cellnr
 
-        loss_sum += L.to("cpu").data.numpy()
-        minbatch += 1
-        if (minbatch % 30) == 0:
-            print(e, "loss:", loss_sum)
-            loss_sum = 0
-    torch.save((model.state_dict(), trainer.state_dict()), "./MyYOLOv1_%d.tar" % (e))
+                classification = out[0,5*B:5*B+C, x_cellindex, y_cellindex].detach().cpu()
+
+                cls_conf, cls_idx = torch.max( classification, 0 )
+                cls_conf = cls_conf.item()
+                cls_idx = cls_idx.item()
+
+                # rect上下左右边界
+                left, right, top, bottom = (
+                    x - w / 2,
+                    x + w / 2,
+                    y - h / 2,
+                    y + h / 2
+                )
+                left = int(left* fh.width)
+                right = int(right* fh.width)
+                top = int(top*fh.height)
+                bottom = int(bottom * fh.height)
+                draw.rectangle(((left,top),(right,bottom)))
+                draw.text((left,top), "%d"%(cls_idx) )
+        fh.save(filename.replace(".jpg", ".png"))
+
+
+#train()
+detect(pretrained, "E:\\DeepLearning\\PyTorch-YOLOv3-master\\data\\samples")

@@ -174,9 +174,17 @@ self.noobj_scale = 1000 # original value is 100, bison increase it to reduce mis
 
 ## 3.2 自己从头实现
 
-[][自己实现的代码]
-
 [自己实现的代码](code/yolo/MyYOLOv1.py)
+
+还是前面整理的火车的图片作为训练样本，运行40多个epoch后，loss不再收敛。
+
+用一些测试样例简单测试，发现召回率还很低：
+
+![结果图片](img/yolo/result5.jpg)
+
+
+
+
 
 参考文档：
 
