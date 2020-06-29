@@ -5,22 +5,34 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
-from PIL import Image,ImageDraw
+from PIL import Image,ImageDraw,ImageFont
 import numpy
 import torch.nn as nn
 import torch.utils.data.dataset as dataset
 import torch.utils.data.dataloader as dataloader
 import os
-
+import datetime
+'''
+YOLOv1 Paper:
+ Throughout training we use a batch
+size of 64, a momentum of 0.9 and a decay of 0.0005.
+Our learning rate schedule is as follows: For the first
+epochs we slowly raise the learning rate from 10^−3
+to 10^−2.
+If we start at a high learning rate our model often diverges
+due to unstable gradients. We continue training with 10^−2
+for 75 epochs, then 10^−3 for 30 epochs, and finally 10^−4
+for 30 epochs
+'''
 
 batchsz=16
 device ='cuda:0'
 compute=True
-#lr = 0.0001 # for ep 0-31
-lr =0.00005
-epochnm=100
-start_ep=45
-pretrained='./MyYOLOv1_45.tar'
+#lr = 0.0001 # for ep 0-99
+lr =0.00001
+epochnm=150
+start_ep=110
+pretrained='./MyYOLOv1_110.tar'
 classes = 2
 
 def show_img(img:torch.Tensor):
@@ -235,10 +247,10 @@ def MyLoss(predict:torch.Tensor, target:torch.Tensor, cellnr=7, B=2, C=classes):
                     loss_class = torch.dist(predict[batch_index, 5*B:5*B+C, x_cellindex, y_cellindex], target[
                         batch_index, 5:5+C, x_cellindex, y_cellindex])
 
-                    loss += loss_x
-                    loss += loss_y
-                    loss += loss_w
-                    loss += loss_h
+                    loss += 5 * loss_x
+                    loss += 5 * loss_y
+                    loss += 5 * loss_w
+                    loss += 5 * loss_h
                     loss += loss_conf
                     loss += loss_class
 
@@ -249,14 +261,14 @@ def MyLoss(predict:torch.Tensor, target:torch.Tensor, cellnr=7, B=2, C=classes):
                         loss_conf = predict[batch_index, 0+box_index*5, x_cellindex, y_cellindex] - target[
                             batch_index, 0, x_cellindex, y_cellindex]
                         loss_conf = loss_conf * loss_conf
-                        loss += loss_conf
+                        loss += 0.5* loss_conf
                 else:
                     # 没有命中的cell，是confidence的负样本
                     for box_index in range(B):
                         loss_conf = predict[batch_index, 0+box_index*5, x_cellindex, y_cellindex] - target[
                             batch_index, 0, x_cellindex, y_cellindex]
                         loss_conf = loss_conf * loss_conf
-                        loss += loss_conf
+                        loss += 0.5 * loss_conf
 
 
 
@@ -296,7 +308,8 @@ def train():
             loss_sum += L.to("cpu").data.numpy()
             minbatch += 1
             if (minbatch % 20) == 0:
-                print(e, "loss:", loss_sum)
+                now = datetime.datetime.now()
+                print(now.time(), e, "loss:", loss_sum)
                 loss_sum = 0
         torch.save((model.state_dict(), trainer.state_dict()), "./MyYOLOv1_%d.tar" % (e))
 
@@ -335,7 +348,7 @@ def detect(pretrained_model:str, samples_path:str, cellnr=7, B=2, C=classes):
                         max_conf = conf
                         response_box_index = box_index
                 conf = out[0, 0 + 5 * response_box_index, x_cellindex, y_cellindex].cpu().item()
-                if conf < 0.5:
+                if conf < 0.7:
                     continue
 
 
@@ -365,10 +378,10 @@ def detect(pretrained_model:str, samples_path:str, cellnr=7, B=2, C=classes):
                 right = int(right* fh.width)
                 top = int(top*fh.height)
                 bottom = int(bottom * fh.height)
-                draw.rectangle(((left,top),(right,bottom)))
-                draw.text((left,top), "class:%d,conf:%.2f"%(cls_idx, conf) )
+                draw.rectangle(((left,top),(right,bottom)), width=3)
+                draw.text((left,top), "class:%d,conf:%.2f"%(cls_idx, conf), font=ImageFont.truetype("arial.ttf", 20))
         fh.save(filename.replace(".jpg", ".png"))
 
 
-#train()
-detect(pretrained, "E:\\DeepLearning\\PyTorch-YOLOv3-master\\data\\samples")
+train()
+#detect(pretrained, "E:\\DeepLearning\\PyTorch-YOLOv3-master\\data\\samples")
