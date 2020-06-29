@@ -335,8 +335,9 @@ def detect(pretrained_model:str, samples_path:str, cellnr=7, B=2, C=classes):
                         max_conf = conf
                         response_box_index = box_index
                 conf = out[0, 0 + 5 * response_box_index, x_cellindex, y_cellindex].cpu().item()
-                if conf < 0.6:
+                if conf < 0.5:
                     continue
+
 
                 conf, ox, oy, w, h = out[0, 5 * response_box_index:5+5 * response_box_index, x_cellindex, y_cellindex].detach().cpu().numpy()
 
@@ -351,6 +352,8 @@ def detect(pretrained_model:str, samples_path:str, cellnr=7, B=2, C=classes):
                 cls_conf = cls_conf.item()
                 cls_idx = cls_idx.item()
 
+                print("detect an object, confidence:%f, class id:%d"%( conf, cls_idx))
+
                 # rect上下左右边界
                 left, right, top, bottom = (
                     x - w / 2,
@@ -363,7 +366,7 @@ def detect(pretrained_model:str, samples_path:str, cellnr=7, B=2, C=classes):
                 top = int(top*fh.height)
                 bottom = int(bottom * fh.height)
                 draw.rectangle(((left,top),(right,bottom)))
-                draw.text((left,top), "%d"%(cls_idx) )
+                draw.text((left,top), "class:%d,conf:%.2f"%(cls_idx, conf) )
         fh.save(filename.replace(".jpg", ".png"))
 
 
