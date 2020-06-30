@@ -29,11 +29,12 @@ batchsz=16
 device ='cuda:0'
 compute=True
 #lr = 0.0001 # for ep 0-99
-lr =0.00001
+lr =0.0001
 epochnm=150
-start_ep=110
-pretrained='./MyYOLOv1_110.tar'
+start_ep=0
+pretrained=''
 classes = 2
+conf_threshold = 0.5
 
 def show_img(img:torch.Tensor):
     img_toshow = img  # type:torch.Tensor
@@ -49,7 +50,7 @@ class YOLOv1(nn.Module):
     denseNet feature output size: 1024X7X7
     detector output size: O X 7 X 7, O=(BX5+C)
     '''
-    def __init__(self, num_classes=2, pretrained_backbone_weights=''):
+    def __init__(self, num_classes=2):
         super(YOLOv1, self).__init__()
         self.CELL = 7
 
@@ -57,12 +58,7 @@ class YOLOv1(nn.Module):
         self.device = device
         self.B = 2 # bbox num per cell
 
-        if len(pretrained_backbone_weights) > 0:
-            self.backbone = models.densenet121(num_classes=10)
-            mdict, tdict = torch.load(pretrained_backbone_weights)
-            self.backbone.load_state_dict(mdict)
-        else:
-            self.backbone = models.densenet121(pretrained=True)
+        self.backbone = models.densenet121(pretrained=True)
 
         self.detector = nn.Sequential(
             # version#1
@@ -247,11 +243,11 @@ def MyLoss(predict:torch.Tensor, target:torch.Tensor, cellnr=7, B=2, C=classes):
                     loss_class = torch.dist(predict[batch_index, 5*B:5*B+C, x_cellindex, y_cellindex], target[
                         batch_index, 5:5+C, x_cellindex, y_cellindex])
 
-                    loss += 5 * loss_x
-                    loss += 5 * loss_y
-                    loss += 5 * loss_w
-                    loss += 5 * loss_h
-                    loss += loss_conf
+                    loss += loss_x
+                    loss += loss_y
+                    loss += loss_w
+                    loss += loss_h
+                    loss += 10*loss_conf #有一个物体，模型判断说没有，那得加大惩罚，否则召回率上不去
                     loss += loss_class
 
                     #没有命中的bbox，是confidence的负样本
@@ -261,26 +257,86 @@ def MyLoss(predict:torch.Tensor, target:torch.Tensor, cellnr=7, B=2, C=classes):
                         loss_conf = predict[batch_index, 0+box_index*5, x_cellindex, y_cellindex] - target[
                             batch_index, 0, x_cellindex, y_cellindex]
                         loss_conf = loss_conf * loss_conf
-                        loss += 0.5* loss_conf
+                        loss += loss_conf
                 else:
                     # 没有命中的cell，是confidence的负样本
                     for box_index in range(B):
                         loss_conf = predict[batch_index, 0+box_index*5, x_cellindex, y_cellindex] - target[
                             batch_index, 0, x_cellindex, y_cellindex]
                         loss_conf = loss_conf * loss_conf
-                        loss += 0.5 * loss_conf
+                        loss += 0.5 * loss_conf  #没有物体，模型判断说有，惩罚不能太严，要不模型不敢说话，召回率上不去
 
 
 
     return loss
 
 
+def validate(model, cellnr=7, B=2, C=classes):
+    set1 = myDataset("E:\\DeepLearning\\PyTorch-YOLOv3-master\\data\\bison\\valid.txt", num_classes=classes)
+    valid_data = dataloader.DataLoader(set1, batch_size=1, shuffle=False)# type:dataloader.DataLoader
+
+    print("start validating...")
+
+    # 精度统计的两个变量
+    total = 0
+    score = 0
+    # 召回率统计的两个变量
+    to_recall = 0
+    recalled = 0
+
+    model.eval()
+    for imgs, labels in valid_data:
+        imgs = imgs.to(device)
+        labels = labels.to(device)
+        out = model(imgs)
+        for x_cellindex in range(cellnr):
+            for y_cellindex in range(cellnr):
+                total += 1
+                response_box_index = 0
+                max_conf = 0
+                for box_index in range(B):
+                    conf = out[0, 0 + 5 * box_index, x_cellindex, y_cellindex].cpu().item()
+                    if conf > max_conf:
+                        max_conf = conf
+                        response_box_index = box_index
+                conf = out[0, 0 + 5 * response_box_index, x_cellindex, y_cellindex].cpu().item()
+                conf_in_label = labels[0,0, x_cellindex,y_cellindex].cpu().item()
+                if conf_in_label > conf_threshold:
+                    to_recall += 1
+                if conf < conf_threshold and conf_in_label < conf_threshold: # 都说这里没有物体，得分
+                    score += 1
+                    continue
+                got_obj = (conf >= conf_threshold and conf_in_label >= conf_threshold)# 都说这里有物体, 那要看看分类是否正确了
+                if not got_obj:
+                    continue
+
+                # 进一步检查分类，如果正确就得分，分数要按IOU折扣一下
+                pred_box = out[0, 5 * response_box_index:5 + 5 * response_box_index, x_cellindex,
+                                     y_cellindex]
+                label_box = labels[0, 0:5, x_cellindex, y_cellindex]
+
+                iou = calc_iou(pred_box, label_box, x_cellindex, y_cellindex, cellnr)
+
+                classification = out[0, 5 * B:5 * B + C, x_cellindex, y_cellindex].detach().cpu()
+                _, pred_class = torch.max(classification, 0)
+                pred_class = pred_class.item()
+
+                classification = labels[0, 5:5+C, x_cellindex, y_cellindex].detach().cpu()
+                _, label_class = torch.max(classification, 0)
+                label_class = label_class.item()
+
+                if label_class == pred_class:
+                    score += iou*1
+                    recalled += 1
+
+    return score/total, recalled / to_recall
+
 
 
 def train():
     set1 = myDataset("E:\\DeepLearning\\PyTorch-YOLOv3-master\\data\\bison\\train.txt", num_classes=classes)
-    train_data = dataloader.DataLoader(set1, batchsz, False)# type:dataloader.DataLoader
-    #model = YOLOv1(num_classes=classes, pretrained_backbone_weights="E:\\DeepLearning\\mxnet\\pyproject\\untitled\\denseNet_cifa_10_saved.torch.load").to(device)#type:YOLOv1
+    train_data = dataloader.DataLoader(set1, batchsz, True)# type:dataloader.DataLoader
+
     model = YOLOv1(num_classes=classes).to(device)#type:YOLOv1
     trainer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=0.0005)  # type:torch.optim
     if len(pretrained) > 0:  # load from a pretrained file
@@ -311,7 +367,10 @@ def train():
                 now = datetime.datetime.now()
                 print(now.time(), e, "loss:", loss_sum)
                 loss_sum = 0
+
         torch.save((model.state_dict(), trainer.state_dict()), "./MyYOLOv1_%d.tar" % (e))
+        print("valid:", validate(model))
+        model.train()
 
 def detect(pretrained_model:str, samples_path:str, cellnr=7, B=2, C=classes):
     model = YOLOv1(num_classes=classes)  # type:YOLOv1
@@ -348,7 +407,7 @@ def detect(pretrained_model:str, samples_path:str, cellnr=7, B=2, C=classes):
                         max_conf = conf
                         response_box_index = box_index
                 conf = out[0, 0 + 5 * response_box_index, x_cellindex, y_cellindex].cpu().item()
-                if conf < 0.7:
+                if conf < conf_threshold:
                     continue
 
 
@@ -385,3 +444,9 @@ def detect(pretrained_model:str, samples_path:str, cellnr=7, B=2, C=classes):
 
 train()
 #detect(pretrained, "E:\\DeepLearning\\PyTorch-YOLOv3-master\\data\\samples")
+'''
+model = YOLOv1(num_classes=classes).to(device)#type:YOLOv1
+mdict, tdict = torch.load(pretrained)
+model.load_state_dict(mdict)
+print(validate(model))
+'''

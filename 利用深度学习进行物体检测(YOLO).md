@@ -178,7 +178,7 @@ self.noobj_scale = 1000 # original value is 100, bison increase it to reduce mis
 
 还是前面整理的火车的图片作为训练样本，运行10来个小时140多个epoch后，loss收敛了3个数量级，
 
-用一些测试样例简单测试，选择一个比较平衡的置信度阈值为0.7：
+用一些测试样例简单测试，召回率比较低，只有10%（置信度阈值设置为0.5）：
 
 ![结果图片](img/yolo/result5.jpg)
 
