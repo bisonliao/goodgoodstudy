@@ -88,47 +88,26 @@ class Fund:
         self.fundteam = doc.xpath("//span[contains(text(),'管 理 人')]/following-sibling::a/text()")[0]
 
 
-    def automatic_invest(self):
+
+
+    def invest(self, smart=False, stopprofit=False, maxcnt=0):
         dt = [*self.fundvalue.keys()]
         dt.sort()
         year_mon = ""
         share = 0.0
         cost = 0.0
-        lastday = ""
-        investcnt = 0
-        for day in dt:
-            if day[0:4] == "2020": # 2020 first half year, there is a boom in stock/fund market, get rid of this influence.
-                break
-            lastday = day
-            if day[0:7] != year_mon:
-                investcnt += 1
-                year_mon = day[0:7]
-                share += 1000.0 / float(self.fundvalue[day]["netval"])
-                cost += 1000.0
-        if cost < 1000:
-            return 0, 0, 0
-
-        years = cost/12000
-        times = float(self.fundvalue[lastday]["netval"])*share / cost
-        rate = math.pow(10, math.log10(times) / years)
-
-        return times, years , rate
-
-    def smart_invest(self):
-        dt = [*self.fundvalue.keys()]
-        dt.sort()
-        year_mon = ""
-        share = 0.0
-        cost = 0.0
+        reward=0.0
         lastday = ""
 
         netvalsum = 0.0
         netvalcnt = 0
         investcnt = 0
+
         for day in dt:
             if day[0:4] == "2020": # 2020 first half year, there is a boom in stock/fund market, get rid of this influence.
                 break
-
+            if maxcnt>0 and investcnt > maxcnt:
+                break
             lastday = day
             currentval = float(self.fundvalue[day]["netval"])
             netvalcnt += 1
@@ -137,18 +116,26 @@ class Fund:
                 #print(day, self.fundvalue[day])
                 investcnt += 1
                 year_mon = day[0:7]
-                # if netval is lower than avg, invest double
-                if netvalcnt > 30 and (currentval / (netvalsum/netvalcnt)) < 0.9:
+                if smart and netvalcnt > 30 and (currentval / (netvalsum/netvalcnt)) < 0.9:
+                    # if netval is lower than avg, invest double
                     cost += 2000
                     share += 2000.0 / currentval
+
                 else:
                     cost += 1000.0
                     share += 1000.0 / currentval
+            if stopprofit:
+                if cost>0 and (currentval*share / cost) >= 1.3:
+                    reward += currentval*share
+                    share = 0 # restart
+
         if cost < 1000:
             return 0, 0, 0
 
+        reward += float(self.fundvalue[lastday]["netval"])*share
+
         years = investcnt / 12.0
-        times = float(self.fundvalue[lastday]["netval"])*share / cost
+        times =  reward / cost
         rate = math.pow(10, math.log10(times) / years)
 
         return times, years , rate
@@ -157,7 +144,7 @@ class Fund:
 def __main__():
 
 
-    code = ["164402", "160643", "502003", "502010", "501048", "257060", "005542",
+    '''code = ["164402", "160643", "502003", "502010", "501048", "257060", "005542",
             "001891", "161616", "004075", "519736", "002803" , "110003", "007784",
             "160620", "005911", "710302", "501010", "270023", "004973", "003745",
             "006751",  "001717","004851", "001915", "320007", "002939", "519674",
@@ -166,7 +153,8 @@ def __main__():
             "001691", "006308", "270023", "004860", "004749", "004973", "003468",
             "002302", "004503", "002719", "007378", "007377", "002552", "161838",
             "009411", "009857", "009858", "009770", "161223", "519677", "000478",
-            "110050", "000727", "160716", "070023", "159916", "512600", "110022"]
+            "110050", "000727", "160716", "070023", "159916", "512600", "110022"]'''
+    code=["159932", "159915", "512330", "510290", "000942", "510500", "510050", "510880", "510510", "000248"]
 
 
 
@@ -180,7 +168,7 @@ def __main__():
         f = Fund(c)
 
         #(t, y, r) = f.automatic_invest()
-        (t, y, r) = f.smart_invest()
+        (t, y, r) = f.invest(False, True)
         print("%s, %.02f, %.02f, %.03f"%(c,t,y,r) )
         total += r*y
         cnt += y
