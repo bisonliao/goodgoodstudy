@@ -105,7 +105,7 @@ class Fund:
 
 
 
-    def invest(self, smart=False, stopprofit=False, peridlimit=0):
+    def invest(self, smart=False, stopprofit=False, periodlimit=0):
         dt = [*self.fundvalue.keys()]
         dt.sort()
         year_mon = ""
@@ -119,7 +119,7 @@ class Fund:
         netvalcnt = 0
         # get diff
         deriv = self.__get_derivative()
-
+        checkpoint = periodlimit
         for day in dt:
             if day[0:4] == "2020": # 2020 first half year, there is a boom in stock/fund market, get rid of this influence.
                 break
@@ -145,12 +145,11 @@ class Fund:
                     if  netvalcnt>7 and sum(deriv[netvalcnt-7:]) < 0: # if netval is going up, do NOT stop profit
                         reward += currentval*share
                         share = 0 # restart
-            if peridlimit > 0:
-                if investcnt>0 and (investcnt%peridlimit)==0:
+            if periodlimit > 0:
+                if investcnt > checkpoint and (currentval*share / cost) >= 1.06:
+                    checkpoint = (int(investcnt/periodlimit)+1)*periodlimit
                     reward += currentval * share
                     share = 0  # restart
-
-
 
         if cost < 1000:
             return 0, 0, 0
@@ -190,7 +189,7 @@ def __main__():
     goodcnt = 0
     for c in code:
         f = Fund(c)
-        (t, y, r) = f.invest(True, True, 0)
+        (t, y, r) = f.invest(True, False, 0)
         print("%s, %.02f, %.02f, %.03f"%(c,t,y,r) )
         total += r*y
         cnt += y
