@@ -30,13 +30,13 @@ https://cloud.tencent.com/developer/article/1084113
 
 ```shell
 docker pull daocloud.io/cassandra
-docker run -it daocloud.io/cassandra /bin/bash
-groupadd shcassandra
+docker run --name cpy -it daocloud.io/cassandra /bin/bash
+groupadd cassandra
 useradd -g cassandra cassandra
 mkdir /opt/cassandra; cd /opt/cassandra
-docker cp 0947657a3bd4:/opt/cassandra/conf/cassandra.yaml .   #注意把容器编号改为你实际的容器编号
+docker cp cpy:/opt/cassandra/conf/cassandra.yaml ./
 chown -R cassandra:cassandra /opt/cassandra; chmod -R 777  /opt/cassandra
-docker stop 0947657a3bd4;docker rm 0947657a3bd4
+docker stop cpy;docker rm cpy
 ```
 
 编辑/opt/cassandra/cassandra.yaml文件，修改配置如下：
@@ -186,3 +186,6 @@ https://docs.datastax.com/en/archived/cassandra/2.0/cassandra/dml/dml_config_con
 
 https://stackoverflow.com/questions/44883940/cassandra-cannot-achieve-consistency-level-quorum
 
+如何在一个服务器上利用docker部署多个cassandra节点，但我没有搞定，后来又买了一台机器组成三个机房/节点：
+
+https://www.cnblogs.com/stoneFang/p/6715298.html
