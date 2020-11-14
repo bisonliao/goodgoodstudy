@@ -10,9 +10,11 @@
 6. 每次读写数据，可以指定一致性要求，例如是读到2个副本才算成功读，写一半以上的副本数才算成功写
 7. 使用commitlog+内存+磁盘的方式平衡读写性能与可靠性
 
-借用网友的一张图：
+借用网友的两张图：
 
-![](img/cassandra/cassandra.jpg)
+![这里有张图](img/cassandra/cassandra.jpg)
+
+![这里有张图](img/cassandra/features.jpg)
 
 根据网上的资料，黑石基金的技术部门、饿了么的技术部门据说都在大规模的使用cassandra。
 
@@ -69,6 +71,7 @@ docker run -d --name cass_node1 -e CASSANDRA_BROADCAST_ADDRESS=119.28.XX.XX  \
 docker run -d --name cass_node2 -e CASSANDRA_BROADCAST_ADDRESS=49.51.XX.XX  \  
 -e  CASSANDRA_DC=DC2 -e CASSANDRA_RACK=RAC1  \
 -e  CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch  \
+-e  CASSANDRA_SEEDS=119.28.XXX.XXX \  #香港的那个机器作为种子，这样集群的成员节点就相互知道了
 -v /etc/localtime:/etc/localtime:ro \
 -v /opt/cassandra/cassandra.yaml:/opt/cassandra/conf/cassandra.yaml:rw \
 -v /var/lib/cassandra:/var/lib/cassandra:rw \
@@ -173,9 +176,13 @@ print(cluster.is_shutdown)
 
 在本机运行，避免远程网络访问的话，测得每秒插入1176行记录
 
-
+### 参考文档
 
 一致性级别的参考文档：
 
 https://docs.datastax.com/en/archived/cassandra/2.0/cassandra/dml/dml_config_consistency_c.html
+
+一个机器宕机后，cqlsh也无法连接另一个机器的问题解答：
+
+https://stackoverflow.com/questions/44883940/cassandra-cannot-achieve-consistency-level-quorum
 
