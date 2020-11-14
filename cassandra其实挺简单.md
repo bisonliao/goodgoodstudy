@@ -189,3 +189,7 @@ https://stackoverflow.com/questions/44883940/cassandra-cannot-achieve-consistenc
 如何在一个服务器上利用docker部署多个cassandra节点，但我没有搞定，后来又买了一台机器组成三个机房/节点：
 
 https://www.cnblogs.com/stoneFang/p/6715298.html
+
+各种数据库的特性对比：
+
+https://kkovacs.eu/cassandra-vs-mongodb-vs-couchdb-vs-redis
