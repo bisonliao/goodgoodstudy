@@ -20,6 +20,8 @@
 
 https://cloud.tencent.com/developer/article/1084113
 
+https://www.youtube.com/watch?v=vJVHfqE2mPM
+
 这里简单的实验，演示cassandra跨IDC的数据库分布。
 
 ### 实验演示
