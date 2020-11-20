@@ -122,7 +122,31 @@ docker对网络的使用，有bridge、host等几种方式。默认是bridge方�
 
 bridge使得各个容器之间的网络是隔离的，各容器有各自的虚拟网络和ip，通过NAT的方式访问宿主机器和外部网络， docker run -p可以指定端口映射关系。
 
-host是直接使用宿主机的ip和网络栈，各容器之间没有网络隔离。
+bridge方式下，容器内会看到自己各自的网络：
+
+```
+root@c9b5a4fd2eb8:~# netstat -ien
+Kernel Interface table
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.17.0.3  netmask 255.255.0.0  broadcast 0.0.0.0
+        inet6 fe80::42:acff:fe11:3  prefixlen 64  scopeid 0x20<link>
+        ether 02:42:ac:11:00:03  txqueuelen 0  (Ethernet)
+        RX packets 6  bytes 468 (468.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 6  bytes 468 (468.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+        inet 127.0.0.1  netmask 255.0.0.0
+        inet6 ::1  prefixlen 128  scopeid 0x10<host>
+        loop  txqueuelen 0  (Local Loopback)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+```
+
+host是直接使用宿主机的ip和网络栈，各容器之间没有网络隔离。容器内看到的直接就是主机的网络。
 
 详细情况请见相关文档。
 
