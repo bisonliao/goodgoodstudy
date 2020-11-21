@@ -121,24 +121,6 @@ cqlsh -ucassandra -pcassandra
 > select * from testdb.user;
 ```
 
-### 验证设想
-
-#### 设想一：一个IDC故障/宕机，另外一个IDC还可以读写
-
-将香港机器上的docker容器停止，或者使用安全规则使得两个机器不能相互访问，继续在美国的机器上读写数据，实验符合预期。
-
-```sql
-cqlsh -ucassandra -pcassandra
-
-> consistency LOCAL_ONE
-> insert into testdb.user(id, name) values(2, 'liao');
-> select * from testdb.user; #不会报错
-> consistency TWO
-> select * from testdb.user;  #会报错
-```
-
-把香港机器上的docker容器启动起来，很短的时间后，在香港的机器上应该也可以拉取到新插入的数据。并且这是用用TWO/ALL/QUORUM等一致性级别来读写数据都是ok的。符合预期
-
 ### 编程访问cassandra
 
 以python为例，拉取必要的驱动/sdk：
@@ -179,6 +161,166 @@ print(cluster.is_shutdown)
 在本机运行，避免远程网络访问的话，测得每秒插入1176行记录(只写香港本地datacenter)。
 
 一致性级别如果改为ALL，那就意味着美国的DC和香港DC的副本需要都写成功才成功返回，每秒插入6.25次，每次时延160ms，而香港ping美国的时延是144ms，符合预期。
+
+### 验证设想
+
+#### 设想一：一个IDC故障/宕机，另外一个IDC还可以读写
+
+将香港机器上的docker容器停止，或者使用安全规则使得两个机器不能相互访问，继续在美国的机器上读写数据，实验符合预期。
+
+```sql
+cqlsh -ucassandra -pcassandra
+
+> consistency LOCAL_ONE
+> insert into testdb.user(id, name) values(2, 'liao');
+> select * from testdb.user; #不会报错
+> consistency TWO
+> select * from testdb.user;  #会报错
+```
+
+把香港机器上的docker容器启动起来，很短的时间后，在香港的机器上应该也可以拉取到新插入的数据。并且这是用用TWO/ALL/QUORUM等一致性级别来读写数据都是ok的。符合预期
+
+#### 设想二：远距离的datacenter之间是否可以及时的同步
+
+验证方法：
+
+1. 在美国的服务器用python脚本插入数据，数据中记录了当前插入的时间，抽样将插入的某些记录tcp报文发送到香港的服务器，通知香港服务器查一下本地是否收到了该数据，并比对时间差/时延
+2. 在香港用python监听一个tcp服务端口，如果收到一个id，就去testdb.user里查询本地IDC里存储的对应的记录，看看该记录的插入时间与当前时间的差异
+
+结论：
+
+实验发现，简单的两三个节点组成的集群，负载比较低的情况下（每秒几百上千QPS插入），远距离的datacenter之间的同步是及时的，显示时延100ms左右。（服务器间时间差几乎为0，美国香港间ping的rtt为144ms，不是特别严谨，但足以说明问题。）
+
+```
+1605948260176 113
+1605948260492 85
+1605948260881 114
+1605948261195 84
+1605948261553 84
+1605948261899 83
+1605948262243 87
+```
+美国服务器上运行的脚本：
+
+```python
+from cassandra.cluster import Cluster
+from cassandra.auth import PlainTextAuthProvider
+from cassandra import ConsistencyLevel
+from cassandra.query import SimpleStatement
+
+import datetime
+import time
+import socket
+import sys
+def start_cassandra():
+    auth_provider = PlainTextAuthProvider(username='cassandra', password='cassandra')
+    #cluster = Cluster(["119.28.214.71"],auth_provider= auth_provider)
+    cluster = Cluster(["127.0.0.1"],auth_provider= auth_provider)
+    # 连接并创建一个会话
+    session = cluster.connect("testdb")
+    return cluster, session
+
+def do_tcp_server(ip, port):
+  cluster,session = start_cassandra()
+  #create socket
+  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  server_address = (ip, port)
+  #bind port
+  print('starting listen on ip %s, port %s'%server_address)
+  sock.bind(server_address)
+  #starting listening, allow only one connection
+  try:
+    sock.listen(1)
+  except socket.error as e:
+    print("fail to listen on port %s"%e)
+    sys.exit(1)
+  while True:
+    print("waiting for connection")
+    client,addr = sock.accept()
+    print('having a connection')
+    while True:
+        leftlen = 13
+        req=""
+        while leftlen > 0:
+            data = client.recv(leftlen)
+            if not data:
+                break
+            #print(type(data))
+            leftlen -= len(data)
+            req = req+data.decode("utf-8") #这里不是很严谨，收到的部分数据不一定保证完整的utf8
+        if len(req) != 13:
+            print("req=[%s]"%req)
+            break
+
+        found = False
+        while not found: #一次两次可能还查不到，因为还没有从香港同步到美国
+            sql="select * from  user where id=%s"%(req)
+            simple_statement = SimpleStatement(sql, consistency_level=ConsistencyLevel.LOCAL_ONE)
+            rows = session.execute(simple_statement)
+            current = time.time()
+            current = int(round(current * 1000))
+            for row in rows:
+                print(current, current-int(row[1]))
+                found = True
+
+    client.close()
+
+if __name__ == '__main__':
+    do_tcp_server("0.0.0.0", 4951)
+```
+
+香港服务器运行的脚本
+
+```python
+# -*- encoding: utf-8 -*-
+from cassandra.cluster import Cluster
+from cassandra.auth import PlainTextAuthProvider
+from cassandra import ConsistencyLevel
+from cassandra.query import SimpleStatement
+
+import datetime
+import time
+import socket
+import sys
+def start_cassandra():
+    auth_provider = PlainTextAuthProvider(username='cassandra', password='cassandra')
+    #cluster = Cluster(["119.28.214.71"],auth_provider= auth_provider)
+    cluster = Cluster(["127.0.0.1"],auth_provider= auth_provider)
+    # 连接并创建一个会话
+    session = cluster.connect("testdb")
+    return cluster, session
+
+def start_tcp_client(ip, port):
+  #server port and ip
+  server_ip = ip
+  server_port = port
+  tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  try:
+    tcp_client.connect((server_ip, server_port))
+  except socket.error:
+    print('fail to setup socket connection')
+  return tcp_client
+  
+if __name__ == '__main__'
+        tcp_client = start_tcp_client("49.51.xx.xx", 4951)
+        cluster, session = start_cassandra()
+        session.execute("DROP TABLE testdb.user ;")
+        session.execute("CREATE TABLE testdb.user (    id int PRIMARY KEY,    name text);")
+
+        for i in range(1000000):
+            current = time.time()
+            current = int(round(current * 1000))
+            sql="insert into user(id, name)values(%d,'%d')"%(i, current)
+            simple_statement = SimpleStatement(sql, consistency_level=ConsistencyLevel.QUORUM)
+            session.execute(simple_statement)
+            if ((i+1)%97 ) == 7:
+                req = "%13d"%(i)
+                print(req)
+                tcp_client.send(req.encode('utf-8'))
+        cluster.shutdown()
+```
+
+
 
 ### 参考文档
 
