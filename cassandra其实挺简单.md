@@ -190,28 +190,23 @@ cqlsh -ucassandra -pcassandra
 
 结论：
 
-实验发现，简单的两三个节点组成的集群，负载比较低的情况下（每秒几百上千QPS插入），远距离的datacenter之间的同步是及时的，显示时延100ms左右。（美国香港间ping的rtt为144ms，看起来ntpd没有把时间校准到足够精确, 交换两个脚本的角色可以抵消）
+实验发现，简单的两三个节点组成的集群，表中有500万条记录，负载比较低的情况下（每秒几百上千QPS插入），远距离的datacenter之间的同步是及时的，显示时延100ms-200ms左右。（美国香港间ping的rtt为144ms，看起来ntpd没有把时间校准到足够精确, 交换两个脚本的角色可以抵消）
 
 ```
-#香港插入，美国检查时间差
-1605948260176 113
-1605948260492 85
-1605948260881 114
-1605948261195 84
-1605948261553 84
-1605948261899 83
-1605948262243 87
-
-#美国插入，香港检查时间差
-1606048730912 171
-1606048730914 93
-1606048731064 163
-1606048731072 93
-1606048731216 154
-1606048731365 224
-1606048731367 144
-1606048731518 216
-
+1606056855706 189
+1606056859013 191
+1606056862277 88
+1606056865763 189
+1606056869138 190
+1606056872506 189
+1606056875736 85
+1606056879167 189
+1606056882594 189
+1606056885924 87
+1606056889500 194
+1606056892812 85
+1606056896484 190
+1606056899763 87
 ```
 美国服务器上运行的脚本：
 
@@ -232,6 +227,42 @@ def start_cassandra():
     # 连接并创建一个会话
     session = cluster.connect("testdb")
     return cluster, session
+def run(client):
+    cluster,session = start_cassandra()
+    while True:
+        leftlen = 13
+        req=""
+        while leftlen > 0:
+            data = client.recv(leftlen)
+            if not data:
+                break
+            #print(type(data))
+            leftlen -= len(data)
+            req = req+data.decode("utf-8")
+        if len(req) != 13:
+            print("req=[%s]"%req)
+            break
+
+        found = False
+        cnt=0
+        while not found:
+            cnt += 1
+            if cnt > 2:
+                time.sleep(0.1)
+
+            sql="select * from  user where id=%s"%(req)
+            '''if cnt > 10:
+                print("failed to query", sql)
+                break'''
+            simple_statement = SimpleStatement(sql, consistency_level=ConsistencyLevel.LOCAL_ONE)
+            rows = session.execute(simple_statement)
+            current = time.time()
+            current = int(round(current * 1000))
+            for row in rows:
+                print(req, current-int(row[1]))
+                found = True
+    client.close()
+
 
 def do_tcp_server(ip, port):
   cluster,session = start_cassandra()
@@ -248,35 +279,12 @@ def do_tcp_server(ip, port):
     print("fail to listen on port %s"%e)
     sys.exit(1)
   while True:
-    print("waiting for connection")
-    client,addr = sock.accept()
-    print('having a connection')
-    while True:
-        leftlen = 13
-        req=""
-        while leftlen > 0:
-            data = client.recv(leftlen)
-            if not data:
-                break
-            #print(type(data))
-            leftlen -= len(data)
-            req = req+data.decode("utf-8") #这里不是很严谨，收到的部分数据不一定保证完整的utf8
-        if len(req) != 13:
-            print("req=[%s]"%req)
-            break
-
-        found = False
-        while not found: #一次两次可能还查不到，因为还没有从香港同步到美国
-            sql="select * from  user where id=%s"%(req)
-            simple_statement = SimpleStatement(sql, consistency_level=ConsistencyLevel.LOCAL_ONE)
-            rows = session.execute(simple_statement)
-            current = time.time()
-            current = int(round(current * 1000))
-            for row in rows:
-                print(current, current-int(row[1]))
-                found = True
-
-    client.close()
+      print("waiting for connection")
+      client,addr = sock.accept()
+      print('having a connection')
+      t1 = threading.Thread(target=run, args=(client,))
+      t1.start()
+      #run(client)    
 
 if __name__ == '__main__':
     do_tcp_server("0.0.0.0", 4951)
@@ -324,7 +332,7 @@ if __name__ == '__main__'
             current = time.time()
             current = int(round(current * 1000))
             sql="insert into user(id, name)values(%d,'%d')"%(i, current)
-            simple_statement = SimpleStatement(sql, consistency_level=ConsistencyLevel.ONE)
+            simple_statement = SimpleStatement(sql, consistency_level=ConsistencyLevel.QUORUM)
             session.execute(simple_statement)
             if ((i+1)%97 ) == 7:
                 req = "%13d"%(i)
