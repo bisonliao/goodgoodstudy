@@ -184,14 +184,16 @@ cqlsh -ucassandra -pcassandra
 
 验证方法：
 
-1. 在美国的服务器用python脚本插入数据，数据中记录了当前插入的时间，抽样将插入的某些记录tcp报文发送到香港的服务器，通知香港服务器查一下本地是否收到了该数据，并比对时间差/时延
-2. 在香港用python监听一个tcp服务端口，如果收到一个id，就去testdb.user里查询本地IDC里存储的对应的记录，看看该记录的插入时间与当前时间的差异
+1. 使用经过ntpd校准时间的腾讯云服务器
+2. 在香港的服务器用python脚本插入数据，数据中记录了当前插入的时间，抽样将插入的某些记录tcp报文发送到美国的服务器，通知美国服务器查一下本地是否收到了该数据，并比对时间差/时延
+3. 在美国用python监听一个tcp服务端口，如果收到一个id，就去testdb.user里查询本地IDC里存储的对应的记录，看看该记录的插入时间与当前时间的差异
 
 结论：
 
-实验发现，简单的两三个节点组成的集群，负载比较低的情况下（每秒几百上千QPS插入），远距离的datacenter之间的同步是及时的，显示时延100ms左右。（服务器间时间差几乎为0，美国香港间ping的rtt为144ms，不是特别严谨，但足以说明问题。）
+实验发现，简单的两三个节点组成的集群，负载比较低的情况下（每秒几百上千QPS插入），远距离的datacenter之间的同步是及时的，显示时延100ms左右。（美国香港间ping的rtt为144ms，看起来ntpd没有把时间校准到足够精确, 交换两个脚本的角色可以抵消）
 
 ```
+#香港插入，美国检查时间差
 1605948260176 113
 1605948260492 85
 1605948260881 114
@@ -199,6 +201,17 @@ cqlsh -ucassandra -pcassandra
 1605948261553 84
 1605948261899 83
 1605948262243 87
+
+#美国插入，香港检查时间差
+1606048730912 171
+1606048730914 93
+1606048731064 163
+1606048731072 93
+1606048731216 154
+1606048731365 224
+1606048731367 144
+1606048731518 216
+
 ```
 美国服务器上运行的脚本：
 
@@ -311,7 +324,7 @@ if __name__ == '__main__'
             current = time.time()
             current = int(round(current * 1000))
             sql="insert into user(id, name)values(%d,'%d')"%(i, current)
-            simple_statement = SimpleStatement(sql, consistency_level=ConsistencyLevel.QUORUM)
+            simple_statement = SimpleStatement(sql, consistency_level=ConsistencyLevel.ONE)
             session.execute(simple_statement)
             if ((i+1)%97 ) == 7:
                 req = "%13d"%(i)
