@@ -6,6 +6,10 @@
 
 官网：https://keydb.dev/
 
+keydb的配置文件的详细说明在这里：
+
+https://docs.keydb.dev/docs/config-file/#keydb-configuration
+
 ### 2、构建好用的镜像
 
 为了节约成本、提高效率，我用docker镜像来搭建，并且keydb实例都部署在同一个CVM下。
@@ -391,6 +395,27 @@ Adding replica 172.18.0.5:7004 to 172.18.0.4:7003
 (integer) 0
 ```
 
-keydb的配置文件的详细说明在这里：
+访问集群版的keydb或者redis，各个语言用到的库通常是不一样的，例如python，就要安装redis-py-cluster
 
-https://docs.keydb.dev/docs/config-file/#keydb-configuration
+```python
+#!/usr/bin/python3
+#coding:utf-8
+
+from rediscluster import  RedisCluster
+import sys
+
+def redis_cluster():
+    redis_nodes =  [{'host':'172.18.0.2','port':7001} ]
+    redisconn =  RedisCluster(startup_nodes=redis_nodes)
+    redisconn.hset('bison','name', 'liaonb')
+    redisconn.hset('bison','age', 40)
+    redisconn.hset('jack','age', 21)
+    print("name is: ", redisconn.hget('bison', 'name') )
+    print("age  is: ", redisconn.hget('jack', 'age')  )
+
+redis_cluster()
+```
+
+### 5、跨地域active replication  +  集群方式
+
+好像有点麻烦，要一个一个node的设置active replication，还在研究有没有简单的办法
