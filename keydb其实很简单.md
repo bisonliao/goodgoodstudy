@@ -51,7 +51,7 @@ docker build -t keydb:bison .
 
 ### 3、体验multi master replication(MMR)
 
-#### 3.1 准备工作
+#### 3.1  情况A：环形复制关系
 
 创建一张桥接网卡，docker容器都使用该网卡所在的网段：
 
@@ -103,13 +103,52 @@ active-replica yes
 replicaof  172.18.0.2 6379
 ```
 
-可以看到，这三个实例假设叫A B C，他们的复制关系形成了一个环：
+可以看到，这三个实例假设叫A B C，他们的复制关系形成了一个环，如果其中一个环节故障了，会影响同步：
 
 ```
 A->B->C->A
 ```
 
+#### 3.1 情况B：三个实例，两两间同步
+
+也可以配置为三个实例两两间同步，因为keydb支持从多个master复制：
+
+三个配置文件分别为：
+
+```
+hongkong1#cat /keydb/node1/redis.conf
+bind 172.18.0.2
+port 6379
+requirepass mypassword123
+masterauth mypassword123
+active-replica yes
+multi-master yes
+replicaof  172.18.0.3 6379
+replicaof  172.18.0.4 6379
+
+hongkong1#cat /keydb/node2/redis.conf
+bind 172.18.0.3
+port 6379
+requirepass mypassword123
+masterauth mypassword123
+active-replica yes
+multi-master yes
+replicaof  172.18.0.2 6379
+replicaof  172.18.0.4 6379
+
+hongkong1#cat /keydb/node3/redis.conf
+bind 172.18.0.4
+port 6379
+requirepass mypassword123
+masterauth mypassword123
+active-replica yes
+multi-master yes
+replicaof  172.18.0.3 6379
+replicaof  172.18.0.2 6379
+```
+
 #### 3.2 启动和验证
+
 
 ```
 docker stop mynode1 mynode2 mynode3
@@ -127,6 +166,55 @@ docker exec -it mynode1 /bin/bash
 keydb-cli -h 172.18.0.2
 ```
 
+
+下面通过在三个实例里分别修改同一个key的不同字段，可以看到数据被merge在一起
+
+```
+hongkong1#docker exec -it mynode1 /bin/bash
+root@de06f7c6a3b3:/data# keydb-cli -h 172.18.0.2
+Message of the day:
+  Join the KeyDB community! https://community.keydb.dev/
+
+172.18.0.2:6379> AUTH mypassword123
+OK
+172.18.0.2:6379> hset bison name liaonb
+(integer) 1
+172.18.0.2:6379> quit
+root@de06f7c6a3b3:/data# keydb-cli -h 172.18.0.3
+Message of the day:
+  Join the KeyDB community! https://community.keydb.dev/
+
+172.18.0.3:6379> AUTH mypassword123
+OK
+172.18.0.3:6379> hset bison age 40
+(integer) 1
+172.18.0.3:6379> hgetall bison
+1) "name"
+2) "liaonb"
+3) "age"
+4) "40"
+172.18.0.3:6379> quit
+root@de06f7c6a3b3:/data# keydb-cli -h 172.18.0.4
+Message of the day:
+  Join the KeyDB community! https://community.keydb.dev/
+
+172.18.0.4:6379> AUTH mypassword123
+OK
+172.18.0.4:6379> hset bison gender male
+(integer) 1
+172.18.0.4:6379> hgetall bison
+1) "name"
+2) "liaonb"
+3) "age"
+4) "40"
+5) "gender"
+6) "male"
+172.18.0.4:6379>
+```
+
+
+
+
 验证的结论：
 
 1. 相同key的hashtable/set/list会merge field/member；
@@ -134,7 +222,7 @@ keydb-cli -h 172.18.0.2
 3. 一个节点宕机后重启，能够拉取到最新的数据
 4. key expire也会被同步
 5. 可以是多个（超过2个）master，复制关系做成环状即可：A->B->C→A，当然如果有一个节点故障，那其他master之间的同步都会受到影响。如果replicaof配置可以热更新，也许这不是什么问题
-6. 不支持从多个master复制，也就是配置多次replicaof配置项，如果配置多个，最后一个为准
+6. 支持从多个master复制，也就是配置多次replicaof配置项，如果配置多个，最后一个为准
 
 ### 4、体验集群
 
