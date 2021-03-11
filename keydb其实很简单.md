@@ -418,4 +418,20 @@ redis_cluster()
 
 ### 5、跨地域active replication  +  集群方式
 
-好像有点麻烦，要一个一个node的设置active replication，还在研究有没有简单的办法
+这才是我们生产上最需要的，但试了一下，好像keydb不支持哦。
+
+我在集群的每个节点增加两项：
+
+```
+active-replica yes
+replicaof 172.18.0.X 700X
+```
+
+启动会报错：
+
+```
+replicaof directive not allowed in cluster mode
+
+```
+
+注释掉replicaof，且只保存active-replica yes配置项，能启动，但不能往slave写入，提示从master写入
