@@ -103,3 +103,46 @@ cgexec -g cpu:lesslimit ./ttx2 &
 cgdelete删除资源限制，例如 cgdelete  -g cpu:/lesslimit
 
 cgclear umount掉文件系统
+
+### 三、限制磁盘IO的使用情况
+
+```shell
+hongkong1#mount -l
+/dev/vda1 on / type ext4 (rw,noatime,data=ordered)
+
+hongkong1#ls -l /dev/vda
+brw-rw---- 1 root disk 252, 0 Aug  5 08:33 /dev/vda
+
+hongkong1#echo '252:0 51200' > wahaha/blkio.throttle.read_bps_device #每扇区512B，即每秒读100个扇区
+
+hongkong1#cgexec -g blkio:wahaha time dd if=/root/a.img of=/dev/null  iflag=direct #读一个大文件，跳过缓冲
+
+hongkong1#sar -d 3 100
+Linux 3.10.107-1-tlinux2_kvm_guest-0051 (VM_16_7_centos)        12/06/2021      _x86_64_        (2 CPU)
+
+08:42:23 AM       DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
+08:42:26 AM  dev252-0    111.33    100.00  10456.00     94.81      0.43      3.89      0.49      5.47
+08:42:26 AM   dev11-0      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+
+08:42:26 AM       DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
+08:42:29 AM  dev252-0    114.67    100.00    202.67      2.64      0.05      0.41      0.41      4.67
+08:42:29 AM   dev11-0      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+
+08:42:29 AM       DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
+08:42:32 AM  dev252-0    102.33    100.00     58.67      1.55      0.05      0.52      0.52      5.33
+08:42:32 AM   dev11-0      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+
+```
+
+可以从sar看到，每秒钟读100个扇区。
+
+改一下read_bps_device，热更新，立即生效。
+
+### 四、详细的参数说明
+
+详细请见：
+
+```
+https://docs.oracle.com/cd/E37670_01/E37355/html/ol_subsystems_cgroups.html
+```
+
