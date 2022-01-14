@@ -163,3 +163,102 @@ end:
 
 ```
 
+#### 2.2 DSA算法
+
+```c
+#include <string>
+#include <stdio.h>
+#include <iostream>
+#include <string.h>
+#include <stdlib.h>
+
+#include "hex_dump.h"
+#include <openssl/dsa.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+
+using namespace std;
+
+#define PRIME_LEN (512)
+
+int main()
+{
+    int ret;
+    DSA * handle;
+    int keylen;
+    int err;
+
+    unsigned char buf[100];
+    RAND_seed(buf, 100);
+
+    unsigned char dgst[20] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0};
+    unsigned char sig[1024];
+    unsigned int siglen = sizeof(sig);
+
+    OPENSSL_init();
+    
+
+    handle = DSA_new();
+    if (handle == NULL)
+    {
+        fprintf(stderr, "dsa_new failed\n");
+        goto end;
+    }
+
+    ret = DSA_generate_parameters_ex(handle, PRIME_LEN, NULL, 0, NULL, NULL, NULL );
+    if (ret != 1 )
+    {
+        fprintf(stderr, "DSA_generate_parameters_ex failed\n");
+        goto end;
+    }
+
+    
+    ret = DSA_generate_key(handle);
+    if (ret != 1 )
+    {
+        fprintf(stderr, "DSA_generate_key failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    keylen = DSA_size(handle);
+    printf("key len:%d\n", keylen);
+
+    
+    ret = DSA_sign(0, dgst, 20, sig, &siglen, handle);
+    if (ret != 1)
+    {
+        fprintf(stderr, "DSA_sign failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    dash::hex_dump(sig, siglen, std::cout);
+    //dgst[0] = 11;
+    ret = DSA_verify(0, dgst, 20, sig, siglen, handle);
+    if (ret == 1)
+    {
+        fprintf(stdout, "match!\n");
+    }
+    else if (ret == 0)
+    {
+        fprintf(stdout, "mismatch!\n");
+    }
+    else
+    {
+        fprintf(stderr, "DSA_verify failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    
+
+end:
+    if (handle)
+    {
+        DSA_free(handle);
+    }
+}
+
+```
+
