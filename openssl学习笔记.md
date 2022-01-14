@@ -21,8 +21,8 @@ openssl dgst -sha256 .profile
 ```shell
 openssl dhparam -outform PEM -out xxx.dat  -2
 openssl dhparam -inform PEM -in xxx.dat  -C
-
 openssl dhparam --help
+#新版本openssl命令行工具已经不能生成DH的公私钥了，只能产生p和g两个参数，不知道为何这样设计
 ```
 
 #### 1.4 生成ECDH公私钥
@@ -30,13 +30,136 @@ openssl dhparam --help
 ```shell
 openssl ecparam -help
 openssl ecparam -list_curves
-openssl ecparam -genkey    -name secp521r1
+openssl ecparam -genkey    -name secp521r1 -outform PEM -out priv.pem
+openssl ec -in priv.pem -pubout
+openssl ec -in priv.pem -pubout -text
 ```
 
 #### 1.5 生成DSA 公私钥
 
 ```shell
-openssl dsaparam  -genkey -outform PEM -out xxx.dat 1024
-openssl dsa -in xxx.dat  -pubout
+openssl dsaparam  -genkey -outform PEM -out priv.pem 1024
+openssl dsa -in priv.pem  -pubout
+```
+
+#### 1.6 生成RSA公私钥并加解密
+
+```shell
+openssl genrsa  -out priv.pem 1024
+openssl rsa  -in  priv.pem  -pubout -out pub.pem
+openssl rsautl -encrypt -pubin -keyform PEM  -inkey pub.pem  -in plain.txt  -out cipher.txt
+openssl rsautl -decrypt  -keyform PEM  -inkey priv.pem  -in cipher.txt
+```
+
+
+
+### 2、代码
+
+#### 2.1 DH
+
+```c
+#include <string>
+#include <stdio.h>
+#include <iostream>
+#include <string.h>
+#include <stdlib.h>
+
+#include "hex_dump.h"
+#include <openssl/dh.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+
+using namespace std;
+
+#define PRIME_LEN (512)
+
+int main()
+{
+    int ret1, ret2;
+    DH * handle1, *handle2;
+    unsigned char key1[1024];
+    unsigned char key2[1024];
+    int keylen, code1, code2;
+    int err;
+
+    unsigned char buf[100];
+    RAND_seed(buf, 100);
+    BIGNUM * bignum = NULL;
+
+    OPENSSL_init();
+    
+
+    handle1 = DH_new();
+    handle2 = DH_new();
+    if (handle1 == NULL || handle2 == NULL)
+    {
+        fprintf(stderr, "dh_new failed\n");
+        goto end;
+    }
+
+    ret1 = DH_generate_parameters_ex(handle1, PRIME_LEN, DH_GENERATOR_2, NULL);
+    ret2 = DH_generate_parameters_ex(handle2, PRIME_LEN, DH_GENERATOR_2, NULL);
+    if (ret1 == 0||ret2 == 0)
+    {
+        fprintf(stderr, "DH_generate_parameters_ex failed\n");
+        goto end;
+    }
+
+    ret1 = DH_check(handle1, &code1);
+    ret2 = DH_check(handle2, &code2);
+    if (ret1 == 0 || ret2 == 0 || code1 || code2)
+    {
+        fprintf(stderr, "DH_check failed\n");
+        goto end;
+    }
+
+    BN_copy(handle1->g, handle2->g);
+    BN_copy(handle1->p, handle2->p);
+ 
+    
+    ret1 = DH_generate_key(handle1);
+    ret2 = DH_generate_key(handle2);
+    if (ret1 != 1||ret2 !=1 || handle1->pub_key == NULL || handle2->pub_key == NULL)
+    {
+        fprintf(stderr, "DH_generate_key failed %d %d\n", ret1, ret2);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    keylen = DH_size(handle1);
+    printf("key len:%d\n", keylen);
+
+    ret1 = DH_compute_key(key1, handle1->pub_key, handle2);
+    ret2 = DH_compute_key(key2, handle2->pub_key, handle1);
+    if (ret1 != keylen || ret2 != keylen )
+    {
+        fprintf(stderr, "DH_compute_key failed %d %d\n", ret1, ret2);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        
+        goto end;
+    }
+    if (memcmp(key1, key2, keylen) != 0)
+    {
+        fprintf(stderr, "key diff!\n");
+       
+    }
+    dash::hex_dump(key1, keylen, std::cout);
+    printf("\n");
+    dash::hex_dump(key2, keylen, std::cout);
+    
+
+end:
+    if (handle1)
+    {
+        DH_free(handle1);
+    }
+    if (handle2)
+    {
+        DH_free(handle2);
+    }
+
+}
+
 ```
 
