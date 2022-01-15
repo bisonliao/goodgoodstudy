@@ -391,3 +391,138 @@ end:
 }
 ```
 
+#### 2.4 ECDH and ECDSA
+```c
+#include <string>
+#include <stdio.h>
+#include <iostream>
+#include <string.h>
+#include <stdlib.h>
+
+#include "hex_dump.h"
+#include <openssl/ec.h>
+#include <openssl/ecdh.h>
+#include <openssl/ecdsa.h>
+
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/objects.h>
+
+using namespace std;
+
+#define PRIME_LEN (512)
+
+int main()
+{
+    int i, ret;
+    EC_KEY * eckey1 = NULL, *eckey2 = NULL;
+    int keylen;
+    int err, ret1, ret2;
+    ECDSA_SIG *sig = NULL;
+
+    unsigned char dgst[20] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0};
+
+    unsigned char buf[200];
+    RAND_seed(buf, 200);
+
+  
+
+    OPENSSL_init();
+
+    eckey1 = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+    eckey2 = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+    if (eckey1 == NULL || eckey2 == NULL)
+    {
+        fprintf(stderr, "EC_KEY_new_by_curve_name failed %d\n", ret1);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    
+    ret1 = EC_KEY_generate_key(eckey1);
+    ret2 = EC_KEY_generate_key(eckey2);
+    if (ret1 != 1 || ret2 != 1)
+    {
+        fprintf(stderr, "EC_KEY_generate_key failed %d\n", ret1);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    ret1 = EC_KEY_check_key(eckey1);
+    ret2 = EC_KEY_check_key(eckey2);
+    if (ret1 != 1 || ret2 != 1)
+    {
+        fprintf(stderr, "EC_KEY_check_key failed %d\n", ret1);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    // ECDH key agreement
+    keylen = ECDH_compute_key(buf, sizeof(buf), EC_KEY_get0_public_key(eckey1), eckey2, NULL);
+    if (keylen <= 0)
+    {
+        fprintf(stderr, "ECDH_compute_key failed %d\n", keylen);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    dash::hex_dump(buf, keylen, std::cout);
+    printf("\n\n");
+
+    keylen = ECDH_compute_key(buf, sizeof(buf), EC_KEY_get0_public_key(eckey2), eckey1, NULL);
+    if (keylen <= 0)
+    {
+        fprintf(stderr, "ECDH_compute_key failed %d\n", keylen);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    dash::hex_dump(buf, keylen, std::cout);
+    printf("\n\n");
+
+    // ECDSA sign and verify
+    sig = ECDSA_do_sign(dgst, 20, eckey1);
+    if (sig == NULL)
+    {
+        fprintf(stderr, "ECDSA_do_sign failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    //dgst[0] = 3;
+    ret = ECDSA_do_verify(dgst, 20, sig, eckey1);
+    if (ret == 1)
+    {
+        printf("match!\n");
+    }
+    else if (ret == 0)
+    {
+        printf("mismatch!\n");
+    }
+    else 
+    {
+        fprintf(stderr, "ECDSA_do_verify failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    // another functions, ECDSA_sign() ECDSA_verify exist .
+
+end:
+    if (eckey1)
+    {
+        EC_KEY_free(eckey1);
+    }
+    if (eckey2)
+    {
+        EC_KEY_free(eckey2);
+    }
+    if (sig)
+    {
+        ECDSA_SIG_free(sig);
+    }
+  
+
+}
+```
+
