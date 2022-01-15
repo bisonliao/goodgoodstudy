@@ -525,4 +525,16 @@ end:
 
 }
 ```
+### 3、辅助类
 
+#### 3.1 随机数
+
+RAND_seed()  RAND_load_file() RAND_bytes()...
+
+#### 3.2 大数运算
+
+BN_new()  BN_add() BN_sub() BN_bn2bin() BN_dec2bn()...
+
+#### 3.3 IO抽象类
+
+BIO_xxx...
