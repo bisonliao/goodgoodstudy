@@ -76,7 +76,7 @@ using namespace std;
 int main()
 {
     int ret1, ret2;
-    DH * handle1, *handle2;
+    DH * handle1=NULL, *handle2=NULL;
     unsigned char key1[1024];
     unsigned char key2[1024];
     int keylen, code1, code2;
@@ -184,7 +184,7 @@ using namespace std;
 int main()
 {
     int ret;
-    DSA * handle;
+    DSA * handle=NULL;
     int keylen;
     int err;
 
@@ -283,7 +283,7 @@ using namespace std;
 int main()
 {
     int ret;
-    RSA * handle;
+    RSA * handle=NULL;
     int keylen;
     int err;
 
