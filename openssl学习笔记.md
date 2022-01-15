@@ -53,7 +53,7 @@ openssl rsautl -decrypt  -keyform PEM  -inkey priv.pem  -in cipher.txt
 
 
 
-### 2、代码
+### 2、公钥算法的示例代码
 
 #### 2.1 DH
 
@@ -553,7 +553,7 @@ BN_new()  BN_add() BN_sub() BN_bn2bin() BN_dec2bn()...
 
 BIO_xxx...
 
-### 4、对称密码算法的代码
+### 4、对称密码算法的示例代码
 
 Stream ciphers  are essentially just cryptographic pseudorandom number generators. They use a starting seed as a  key to produce a stream of random bits known as the keystream. To encrypt data, one takes the  plaintext and simply XORs it with the keystream。
 
