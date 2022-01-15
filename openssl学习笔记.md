@@ -83,11 +83,15 @@ int main()
     int err;
 
     unsigned char buf[100];
-    RAND_seed(buf, 100);
     BIGNUM * bignum = NULL;
 
-    OPENSSL_init();
-    
+   if (RAND_load_file("/dev/urandom", 256) != 256)
+    {
+        fprintf(stderr, "RAND_load_file failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
 
     handle1 = DH_new();
     handle2 = DH_new();
@@ -189,13 +193,19 @@ int main()
     int err;
 
     unsigned char buf[100];
-    RAND_seed(buf, 100);
+   
 
     unsigned char dgst[20] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0};
     unsigned char sig[1024];
     unsigned int siglen = sizeof(sig);
 
-    OPENSSL_init();
+    if (RAND_load_file("/dev/urandom", 256) != 256)
+    {
+        fprintf(stderr, "RAND_load_file failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
     
 
     handle = DSA_new();
@@ -296,13 +306,13 @@ int main()
     
 
     unsigned char buf[100];
-    RAND_seed(buf, 100);
-
-  
-
-    OPENSSL_init();
-
-   
+    if (RAND_load_file("/dev/urandom", 256) != 256)
+    {
+        fprintf(stderr, "RAND_load_file failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
     handle =  RSA_generate_key(1024, RSA_3, NULL, NULL);
     if (handle == NULL)
     {
@@ -423,11 +433,13 @@ int main()
     unsigned char dgst[20] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0};
 
     unsigned char buf[200];
-    RAND_seed(buf, 200);
-
-  
-
-    OPENSSL_init();
+    if (RAND_load_file("/dev/urandom", 256) != 256)
+    {
+        fprintf(stderr, "RAND_load_file failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
 
     eckey1 = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
     eckey2 = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
@@ -540,3 +552,134 @@ BN_new()  BN_add() BN_sub() BN_bn2bin() BN_dec2bn()...
 #### 3.3 IO抽象类
 
 BIO_xxx...
+
+### 4、对称密码算法的代码
+
+Stream ciphers  are essentially just cryptographic pseudorandom number generators. They use a starting seed as a  key to produce a stream of random bits known as the keystream. To encrypt data, one takes the  plaintext and simply XORs it with the keystream。
+
+流式密码算法本质上是一个随机数发生器，使用种子初始化后不断的产生随机bit，即密钥流。用密钥流和明文数据做简单的异或即完成了加密。相比分组密码算法，流式密码算法的优势是运算快。为了避免出错，流式密码算法通常伴随MAC的使用。
+
+openssl提供封装过后的EVP_xxx相关函数，使得对称加解密更加方便：
+
+```c
+#include <string>
+#include <stdio.h>
+#include <iostream>
+#include <string.h>
+#include <stdlib.h>
+
+#include "hex_dump.h"
+#include <openssl/evp.h>
+
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/objects.h>
+
+using namespace std;
+
+#define PRIME_LEN (512)
+
+int main()
+{
+    int i, ret;
+    
+    int keylen;
+    int err, ret1, ret2;
+   
+    BIGNUM * a = NULL;
+    EVP_CIPHER_CTX ctx;
+    unsigned char key[16];
+    unsigned char iv[16];
+    char plaintext[1024] = "It returns 0 if the pseudorandom number generator cannot be seeded securely.";
+    unsigned char ciphertext[1024];
+    int offset = 0;
+    int len = sizeof(ciphertext);
+    int cipherlen;
+
+    if (RAND_load_file("/dev/urandom", 256) != 256)
+    {
+        fprintf(stderr, "RAND_load_file failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    RAND_bytes(key, sizeof(key));
+    RAND_bytes(iv, sizeof(iv));
+    // encrypt
+    ret = EVP_EncryptInit(&ctx, EVP_aes_128_cbc(), key, iv);
+    if (ret != 1)
+    {
+        fprintf(stderr, "EVP_EncryptInit failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    ret = EVP_EncryptUpdate(&ctx, ciphertext+offset, &len, (const unsigned char *)plaintext, strlen(plaintext));
+    if (ret != 1)
+    {
+        fprintf(stderr, "EVP_EncryptUpdate failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    offset += len;
+    len = sizeof(ciphertext) - offset;
+    ret = EVP_EncryptFinal(&ctx, ciphertext+offset, &len);
+    if (ret != 1)
+    {
+        fprintf(stderr, "EVP_EncryptUpdate failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    offset += len;
+    cipherlen = offset;
+    printf("cipher text len:%d\n", cipherlen);
+
+    dash::hex_dump(ciphertext, offset, std::cout);
+
+    // decrypt
+    ret = EVP_DecryptInit(&ctx, EVP_aes_128_cbc(), key, iv);
+    if (ret != 1)
+    {
+        fprintf(stderr, "EVP_DecryptInit failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    offset = 0;
+    len = sizeof(plaintext);
+    ret = EVP_DecryptUpdate(&ctx, (unsigned char*)plaintext+offset, &len, ciphertext, cipherlen);
+    if (ret != 1)
+    {
+        fprintf(stderr, "EVP_DecryptUpdate failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    printf("decrypt len:%d\n", len);
+    offset += len;
+    len = sizeof(plaintext) - offset;
+    ret = EVP_DecryptFinal(&ctx, (unsigned char*)plaintext+offset, &len);
+    if (ret != 1)
+    {
+        fprintf(stderr, "EVP_DecryptFinal failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    offset += len;
+    printf("plain text len:%d\n", offset);
+
+    dash::hex_dump(plaintext, offset, std::cout);
+
+end:
+    return 0;
+      
+  
+
+}
+
+```
+
+
