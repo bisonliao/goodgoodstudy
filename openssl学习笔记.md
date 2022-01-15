@@ -531,9 +531,11 @@ end:
 
 RAND_seed()  RAND_load_file() RAND_bytes()...
 
-#### 3.2 大数运算
+#### 3.2 大整数运算
 
 BN_new()  BN_add() BN_sub() BN_bn2bin() BN_dec2bn()...
+
+不能表示有理数无理数，只能表示整数。如果要用到小数，可以考虑GMP：https://gmplib.org/
 
 #### 3.3 IO抽象类
 
