@@ -261,4 +261,133 @@ end:
 }
 
 ```
+#### 2.3 RSA算法
+
+```c
+#include <string>
+#include <stdio.h>
+#include <iostream>
+#include <string.h>
+#include <stdlib.h>
+
+#include "hex_dump.h"
+#include <openssl/rsa.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/objects.h>
+
+using namespace std;
+
+#define PRIME_LEN (512)
+
+int main()
+{
+    int ret;
+    RSA * handle;
+    int keylen;
+    int err;
+
+    unsigned char dgst[20] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0};
+    unsigned char sig[1024];
+    unsigned int siglen = sizeof(sig);
+    unsigned char cipher[1024];
+    int len;
+
+    
+
+    unsigned char buf[100];
+    RAND_seed(buf, 100);
+
+  
+
+    OPENSSL_init();
+
+   
+    handle =  RSA_generate_key(1024, RSA_3, NULL, NULL);
+    if (handle == NULL)
+    {
+        fprintf(stderr, "RSA_generate_key failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+   
+    keylen = RSA_size(handle);
+    printf("key len:%d\n", keylen);
+
+    // digital signature
+    ret = RSA_sign(NID_sha1, dgst, 20, sig, &siglen, handle);
+    if (ret != 1)
+    {
+        fprintf(stderr, "RSA_sign failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    dash::hex_dump(sig, siglen, std::cout);
+    //dgst[0] = 11;
+    ret = RSA_verify(NID_sha1, dgst, 20, sig, siglen, handle);
+    if (ret == 1)
+    {
+        fprintf(stdout, "match!\n");
+    }
+    else if (ret == 0)
+    {
+        fprintf(stdout, "mismatch!\n");
+    }
+    else
+    {
+        fprintf(stderr, "RSA_verify failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    // challenge or transport key
+    len = RSA_public_encrypt(20, dgst, cipher, handle, RSA_PKCS1_OAEP_PADDING );
+    if (len <= 0)
+    {
+        fprintf(stderr, "RSA_public_encrypt failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    len = RSA_private_decrypt(len, cipher, dgst, handle, RSA_PKCS1_OAEP_PADDING);
+    if (len != 20)
+    {
+        fprintf(stderr, "RSA_private_decrypt failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    dash::hex_dump(dgst, len, std::cout);
+
+    // signature
+    len = RSA_private_encrypt(20, dgst, cipher, handle, RSA_PKCS1_PADDING);
+    if (len <= 0)
+    {
+        fprintf(stderr, "RSA_private_encrypt failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    len = RSA_public_decrypt(len, cipher, dgst, handle, RSA_PKCS1_PADDING);
+    if (len != 20)
+    {
+        fprintf(stderr, "RSA_public_decrypt failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    printf("RSA_public_decrypt succeed.\n");
+    dash::hex_dump(dgst, len, std::cout);
+
+end:
+    if (handle)
+    {
+        RSA_free(handle);
+    }
+  
+
+}
+```
 
