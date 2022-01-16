@@ -1,3 +1,7 @@
+印象中总觉得openssl的函数和命令行都很难用，文档更是语焉不详。2022年了，总有些改进吧，重新捡起把一些基本的用法梳理了一些，成为该小文。
+
+不过也主要是集中在libcrypto.a里提供的功能，libssl.a提供的能力比较复杂，还没有看。
+
 #### 1、命令行工具
 
 ##### 1.1 对称加密
@@ -814,4 +818,233 @@ MAC典型的应用场景，其中第三个有点意思，之前没有怎么想�
 1. 防止消息被篡改，这个好理解
 2. 认证通信的参与者，例如所有的内部server发出的信息都带上MAC，确保这个消息不被篡改，确保是内部server发出的，因为只有内部的server才知道密钥
 3. web server给浏览器派发的cookie，希望cookie值对浏览器可见，但又要防止浏览器修改cookie，这时候为cookie伴生一个mac，mac的密钥只有web server知悉。提交上来的cookie和mac进行对应的校验
+
+### 5、密钥的标准化存储和跨网传输
+
+openssl提供了DER和PEM两种方式，前者是二进制数据，不太适合邮件传输等场合，后者是文本base64的，适合邮件传输的场合。
+
+DER的存储函数是i2d_<objname>的方式，例如 i2d_RSAPublicKey()，第二个参数通常是存储的buffer的头指针的指针，函数会修改它，把它指向数据的末尾，方便不断的追加写。如果这个参数是NULL，函数可用于get需要的字节数。
+
+读取就是反过来的 d2i_<objname>，例如 d2i_RSAPrivateKey()
+
+PEM的函数通常是PEM_write\_<objname>或者 PEM_read\_<objname>
+
+```c
+#include <string>
+#include <stdio.h>
+#include <iostream>
+#include <string.h>
+#include <stdlib.h>
+
+#include "hex_dump.h"
+#include <openssl/rsa.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/objects.h>
+
+using namespace std;
+
+#define PRIME_LEN (512)
+
+int main()
+{
+    int ret;
+    RSA * handle = NULL, *handle2 = NULL;
+    int keylen;
+    int err;
+
+    unsigned char dgst[20] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0};
+    unsigned char sig[1024];
+    unsigned int siglen = sizeof(sig);
+    unsigned char cipher[1024];
+    int len;
+
+    unsigned char buf[100];
+    unsigned char * p = NULL;
+
+    RAND_load_file("/dev/urandom", 256);
+   
+    handle =  RSA_generate_key(1024, RSA_3, NULL, NULL);
+    if (handle == NULL)
+    {
+        fprintf(stderr, "RSA_generate_key failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+   
+    keylen = RSA_size(handle);
+    printf("key len:%d\n", keylen);
+
+    // save to DER
+    p = buf;
+    len = i2d_Netscape_RSA(handle, &p, NULL);
+    if (len != (p-buf))
+    {
+        fprintf(stderr, "i2d_RSAPrivateKey failed %d\n", len);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    dash::hex_dump(buf, len, std::cout);
+    // recover from DER
+    p = buf;
+    if (d2i_Netscape_RSA(&handle2, (const unsigned char**)&p, len, NULL) == NULL)
+    {
+        fprintf(stderr, "d2i_Netscape_RSA failed %d\n", len);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+
+    // digital signature with privit key 
+    ret = RSA_sign(NID_sha1, dgst, 20, sig, &siglen, handle);
+    if (ret != 1)
+    {
+        fprintf(stderr, "RSA_sign failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    dash::hex_dump(sig, siglen, std::cout);
+	// verify with handle2 recovered from DER
+    ret = RSA_verify(NID_sha1, dgst, 20, sig, siglen, handle2);
+    if (ret == 1)
+    {
+        fprintf(stdout, "match!\n");
+    }
+    else if (ret == 0)
+    {
+        fprintf(stdout, "mismatch!\n");
+    }
+    else
+    {
+        fprintf(stderr, "RSA_verify failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+
+end:
+    if (handle)
+    {
+        RSA_free(handle);
+    }
+    if (handle2)
+    {
+        RSA_free(handle2);
+    }
+}
+```
+
+
+
+```c
+#include <string>
+#include <stdio.h>
+#include <iostream>
+#include <string.h>
+#include <stdlib.h>
+
+#include "hex_dump.h"
+#include <openssl/rsa.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/objects.h>
+#include <openssl/pem.h>
+
+using namespace std;
+
+#define PRIME_LEN (512)
+
+int main()
+{
+    int ret;
+    RSA * handle = NULL, *handle2 = NULL;
+    int keylen;
+    int err;
+
+    unsigned char dgst[20] = {1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0};
+    unsigned char sig[1024];
+    unsigned int siglen = sizeof(sig);
+    unsigned char cipher[1024];
+    int len;
+
+    FILE * fp = NULL;
+
+    RAND_load_file("/dev/urandom", 256);
+   
+    handle =  RSA_generate_key(1024, RSA_3, NULL, NULL);
+    if (handle == NULL)
+    {
+        fprintf(stderr, "RSA_generate_key failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+   
+    keylen = RSA_size(handle);
+    printf("key len:%d\n", keylen);
+
+    // save to PEM
+    fp = fopen("/tmp/bison.pem", "w+b");
+    len = PEM_write_RSAPrivateKey(fp, handle, NULL, NULL, 0, NULL, NULL);
+    if (len != 1)
+    {
+        fprintf(stderr, "PEM_write_RSAPrivateKey failed %d\n", len);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    fclose(fp);
+	//recover privat key from  PEM file
+    fp = fopen("/tmp/bison.pem", "rb");
+    if (PEM_read_RSAPrivateKey(fp, &handle2, NULL, NULL) == NULL)
+    {
+        fprintf(stderr, "PEM_read_RSAPrivateKey failed %d\n", len);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+
+    // digital signature with privat key recovered from PEM file
+    ret = RSA_sign(NID_sha1, dgst, 20, sig, &siglen, handle2);
+    if (ret != 1)
+    {
+        fprintf(stderr, "RSA_sign failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    dash::hex_dump(sig, siglen, std::cout);
+
+    ret = RSA_verify(NID_sha1, dgst, 20, sig, siglen, handle);
+    if (ret == 1)
+    {
+        fprintf(stdout, "match!\n");
+    }
+    else if (ret == 0)
+    {
+        fprintf(stdout, "mismatch!\n");
+    }
+    else
+    {
+        fprintf(stderr, "RSA_verify failed %d\n", ret);
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }  
+
+end:
+    if (handle)
+    {
+        RSA_free(handle);
+    }
+    if (handle2)
+    {
+        RSA_free(handle2);
+    }
+}
+
+```
 
