@@ -545,7 +545,7 @@ RAND_seed()  RAND_load_file() RAND_bytes()...
 
 #### 3.2 大整数运算
 
-BN_new()  BN_add() BN_sub() BN_bn2bin() BN_dec2bn()...
+BN_new()  BN_add() BN_sub() BN_bn2bin() BN_dec2bn() BN_generate_prime()...
 
 不能表示有理数无理数，只能表示整数。如果要用到小数，可以考虑GMP：https://gmplib.org/
 
@@ -559,7 +559,20 @@ Stream ciphers  are essentially just cryptographic pseudorandom number generator
 
 流式密码算法本质上是一个随机数发生器，使用种子初始化后不断的产生随机bit，即密钥流。用密钥流和明文数据做简单的异或即完成了加密。相比分组密码算法，流式密码算法的优势是运算快。为了避免出错，流式密码算法通常伴随MAC的使用。
 
-openssl提供封装过后的EVP_xxx相关函数，使得对称加解密更加方便：
+openssl提供封装过后的EVP_xxx相关函数，使得对称加解密更加方便。
+
+openssl支持的AES加密算法：
+
+|Cipher  mode | Key/block size |  EVP call for cipher object | String for cipher lookup|
+| ---- | ---- | ---- | ---- |
+|ECB |128 bits| EVP_aes_128_ecb() |aes-128-ecb|
+|CBC |128 bits| EVP_aes_128_cbc() |aes-128-cbc|
+|ECB |192 bits |EVP_aes_192_ecb() |aes-192-ecb|
+|CBC |192 bits |EVP_aes_192_cbc() |aes-192-cbc|
+|ECB |256 bits |EVP_aes_256_ecb() |aes-256-ecb|
+|CBC |256 bits |EVP_aes_256_cbc() |aes-256-cbc|
+
+还支持blowfish、des、CAST5、RC4等等，不一一列举。
 
 ```c
 #include <string>
@@ -638,6 +651,11 @@ int main()
 
     dash::hex_dump(ciphertext, offset, std::cout);
 
+    //如果这里篡改一下ciphertext内容，下面的解密还是能正常运行不会报错，但解密出来的内容是错的。
+    //所以通常要带上mac：
+    //权威书籍的原文：we don't recommend using symmetric key encryption without a MAC
+    //When you do use MACs, use them with independent keys (that is, do not MAC with your 
+	//encryption keys) and use them to validate all of the data, including anything sent in the clear.
     // decrypt
     ret = EVP_DecryptInit(&ctx, EVP_aes_128_cbc(), key, iv);
     if (ret != 1)
