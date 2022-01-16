@@ -693,11 +693,125 @@ int main()
 
 end:
     return 0;
-      
-  
 
 }
 
 ```
 
+### 4、hash和MAC
+
+Like other cryptographic primitives, you should avoid creating your own MAC algorithm, even if it seems easy. There are good algorithms with provable properties, such as HMAC, which is currently the only MAC provided by OpenSSL. 
+
+不要自己设计MAC算法。
+
+```c
+#include <string>
+#include <stdio.h>
+#include <iostream>
+#include <string.h>
+#include <stdlib.h>
+
+#include "hex_dump.h"
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/objects.h>
+
+using namespace std;
+
+int main()
+{
+    int i, ret, err;
+    
+    unsigned char key[32];
+   
+    EVP_MD_CTX ctx;
+    const EVP_MD * handle = NULL;
+    
+    char plaintext[1024] = "It returns 0 if the pseudorandom number generator cannot be seeded securely.";
+    unsigned char ciphertext[1024];
+    int offset = 0;
+    unsigned int len = sizeof(ciphertext);
+    unsigned int cipherlen;
+
+    if (RAND_load_file("/dev/urandom", 256) != 256)
+    {
+        fprintf(stderr, "RAND_load_file failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    RAND_bytes(key, sizeof(key));
+
+    // digest
+#if 0
+    //EVP_get_digestbyname does NOT work if we do not call OpenSSL_add_all_digests at first
+    OpenSSL_add_all_digests();
+    handle = EVP_get_digestbyname("sha1");
+    if (handle == NULL) 
+    { 
+        fprintf(stderr, "EVP_get_digestbyname failed!\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+        
+    }
+    ret = EVP_DigestInit(&ctx, handle);
+#else   
+    ret = EVP_DigestInit(&ctx, EVP_sha256()); 
+#endif 
+    
+    if (ret != 1)
+    {
+        fprintf(stderr, "EVP_DigestInit failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    ret = EVP_DigestUpdate(&ctx, plaintext, strlen(plaintext));
+    if (ret != 1)
+    {
+        fprintf(stderr, "EVP_DigestUpdate failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    len = sizeof(ciphertext);
+    ret = EVP_DigestFinal(&ctx, ciphertext, &len);
+    if (ret != 1)
+    {
+        fprintf(stderr, "EVP_DigestFinal failed\n");
+        err = ERR_get_error();
+        fprintf(stderr, "%s\n", ERR_error_string(err, NULL));
+        goto end;
+    }
+    printf("cipher text len:%u\n", len);
+    dash::hex_dump(ciphertext, len, std::cout);
+
+    // hmac
+    len = sizeof(ciphertext);
+    HMAC(EVP_sha256(), key, sizeof(key), (const unsigned char*)plaintext, strlen(plaintext), ciphertext, &len);
+    printf("hmac len:%i\n", len);
+    dash::hex_dump(ciphertext, len, std::cout);
+
+    plaintext[3] = 3; // modified by bad buy, hmac will diff with the previous one
+    len = sizeof(ciphertext);
+    HMAC(EVP_sha256(), key, sizeof(key), (const unsigned char*)plaintext, strlen(plaintext), ciphertext, &len);
+    printf("hmac len:%i\n", len);
+    dash::hex_dump(ciphertext, len, std::cout);
+    /*
+     actually, openssl also provide hmac_init() hmac_update() hmac_final() style functions 
+     */
+end:
+    return 0;
+}
+
+```
+
+MAC典型的应用场景，其中第三个有点意思，之前没有怎么想到：
+
+1. 防止消息被篡改，这个好理解
+2. 认证通信的参与者，例如所有的内部server发出的信息都带上MAC，确保这个消息不被篡改，确保是内部server发出的，因为只有内部的server才知道密钥
+3. web server给浏览器派发的cookie，希望cookie值对浏览器可见，但又要防止浏览器修改cookie，这时候为cookie伴生一个mac，mac的密钥只有web server知悉。提交上来的cookie和mac进行对应的校验
 
