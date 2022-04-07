@@ -8,7 +8,7 @@
 
 ### 2、demo
 
-1. 客户端使用python开发语言，PySocks是不错的socks5 lib；另外一个库python_socks不支持udp和bind模式。
+1. 客户端使用python开发语言，socks5客户端库使用PySocks；另外一个库python_socks不支持udp和bind模式。其实PySocks怎么使用udp我也没有折腾明白，他妈的开源的库都不写像样的文档，靠猜。
 2. 代理软件使用3proxy
 
 ```python
