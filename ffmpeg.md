@@ -162,6 +162,8 @@ ffmpeg -ss 00:00:20.000 -i video.mp4 -s 640X360 -c:v h264  -t 20 -r 20 -b:v 2000
 
 ## 4、滤波器
 
+简单的filter通过下面两个参数指定
+
 -vf 视频过滤器（视频变换）
 
 -af 音频过滤器（音频变换）
@@ -172,7 +174,9 @@ ffmpeg -ss 00:00:20.000 -i video.mp4 -s 640X360 -c:v h264  -t 20 -r 20 -b:v 2000
 ffmpeg -i video.mp4  -c:v h264  -t 20  -b:v 2000k -vf 'scale=1280:1280:force_original_aspect_ratio=decrease,pad=1280:1280:(ow-iw)/2:(oh-ih)/2:color=gray' a.mp4
 ```
 
-巨复杂，例如降噪等等，可以看：
+复杂的通过-filter_complex指定。
+
+总体上，filter巨复杂，例如降噪、画面叠加等等，可以看：
 
 ```shell
 https://ffmpeg.org/ffmpeg-filters.html
