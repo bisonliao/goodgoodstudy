@@ -1,3 +1,19 @@
+#### 基本概念
+
+官网的一个图很好的表达了基本概念之间的关系：
+
+To summarize, messages are multicast from topic -> channel (every channel receives a copy of all messages for that topic) but evenly distributed from channel -> consumers (each consumer receives a portion of the messages for that channel).
+
+即
+
+1. 围绕具体一个topic生产和消费消息
+2. topic的消息，对每个关注该topic的channel，完整的复制一份，即每个channel收到该topic的所有消息
+3. 同一个channel的多个消费者，比较均等的瓜分channel里的消息
+
+![](https://f.cloud.github.com/assets/187441/1700696/f1434dc8-6029-11e3-8a66-18ca4ea10aca.gif)
+
+
+
 #### 用一个机器模拟出多节点nsq集群
 
 ##### 方法一：使用docker
