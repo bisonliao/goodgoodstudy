@@ -148,7 +148,7 @@ lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
 
 典型的网络拓扑如下：
 
-![nat.jpg](img\docker_guide\nat.png)
+![nat.jpg](img/docker_guide/nat.png)
 
 对外通信过程是一个nat转发的过程：
 
