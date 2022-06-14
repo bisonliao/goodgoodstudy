@@ -146,7 +146,20 @@ lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
         TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
 ```
 
-host是直接使用宿主机的ip和网络栈，各容器之间没有网络隔离。容器内看到的直接就是主机的网络。
+典型的网络拓扑如下：
+
+![nat.jpg](img\docker_guide\nat.png)
+
+对外通信过程是一个nat转发的过程：
+
+1. 容器内部，default路由（网关）设置为docker0，对外通信都经过网关
+2. 宿主机设置为转发状态，且iptables修改nat表，实现nat路由器，将网卡docker0的包，都转发给eth0，且修改源IP地址为eth0
+
+同一个网桥下挂载的容器之间的通信，是内部局域网之间的通信
+
+
+
+host模式是直接使用宿主机的ip和网络栈，各容器之间没有网络隔离。容器内看到的直接就是主机的网络。
 
 详细情况请见相关文档。
 
