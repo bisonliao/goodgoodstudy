@@ -150,6 +150,14 @@ host是直接使用宿主机的ip和网络栈，各容器之间没有网络隔�
 
 详细情况请见相关文档。
 
+这边文章写的不错，引用一下：
+
+```
+https://www.sharpcode.cn/devops/docker-bridge-network/
+```
+
+
+
 ## 2.6 Dockerfile
 
 Dockerfile类似makefile，指导docker如何构建一个定制化的镜像。例如下面这个Dockerfile，就是基于仓库里的centos，安装python，并拷贝start.sh文件到镜像里：
