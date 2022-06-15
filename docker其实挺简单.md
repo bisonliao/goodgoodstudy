@@ -283,10 +283,10 @@ docker push master:5000/centos:bison
 
 docker使用了虚拟网桥、虚拟网卡、net namespace技术。下面的脚本可以创建三个net namespace，并在每个namespace里有一个网卡与网桥连接，有自己的协议栈和iptables等等。 
 
-每个namespace里的网络都可以和宿主机外面的网络互通（宿主机真实网卡所在网段的其他机器也能主动访问namespace里的网卡！），前提是其他机器都要加一条路由，假设宿主机的真实网卡ip是192.168.0.7：
+每个namespace里的网络都可以和宿主机外面的网络互通（宿主机真实网卡所在网段的其他机器也能主动访问namespace里的网卡！），前提是其他机器都要加一条路由，假设宿主机的真实网卡ip是192.168.0.8：
 
 ```shell
-ip route add 10.0.0.0/24 via 192.168.0.7
+ip route add 10.0.0.0/24 via 192.168.0.8
 ```
 
 
@@ -339,12 +339,13 @@ brctl addif br0 veth0-br
 brctl addif br0 veth1-br
 brctl addif br0 veth2-br
 
-
-#把宿主机改为路由器模式
+#宿主机要支持转发
 echo 1 >/proc/sys/net/ipv4/ip_forward
-iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-iptables -A FORWARD -i br0 -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
-iptables -A FORWARD -i eth0 -o br0 -j ACCEPT
+
+#必要的话，把宿主机改为路由器模式，但不是必要的。
+#iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+#iptables -A FORWARD -i br0 -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+#iptables -A FORWARD -i eth0 -o br0 -j ACCEPT
 ```
 
 拓扑图如下：
