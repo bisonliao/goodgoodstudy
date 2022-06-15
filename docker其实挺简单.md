@@ -165,8 +165,10 @@ host模式是直接使用宿主机的ip和网络栈，各容器之间没有网�
 
 这边文章写的不错，引用一下：
 
-```
+```shell
 https://www.sharpcode.cn/devops/docker-bridge-network/
+https://zhuanlan.zhihu.com/p/293667316
+https://segmentfault.com/a/1190000038171918
 ```
 
 
