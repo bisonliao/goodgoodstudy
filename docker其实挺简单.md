@@ -283,7 +283,7 @@ docker push master:5000/centos:bison
 
 docker使用了虚拟网桥、虚拟网卡、net namespace技术。下面的脚本可以创建三个net namespace，并在每个namespace里有一个网卡与网桥连接，有自己的协议栈和iptables等等。 
 
-每个namespace里的网络都可以和宿主机外面的网络互通（宿主机真实网卡所在网段的其他机器也能主动访问namespace里的网卡！），前提是其他机器都要加一条路由，假设宿主机的真实网卡ip是192.168.0.8：
+每个namespace里的网络都可以和宿主机外面的网络互通，且宿主机真实网卡所在网段的其他机器也能主动访问namespace里的网卡！，前提是其他机器都要加一条路由，假设宿主机的真实网卡ip是192.168.0.8。（但实验发现docker的bridge不能由外而内的ping通，因为加了复杂的iptables规则）：
 
 ```shell
 ip route add 10.0.0.0/24 via 192.168.0.8
