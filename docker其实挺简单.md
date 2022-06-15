@@ -293,6 +293,9 @@ brctl addbr br0
 ip link set br0 up
 ifconfig br0 10.0.0.254  #作为ns0 1 2的网关
 
+#把宿主机改为转发模式
+echo 1 >/proc/sys/net/ipv4/ip_forward
+
 # 新增三个netns
 ip netns add ns0
 ip netns add ns1
