@@ -342,7 +342,7 @@ brctl addif br0 veth2-br
 #宿主机要支持转发
 echo 1 >/proc/sys/net/ipv4/ip_forward
 
-#必要的话，把宿主机改为路由器模式，但不是必要的。
+#必要的话，把宿主机改为路由器模式，就可以上外网了，但局域网内通信不是必要的。
 #iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 #iptables -A FORWARD -i br0 -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
 #iptables -A FORWARD -i eth0 -o br0 -j ACCEPT
