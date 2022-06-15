@@ -279,3 +279,60 @@ docker push master:5000/centos:bison
 docker push master:5000/centos:bison
 ```
 
+# 4、 网桥和net namespace
+
+docker使用了虚拟网桥、虚拟网卡、net namespace技术。下面的脚本可以创建三个net namespace，并在每个namespace里有一个网卡与网桥连接，有自己的协议栈和iptables等等。 每个namespace里的网络都可以和宿主机外面的网络互通（宿主机真实网卡所在网段的其他机器也能主动访问namespace里的网卡！）
+
+
+
+```shell
+#!/usr/bin/bash
+# 添加网桥
+brctl addbr br0
+# 启动网桥
+ip link set br0 up
+ifconfig br0 10.0.0.254  #作为ns0 1 2的网关
+
+# 新增三个netns
+ip netns add ns0
+ip netns add ns1
+ip netns add ns2
+
+# 新增两对veth
+ip link add veth0-ns type veth peer name veth0-br
+ip link add veth1-ns type veth peer name veth1-br
+ip link add veth2-ns type veth peer name veth2-br
+
+# 将veth的一端移动到netns中
+ip link set veth0-ns netns ns0
+ip link set veth1-ns netns ns1
+ip link set veth2-ns netns ns2
+
+# 将netns中的本地环回和veth启动并配置IP
+ip netns exec ns0 ip link set lo up
+ip netns exec ns0 ip link set veth0-ns up
+ip netns exec ns0 ip addr add 10.0.0.1/24 dev veth0-ns
+ip netns exec ns0 ip route add default via 10.0.0.254 dev veth0-ns
+
+ip netns exec ns1 ip link set lo up
+ip netns exec ns1 ip link set veth1-ns up
+ip netns exec ns1 ip addr add 10.0.0.2/24 dev veth1-ns
+ip netns exec ns1 ip route add default via 10.0.0.254 dev veth1-ns
+
+ip netns exec ns2 ip link set lo up
+ip netns exec ns2 ip link set veth2-ns up
+ip netns exec ns2 ip addr add 10.0.0.3/24 dev veth2-ns
+ip netns exec ns2 ip route add default via 10.0.0.254 dev veth2-ns
+
+# 将veth的另一端启动并挂载到网桥上
+ip link set veth0-br up
+ip link set veth1-br up
+ip link set veth2-br up
+brctl addif br0 veth0-br
+brctl addif br0 veth1-br
+brctl addif br0 veth2-br
+```
+
+拓扑图如下：
+
+![netnamespace.jpg](img/docker_guide/netnamespace.png)
