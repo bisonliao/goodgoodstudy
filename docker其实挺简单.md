@@ -161,6 +161,10 @@ lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
 
 host模式是直接使用宿主机的ip和网络栈，各容器之间没有网络隔离。容器内看到的直接就是主机的网络。
 
+container模式，可以让同一个主机下的多个容器共用同一个协议栈和网络空间，k8s里的一个pod下的多个容器，其实就是这样的。
+
+特别值得一提的是，k8s下跨node的多个pod之间的网络看起来是互通且是“平”的，且每个pod都有唯一ip，从里从外看这个pod的IP都是这样。这里用到了vxlan和tun/tap技术，不能简单的从docker的网络表现来推导。
+
 详细情况请见相关文档。
 
 这边文章写的不错，引用一下：
@@ -169,6 +173,7 @@ host模式是直接使用宿主机的ip和网络栈，各容器之间没有网�
 https://www.sharpcode.cn/devops/docker-bridge-network/
 https://zhuanlan.zhihu.com/p/293667316
 https://segmentfault.com/a/1190000038171918
+https://cloud.tencent.com/developer/article/1936120
 ```
 
 
