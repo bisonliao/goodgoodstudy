@@ -351,7 +351,7 @@ Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
 default         172.1.0.1       0.0.0.0         UG    0      0        0 eth0
 172.1.0.0       0.0.0.0         255.255.0.0     U     0      0        0 eth0
 
-#nodeA的路由
+#nodeA的路由, 172开头的两个路由条目不会冲突，因为协议栈优先使用匹配度更长的那一条，这点很重要
 Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
 172.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 flannel
 172.1.0.0       0.0.0.0         255.255.0.0     U     0      0        0 br-e7eb8e782a36 #docker1
@@ -362,7 +362,7 @@ Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
 default         172.2.0.1       0.0.0.0         UG    0      0        0 eth0
 172.2.0.0       0.0.0.0         255.255.0.0     U     0      0        0 eth0
 
-#nodeB的路由
+#nodeB的路由, 172开头的两个路由条目不会冲突，因为协议栈优先使用匹配度更长的那一条，这点很重要
 Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
 172.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 flannel
 172.2.0.0       0.0.0.0         255.255.0.0     U     0      0        0 br-9ea04d2636e6 #docker1
