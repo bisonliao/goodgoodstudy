@@ -356,3 +356,64 @@ echo 1 >/proc/sys/net/ipv4/ip_forward
 拓扑图如下：
 
 ![netnamespace.jpg](img/docker_guide/netnamespace.png)
+
+# 5、docker与namespace
+
+docker的本质是namespace和cgroup。（我自己瞎总结的）
+
+## 5.1 linux下的namespace
+
+linux下网络、PID、IPC等都可以按namespace隔离，详细见：
+
+![namespace.png](img/docker_guide/namespace.png)
+
+linux下用于操作namespace的系统调用有：
+
+1. clone，flags参数可以是上表中的参数的二进制或，指明克隆的新进程要使用独立的某类namespace
+2. setns，将调用该函数的进程加入到fd参数指定的namespace里，namespace的类型由nstype参数指定
+3. unshare，讲调用该函数的进程进入到全新的namespace里
+
+linux下查看/操作namespace的方法：
+
+1. ls -l  /proc/[pid]/ns
+2. unshare命令，没错，unshare是一个系统调用，也有一个封装好的unshare命令
+
+## 5.2 docker容器和namespace的关系
+
+docker的容器本质上还是在宿主机上一个普通的进程，通过docker top命令可以查看在宿主机上的普通进程。例如：
+
+下面两个容器：
+
+```
+docker run -itd --privileged --rm --network=bridge --name=bison1 -v /etc/localtime:/etc/localtime:ro bison/net-tools:apt_ok bash
+
+docker run -itd --privileged --rm --network=container:bison1 --name=bison2 -v /etc/localtime:/etc/localtime:ro bison/net-tools:apt_ok bash
+```
+
+使用docker top命令可以看到在宿主机上实际存在的进程：
+
+```shell
+# docker top bison1
+UID         PID          PPID          C       STIME               TTY                 TIME                CMD
+root        2773        吧2751         0       08:51               pts/0               00:00:00            bash
+
+ # ls -l /proc/2773/ns
+total 0
+lrwxrwxrwx 1 root root 0 Aug 20 08:53 cgroup -> 'cgroup:[4026531835]'
+lrwxrwxrwx 1 root root 0 Aug 20 08:53 ipc -> 'ipc:[4026532334]'
+lrwxrwxrwx 1 root root 0 Aug 20 08:53 mnt -> 'mnt:[4026532332]'
+lrwxrwxrwx 1 root root 0 Aug 20 08:51 net -> 'net:[4026532337]'  #bison1 bison2两个容器的netns是一致的
+lrwxrwxrwx 1 root root 0 Aug 20 08:53 pid -> 'pid:[4026532335]'
+lrwxrwxrwx 1 root root 0 Aug 20 08:53 pid_for_children -> 'pid:[4026532335]'
+lrwxrwxrwx 1 root root 0 Aug 20 08:53 user -> 'user:[4026531837]'
+lrwxrwxrwx 1 root root 0 Aug 20 08:53 uts -> 'uts:[4026532333]'
+
+# 如果在容器里再运行一个进程，例如top，那么在宿主机上也能看到对应的进程
+ # docker top bison2
+UID       PID      PPID        C          STIME               TTY                 TIME                CMD
+root      2870     2850       0           08:51               pts/0               00:00:00            bash
+root      2955     2850       0           08:52               pts/1               00:00:00            bash
+root      3050     2955       0           08:54               pts/1               00:00:00            top
+```
+
+但我没有找到docker命令中修改ipc namespace等名空间的方法
