@@ -377,6 +377,7 @@ linux下查看/操作namespace的方法：
 
 1. ls -l  /proc/[pid]/ns
 2. unshare命令，没错，unshare是一个系统调用，也有一个封装好的unshare命令
+3. nsenter，进入到指定进程的某些命名空间
 
 ## 5.2 docker容器和namespace的关系
 
