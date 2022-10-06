@@ -16,6 +16,12 @@ GRPC是基于HTTP/2的，用tcpdump抓包的时候，发现HTTP/2的协议和HTT
 
 
 
+### 参考资料
+
+《Http2 In Action》
+
+《Learning HTTP2 a practical guide for beginners》
+
 ### 开发库
 
 搜了一下，比较有名的是nghttp2这个库，基于c语言，文档也非常详细。这个库类似QUIC协议下的msquic，不管IO，只负责协议解析，通过异步回调的方式与上层应用交互。
