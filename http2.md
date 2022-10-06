@@ -10,7 +10,7 @@ GRPC是基于HTTP/2的，用tcpdump抓包的时候，发现HTTP/2的协议和HTT
 4. stream间有不同的优先级，高优先级的frame获得更多的带宽资源和传输机会
 5. 头部压缩，每个stream不用重复传输http头部
 6. server push
-7. 默认基于TLS
+7. 默认基于TLS。TCP 三次握手后，TLS用两个RTT建立TLS会话，在TLS的两个RTT中同时完成HTTP/2的协商。
 
 非常像QUIC
 
