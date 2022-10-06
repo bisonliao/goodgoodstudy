@@ -26,6 +26,12 @@ GRPC是基于HTTP/2的，用tcpdump抓包的时候，发现HTTP/2的协议和HTT
 
 搜了一下，比较有名的是nghttp2这个库，基于c语言，文档也非常详细。这个库类似QUIC协议下的msquic，不管IO，只负责协议解析，通过异步回调的方式与上层应用交互。
 
+The most notable point in nghttp2 library architecture is it does not perform any I/O. nghttp2 only performs HTTP/2 protocol stuff based on input byte strings. It will call callback functions set by applications while processing input. The output of nghttp2 is just byte string. An application is responsible to send these output to the remote peer. The callback functions may be called while producing output.
+
+```
+https://nghttp2.org/documentation/programmers-guide.html
+```
+
 我尝试把官网的一个client的示例代码修改为我自己的代码，但是失败了，从网络上收到报文，回填给nghttp2这个库，不能触发收到应用数据的回调。但使用官网的示例代码是能够正常工作的。（待解决，2022年10月6日）
 
 网上搜了一下，java 8默认提供了对http/2的支持，相比之下，库的使用对开发者也更友好。
