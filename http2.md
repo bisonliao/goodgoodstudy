@@ -1246,12 +1246,6 @@ static void run(const char * uri, const char *ip, uint16_t port)
  
   session_data->ssl = create_ssl(ssl_ctx);
   session_data->fd = socket(AF_INET, SOCK_STREAM, 0);
-  //将 socket 设置成非阻塞
-  /*
-  int32_t flag = fcntl(session_data->fd, F_GETFL, 0);
-  flag |= O_NONBLOCK;
-  fcntl(session_data->fd, F_SETFL, flag);
-  */
   connect(session_data->fd, (struct sockaddr*)&addr, sizeof(addr));
   SSL_set_fd(session_data->ssl, session_data->fd);
   SSL_connect(session_data->ssl);
