@@ -418,3 +418,103 @@ root      3050     2955       0           08:54               pts/1             
 ```
 
 但我没有找到docker命令中修改ipc namespace等名空间的方法
+
+# 6、 k8s中的应用demo
+
+这是一个简单的web服务程序，计算整数加法乘法
+
+```python
+#!/usr/bin/python3
+#   curl http://addservice/add?a=3,b=4
+
+import http.server
+import requests
+
+class RequestHandler(http.server.CGIHTTPRequestHandler):
+    def __init__(self,  *args, **kwargs) :
+        self.params = dict()
+        self.shortpath = ""
+        super().__init__(*args, **kwargs)
+        
+
+    def translate(self):  
+        self.shortpath = self.path.split('?')[0]
+        args = self.path.split('?')[1].split(',')
+        for arg in args:
+            k = arg.split('=')[0]
+            v = arg.split('=')[1]
+            self.params[k] = v
+    
+    
+    def do_GET(self):
+        
+        self.translate()
+       
+       
+        if self.shortpath == "/add":
+            if len(self.params) != 2 or None == self.params.get('a', None) or None ==  self.params.get('b', None):
+                self.send_response(406, "invalid input parameters")
+                return
+
+            self.send_response(200, "")
+            self.end_headers()
+            v = int(self.params['a']) + int(self.params['b'])
+            result = '{"result":' + '{}'.format(v)+'}'
+            self.wfile.write(bytes(result, 'utf-8'))
+
+        if self.shortpath == "/multiply":
+            if len(self.params) != 2 or None == self.params.get('a', None) or None ==  self.params.get('b', None):
+                self.send_response(406, "invalid input parameters")
+                return
+
+            self.send_response(200, "")
+            self.end_headers()
+            v = int(self.params['a']) * int(self.params['b'])
+            result = '{"result":' + '{}'.format(v)+'}'
+            self.wfile.write(bytes(result, 'utf-8'))
+
+        if self.shortpath == "/complex":
+            if len(self.params) != 2 or None == self.params.get('a', None) or None ==  self.params.get('b', None):
+                self.send_response(406, "invalid input parameters")
+                return
+
+            resp = requests.get("http://addservice:80/add?a={},b={}".format(self.params['a'], self.params['b'])) #type:requests.Response
+            if resp.status_code != 200:
+                self.send_response(503, "addservice unavailable")
+                return
+            
+            self.send_response(200, "")
+            self.end_headers() 
+            self.wfile.write(resp.content)
+           
+    def do_POST(self):
+        return super().do_POST()
+
+PORT = 8000
+
+Handler = RequestHandler
+
+with http.server.ThreadingHTTPServer(("", PORT), Handler) as httpd:
+    print("serving at port", PORT)
+    httpd.serve_forever()
+
+```
+
+使用下面的dockerfile可以构建镜像：
+
+```python
+FROM ubuntu:20.04
+
+RUN apt-get update && \
+    apt-get install -y python && \
+    apt-get install -y pip && \
+    apt-get install -y net-tools && \
+    apt-get install -y curl
+
+COPY ./calc.py /
+
+RUN pip3 install requests
+ENTRYPOINT /calc.py
+
+```
+
