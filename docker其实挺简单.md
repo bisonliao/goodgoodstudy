@@ -524,7 +524,7 @@ K8S中kube-proxy有iptables和ipvs等工作模式。当集群规模比较大的�
 
 ipvs工作在内核态处理四层协议，使用ipvsadm命令可以方便配置ipvs的负载均衡转发规则。和iptables类似，也有ipvsadm-save, ipvsadm-restore等。
 
-ipvs模式下，K8S会在node上创建dummy类型的网卡（一种虚拟网卡，用于本机的进程间通信，有点类似loopback网卡，可以添加多个），并且在dummy网卡上把service的cluster ip都绑定上去。
+ipvs模式下，K8S会在node上创建dummy类型的网卡（一种虚拟网卡，用于本机的进程间通信，有点类似loopback网卡，可以添加多个），并且在dummy网卡上把service的cluster ip都绑定上去，实现ip包拦截进入INPUT表。
 
 所以我们会发现：iptables模式下，clusterip不能ping通，但ipvs模式下能ping通。
 
