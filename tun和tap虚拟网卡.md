@@ -591,3 +591,12 @@ int main(int argc, char **argv)
 ```
 
 跑起来后，两个pod能够相互ping通，在各个关键节点用tcpdump抓包也都符合预期，整个系统乖乖的。
+
+
+
+需要注意的是，上面只是说明了如何实现跨node或者同node的pod间的访问，而在进行pod间通信之前，pod中的业务代码通常是用service name为目标来发起请求的，所以在访问目标pod之前，还有两个步骤：
+
+1. 通过DNS解析，把service name转换为cluster IP，如果是其他类型的service，要转换为pod ip/port（None类型）或者节点的ip和端口（NodePort类型）
+2. 获得clusterip 后，如果是iptables模式，iptables规则用DNAT的方式转换成pod ip/port；如果是ipvs模式，ipvs把cluster ip/port负载均衡为pod ip/port。
+
+然后才是pod间怎么通过pod IP相互在一个flat的网络世界里通信的问题。

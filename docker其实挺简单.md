@@ -564,7 +564,7 @@ ipvsadm -l
 curl http://100.100.100.100/multiply?a=5,b=3
 ```
 
-这时候用ip addr命令查，并不能看到100.100.100.100这个ip，也就是ipvs不依赖下面说的dummy网卡。
+这时候用ip addr命令查，并不能看到100.100.100.100这个ip，也就是ipvs不依赖下面说的dummy网卡。但如果要从容器/pod里面访问这个ipvs，就需要在dummy网卡里添加这个ip。
 
 
 
@@ -643,5 +643,17 @@ if (setsockopt(s, SOL_SOCKET, SO_BINDTODEVICE, (void *)&ifr, sizeof(ifr)) < 0) {
 https://zhuanlan.zhihu.com/p/94418251
 
 https://mp.weixin.qq.com/s/RziLRPYqNoQEQuncm47rHg?st=D896F912CC2088E103138BC2268FB78CC9981C7651EB0B27459F4B5DCA70A20D9E862FB35F95C95E79DF70B4AC7008EC685EEAEC79A6460F7CE8D2763E1A2B04E9F13F942AD3333A92985956476D4FED1FFCB7211739E78678BC3413F6B6C824D201A49BD1FAD6D93866A6F65B520130D1DC9989012D29E87586E77D3664A1BD96561E34FC2546BC9841B3CBC62F0829943B8853068C8570555D4672A5AA19BAE1C984F2E7F8EEFA56121707A3D07C04A218401DF419C1830C17E3A2B592DD01085815B2645937D7D441893A2653AD9922DA8C9225F14E66B7371E6238153D3136B8CF4E2F75FFE7810AAE60E2B75AE3&vid=1688853961816128&cst=016F2C179E41C0655EE7707151104A144B23C2A8D90985511A1258F481C2F7F8F24A6146EBECB7224B59353E4B267B30&deviceid=0174367f-9c84-4c36-b953-944d9de76afe&version=4.0.16.6007&platform=win
+```
+
+K8S的pod间通信，pod中的业务代码通常是用service name为目标来发起请求，可以理解为经过了三步：
+
+1. 通过DNS解析，把service name转换为cluster IP，如果是其他类型的service，要转换为pod ip/port（None类型）或者节点的ip和端口（NodePort类型）
+2. 获得clusterip 后，如果是iptables模式，iptables规则用DNAT的方式转换成pod ip/port；如果是ipvs模式，ipvs把cluster ip/port负载均衡为pod ip/port。
+3. 然后才是pod间怎么通过pod IP相互在一个flat的网络世界里通信的问题，可以有多种实现方式，例如tun/tap设备也可以
+
+我的另外一篇文章展开试验了3：
+
+```
+https://github.com/bisonliao/goodgoodstudy/blob/master/tun%E5%92%8Ctap%E8%99%9A%E6%8B%9F%E7%BD%91%E5%8D%A1.md
 ```
 
