@@ -659,3 +659,49 @@ K8S的pod间通信，pod中的业务代码通常是用service name为目标来�
 https://github.com/bisonliao/goodgoodstudy/blob/master/tun%E5%92%8Ctap%E8%99%9A%E6%8B%9F%E7%BD%91%E5%8D%A1.md
 ```
 
+直接在腾讯云上创建一个容器集群，注意选择ipvs模式，可以验证上面的理解：
+
+```shell
+ubuntu@VM-0-49-ubuntu:~$ sudo ipvsadm -l
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+TCP  172.16.0.49:30274 rr
+  -> 172.19.0.8:8000              Masq    1      0          0
+TCP  172.19.252.1:https rr
+  -> 169.254.128.20:60002         Masq    1      9          0
+TCP  172.19.252.90:https rr
+  -> 169.254.128.2:17443          Masq    1      0          0
+TCP  172.19.254.109:https rr
+  -> 169.254.128.2:https          Masq    1      0          0
+TCP  172.19.255.131:http rr  #我创建的add这个service的clusterip，负载均衡到三个pod ip
+  -> 172.19.0.3:8000              Masq    1      0          0
+  -> 172.19.0.4:8000              Masq    1      0          0
+  -> 172.19.0.7:8000              Masq    1      0          0
+TCP  172.19.255.166:domain rr #我创建的multi这个service的cluster ip，负载均衡到一个pod ip
+  -> 172.19.0.6:domain            Masq    1      0          0
+TCP  172.19.255.193:http rr
+  -> 172.19.0.8:8000              Masq    1      0          0
+UDP  172.19.255.166:domain rr
+  -> 172.19.0.6:domain            Masq    1      0          123
+  
+ubuntu@VM-0-49-ubuntu:~$ sudo tcpdump -i any host 172.19.255.131 #以add这个service的clusterip为线索抓包，从multi的pod上发请求
+13:54:09.126142 IP 172.19.0.8.52674 > 172.19.255.131.http: Flags [S], seq 2931192985, win 65535, options [mss 1460,sackOK,TS val 432095770 ecr 0,nop,wscale 9], length 0
+13:54:09.126205 IP 172.19.255.131.http > 172.19.0.8.52674: Flags [S.], seq 1296786581, ack 2931192986, win 65535, options [mss 1460,sackOK,TS val 2708617258 ecr 432095770,nop,wscale 9], length 0
+13:54:09.126213 IP 172.19.0.8.52674 > 172.19.255.131.http: Flags [.], ack 1, win 128, options [nop,nop,TS val 432095770 ecr 2708617258], length 0 #前面都是握手
+13:54:09.126269 IP 172.19.0.8.52674 > 172.19.255.131.http: Flags [P.], seq 1:79, ack 1, win 128, options [nop,nop,TS val 432095770 ecr 2708617258], length 78: HTTP: GET /add?a=5,b=9 HTTP/1.1   #发http请求
+13:54:09.126288 IP 172.19.255.131.http > 172.19.0.8.52674: Flags [.], ack 79, win 128, options [nop,nop,TS val 2708617258 ecr 432095770], length 0 #应答包为什么长度是0？
+
+#换一种方式抓，尝试抓到背后的endpoint
+ubuntu@VM-0-49-ubuntu:~$ sudo tcpdump -i any 'tcp and (host 172.19.255.131 or host 172.19.0.8)'
+14:05:26.511255 IP 172.19.0.8.34986 > 172.19.255.131.http: Flags [S], seq 2504604230, win 65535, options [mss 1460,sackOK,TS val 432773155 ecr 0,nop,wscale 9], length 0 #先请求cluster ip
+14:05:26.511299 IP 172.19.0.8.34986 > 172.19.0.7.8000: Flags [S], seq 2504604230, win 65535, options [mss 1460,sackOK,TS val 432773155 ecr 0,nop,wscale 9], length 0 #负载均衡到另外一个 pod ip，从seq可以看出上面两个是同一个包
+
+14:05:26.511314 IP 172.19.0.7.8000 > 172.19.0.8.34986: Flags [S.], seq 2989507092, ack 2504604231, win 65535, options [mss 1460,sackOK,TS val 3814575633 ecr 432773155,nop,wscale 9], length 0
+14:05:26.511321 IP 172.19.255.131.http > 172.19.0.8.34986: Flags [S.], seq 2989507092, ack 2504604231, win 65535, options [mss 1460,sackOK,TS val 3814575633 ecr 432773155,nop,wscale 9], length 0 #这两个sync是同一个包
+
+14:05:26.511330 IP 172.19.0.8.34986 > 172.19.255.131.http: Flags [.], ack 1, win 128, options [nop,nop,TS val 432773155 ecr 3814575633], length 0
+14:05:26.511335 IP 172.19.0.8.34986 > 172.19.0.7.8000: Flags [.], ack 1, win 128, options [nop,nop,TS val 432773155 ecr 3814575633], length 0   # 这两个ack是同一个包
+
+```
+
