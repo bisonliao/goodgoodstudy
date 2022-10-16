@@ -576,8 +576,11 @@ mysql-cnqpl   1/1     Running   0          28m   192.168.166.129   node1   <none
 
 参考了屎一样的官方文档：
 
-```
+``` shell
 https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
 https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/
+
+https://support.huaweicloud.com/basics-cce/kubernetes.html #这个还不错
+#Kubernates In Action这本书也不错
 ```
 

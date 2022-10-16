@@ -520,7 +520,19 @@ ENTRYPOINT /calc.py
 
 # 7、K8S中的ipvs和dummy网卡
 
-K8S中kube-proxy有iptables和ipvs等工作模式。当集群规模比较大的时候，iptables模式会导致iptables表里的规则极具膨胀，性能和可维护性变差，而且endpoint故障情况下，负载均衡不能做自动容错。ipvs对比有优势。
+K8S中kube-proxy有iptables和ipvs等工作模式。
+
+当集群规模比较大的时候，iptables模式会导致iptables表里的规则快速膨胀，性能和可维护性变差，而且endpoint故障情况下，负载均衡不能做自动容错。
+
+kube-proxy 在 IPVS 模式下，其连接过程的复杂度为 O(1)。换句话说，多数情况下，他的连接处理效率是和集群规模无关的。
+
+IPVS 包含了多种不同的负载均衡算法，例如轮询、最短期望延迟、最少连接以及各种哈希方法等。而 iptables 就只有一种随机平等的选择算法。
+
+IPVS相较于iptables的优势大致如下：
+
+1. 为大型集群提供了更好的可扩展性和性能
+2. 支持比iptables更好的负载均衡算法
+3. 支持服务器健康检查和连接重试等功能
 
 ipvs工作在内核态处理四层协议，使用ipvsadm命令可以方便配置ipvs的负载均衡转发规则。和iptables类似，也有ipvsadm-save, ipvsadm-restore等。
 
