@@ -649,8 +649,13 @@ https://mp.weixin.qq.com/s/RziLRPYqNoQEQuncm47rHg?st=D896F912CC2088E103138BC2268
 
 K8S的pod间通信，pod中的业务代码通常是用service name为目标来发起请求，可以理解为经过了三步：
 
-1. 通过DNS解析，把service name转换为cluster IP，如果是其他类型的service，要转换为pod ip/port（None类型）或者节点的ip和端口（NodePort类型）
-2. 获得clusterip 后，如果是iptables模式，iptables规则用DNAT的方式转换成pod ip/port；如果是ipvs模式，ipvs把cluster ip/port负载均衡为pod ip/port。
+1. 通过DNS解析，把service name转换为cluster IP，如果是其他类型的service：
+   1. None类型，dns解析阶段就直接转为pod ip/port
+   2. NodePort类型，dns解析获得节点的ip和端口。NodePort端口由kube-proxy在用户态直接监听，转发到对应的service背后的pod ip和port。
+   3. LB类型，service本质上还是NodePort类型（腾讯云CLB是这样实现的），LB背后监听器绑定Node的IP和NodePort，又回到了2
+2. 获得clusterip 后，根据kube-proxy的网络模式：
+   1. 如果是iptables模式，iptables规则用DNAT的方式转换成pod ip/port；
+   2. 如果是ipvs模式，ipvs把cluster ip/port负载均衡为pod ip/port。也会使用到iptables进行DNAT
 3. 然后才是pod间怎么通过pod IP相互在一个flat的网络世界里通信的问题，可以有多种实现方式，例如tun/tap设备也可以
 
 我的另外一篇文章展开试验了3：
