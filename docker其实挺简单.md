@@ -572,7 +572,7 @@ curl http://100.100.100.100/multiply?a=5,b=3
 
 ```shell
 ipvsadm -A -t 172.19.16.7:8080 -s rr
-ipvsadm -a -t 172.19.16.7:8080 -r 172.17.0.3:8000 -m
+ipvsadm -a -t 172.19.16.7:8080 -r 172.17.0.3:8000 -m  #-m表示伪装模式MASQUERADE，即DNAT，-g是gateway模式，还有ipip模式
 ipvsadm -a -t 172.19.16.7:8080 -r 172.17.0.4:8000 -m
 
 #从别的机器远程通过172.19.16.7:8080可以访问通！
@@ -650,9 +650,9 @@ https://mp.weixin.qq.com/s/RziLRPYqNoQEQuncm47rHg?st=D896F912CC2088E103138BC2268
 K8S的pod间通信，pod中的业务代码通常是用service name为目标来发起请求，可以理解为经过了三步：
 
 1. 通过DNS解析，把service name转换为cluster IP，如果是其他类型的service：
-   1. None类型，dns解析阶段就直接转为pod ip/port
-   2. NodePort类型，dns解析获得节点的ip和端口。NodePort端口由kube-proxy在用户态直接监听，转发到对应的service背后的pod ip和port。
-   3. LB类型，service本质上还是NodePort类型（腾讯云CLB是这样实现的），LB背后监听器绑定Node的IP和NodePort，又回到了2
+   1. None类型，dns解析阶段就直接转为pod ip/port，实现了pod对pod的通信
+   2. NodePort类型，dns解析获得节点的ip和端口。NodePort端口虽然由kube-proxy在用户态直接监听，实际上还是由内核根据iptables进行DNAT和SNAT，转发到对应的service背后的某个pod ip和port。
+   3. LB类型，service本质上还是NodePort类型（腾讯云CLB是这样实现的），LB背后监听器绑定Node的IP和NodePort，又回到了上面的2
 2. 获得clusterip 后，根据kube-proxy的网络模式：
    1. 如果是iptables模式，iptables规则用DNAT的方式转换成pod ip/port；
    2. 如果是ipvs模式，ipvs把cluster ip/port负载均衡为pod ip/port。也会使用到iptables进行DNAT
