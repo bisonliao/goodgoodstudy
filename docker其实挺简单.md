@@ -703,5 +703,8 @@ ubuntu@VM-0-49-ubuntu:~$ sudo tcpdump -i any 'tcp and (host 172.19.255.131 or ho
 14:05:26.511330 IP 172.19.0.8.34986 > 172.19.255.131.http: Flags [.], ack 1, win 128, options [nop,nop,TS val 432773155 ecr 3814575633], length 0
 14:05:26.511335 IP 172.19.0.8.34986 > 172.19.0.7.8000: Flags [.], ack 1, win 128, options [nop,nop,TS val 432773155 ecr 3814575633], length 0   # 这两个ack是同一个包
 
+#而且可以看到，NodePort是由kube-proxy在应用态进行监听和代理的：
+ubuntu@VM-0-49-ubuntu:~$ sudo netstat -anpl|grep 30274
+tcp        0      0 172.16.0.49:30274       0.0.0.0:*               LISTEN      14404/kube-proxy-bi
 ```
 
