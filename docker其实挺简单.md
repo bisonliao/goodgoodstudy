@@ -619,6 +619,8 @@ Date: Fri, 14 Oct 2022 02:44:24 GMT
 {"result":5}Connection closed by foreign host.
 ```
 
+tcpdump工具不能指定对dummy网卡抓包，也就是 -i dummy0抓不到，改为 -i any可以抓到。
+
 额外的，网上说如何绑定和监听指定的网卡：
 
 You can bind to a specific interface by setting `SO_BINDTODEVICE` socket option.
