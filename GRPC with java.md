@@ -413,3 +413,12 @@ mvn exec:java -Dexec.mainClass="io.bison.calc.App" -Dexec.args="127.0.0.1:50012"
 ```
 
 或者把依赖包grpc-netty-shaded的版本降低到1.30.0，也能正常work。
+
+
+
+### 最后：参考资料：
+
+```
+https://grpc.io/docs/languages/java/
+```
+
