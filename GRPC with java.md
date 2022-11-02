@@ -1,6 +1,6 @@
 
 
-step1: 创建基本工程
+### step1: 创建基本工程
 
 ```shell
 #省去安装maven和java的过程，这个比较容易
@@ -24,7 +24,7 @@ java -cp ./target/calc-1.0-SNAPSHOT.jar  io.bison.calc.App #执行
 
 
 
-step2： 引入依赖和插件
+### step2： 引入依赖和插件
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -168,7 +168,7 @@ step2： 引入依赖和插件
 
 ```
 
-step3：写一个IDL文件放在 src/main/proto/目录下
+### step3：写一个IDL文件放在 src/main/proto/目录下
 
 ```protobuf
 syntax = "proto3";
@@ -232,5 +232,183 @@ target/generated-sources/
 
 ```
 
-step4： 编写client
+### step4： 编写client
+
+为了分发更简单，可以把依赖库都打包到jar包里，在pom.xml的plugins里添加一个插件即可：
+
+```xml
+     <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>2.4.1</version>
+            <configuration>
+                <!-- get all project dependencies -->
+                <descriptorRefs>
+                    <descriptorRef>jar-with-dependencies</descriptorRef>
+                </descriptorRefs>
+                <!-- MainClass in mainfest make a executable jar 
+                这样你就可以直接 java -jar xxx.jar来执行了
+					-->
+                <archive>
+                    <manifest>
+                        <mainClass>io.bison.calc.App</mainClass>
+                    </manifest>
+                </archive>
+            </configuration>
+            <executions>
+                <!-- 配置执行器 -->
+                <execution>
+                    <id>make-assembly</id>
+                    <!-- 绑定到package命令的生命周期上 -->
+                    <phase>package</phase>
+                    <goals>
+                        <!-- 只运行一次 -->
+                        <goal>single</goal>
+                    </goals>
+                </execution>
+            </executions>
+      </plugin>
+
+# mvn package就会把依赖库一起打包进来
+```
+
+
+客户端代码很简单：
+
+```java
+package io.bison.calc;
+
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.StatusRuntimeException;
+import java.util.logging.Logger;
+
+/**
+ * Hello world!
+ *
+ */
+public class App 
+{
+    private static final Logger logger = Logger.getLogger(App.class.getName());
+
+    public static int add(CalculatorGrpc.CalculatorBlockingStub stub, int a, int b)
+    {
+        AddRequest req = AddRequest.newBuilder().setA(a).setB(b).build();
+        try
+        {
+            AddResponse resp = stub.add(req);
+            return resp.getResult();
+        }
+        catch (StatusRuntimeException e)
+        {
+            logger.info(""+e.getMessage());
+            e.printStackTrace();
+            return -1;
+        }
+        
+    }
+
+    public static int sub(CalculatorGrpc.CalculatorBlockingStub stub, int a, int b)
+    {
+        SubRequest req = SubRequest.newBuilder().setA(a).setB(b).build();
+        try
+        {
+            SubResponse resp = stub.sub(req);
+            return resp.getResult();
+        }
+        catch (StatusRuntimeException e)
+        {
+            logger.info(""+e.getMessage());
+            e.printStackTrace();
+            return -1;
+        }
+        
+    }
+    public static void main( String[] args )
+    {
+        System.out.println( "Hello World!" );
+
+        if (args.length < 1)
+        {
+            System.out.println("App [server ip:port]");
+            return;
+        }
+        String target = args[0];
+        ManagedChannel channel = ManagedChannelBuilder.forTarget(target).usePlaintext().build();
+
+        CalculatorGrpc.CalculatorBlockingStub stub = CalculatorGrpc.newBlockingStub(channel);
+
+        System.out.println("1 + 2 = " + add(stub, 1, 2));
+        System.out.println("56-32 = " + sub(stub, 56, 32));
+
+        channel.shutdown();
+
+    }
+}
+
+```
+
+### step5：编写server
+
+```java
+package io.bison.calc;
+
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
+import java.util.logging.Logger;
+
+public class CalcServer
+{
+    private final static Logger logger = Logger.getLogger(Server.class.getName());
+
+    public io.grpc.Server srv = ServerBuilder.forPort(50012).addService(new CalcImpl()).build();;
+
+    public static void main(String[] args) throws  Exception{
+        CalcServer calc = new CalcServer();
+        calc.srv.start();
+        calc.srv.awaitTermination();
+
+    }
+    class CalcImpl extends CalculatorGrpc.CalculatorImplBase {
+
+        public void add(io.bison.calc.AddRequest request,
+                    io.grpc.stub.StreamObserver<io.bison.calc.AddResponse> responseObserver) {
+            int result = request.getA() + request.getB();
+            AddResponse resp = AddResponse.newBuilder().setResult(result).build();
+            responseObserver.onNext(resp);
+            responseObserver.onCompleted();
+        }
+
+  
+        public void sub(io.bison.calc.SubRequest request,
+            io.grpc.stub.StreamObserver<io.bison.calc.SubResponse> responseObserver) {
+            int result = request.getA() - request.getB();
+            SubResponse resp = SubResponse.newBuilder().setResult(result).build();
+            responseObserver.onNext(resp);
+            responseObserver.onCompleted();
+        }
+
+    }
+}
+```
+
+
+
+运行客户端，会遇到一个问题：
+
+```
+Caused by: io.grpc.netty.shaded.io.netty.channel.AbstractChannel$AnnotatedConnectException: connect(..) failed: Invalid argument: /127.0.0.1:50012
+```
+
+网上是和mvn把依赖库都打包，其中关于DNS的依赖有问题导致的。
+
+```
+https://github.com/grpc/grpc-java/issues/9367
+```
+
+改用这种方式能够正常运行：
+
+```
+mvn exec:java -Dexec.mainClass="io.bison.calc.App" -Dexec.args="127.0.0.1:50012"
+```
 
