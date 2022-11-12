@@ -778,7 +778,7 @@ sudo service coturn start
 
 #### 4.1 websocket握手
 
-```http
+```
 Accept-Encoding:gzip, deflate
 Accept-Language:en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7
 Cache-Control:no-cache
@@ -802,7 +802,7 @@ User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, 
 
 #### 4.3 一方进行call，刷的就视频接通了
 
-```json
+```shell
 收到消息：{"type":"offer","offer":{"sdp":"v=0...2"}
 Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
 INFO: Sending offer to 111 from 222
