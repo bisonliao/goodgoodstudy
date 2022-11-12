@@ -1,20 +1,21 @@
 ### 1、基本概念
 
-RTCPeerConnection：代表与远端的webrtc连接。
+1. RTCPeerConnection：代表与远端的webrtc连接。
 
-信令服务器：作为中间人，帮助两个peer进行相互发现和信令间的交互。
+2. 信令服务器：作为中间人，帮助两个peer进行相互发现和信令间的交互。
 
-ICE：Interactive connectivity Establishment。不知道具体指什么
+3. ICE：Interactive connectivity Establishment。不知道具体指什么
 
-STUN：帮助位于NAT局域网内的Peer发现自己的外网地址，从而穿越NAT进行P2P通信
+4. STUN：帮助位于NAT局域网内的Peer发现自己的外网地址，从而穿越NAT进行P2P通信
 
-NAT：就是NAT咯，有多种类型的NAT，不展开
+5. NAT：就是NAT咯，有多种类型的NAT，不展开
 
-TURN：中转服务器，如果不能直连，就要通过TURN中转。 （不确定） 
+6. TURN：中转服务器，如果不能直连，就要通过TURN中转。 （不确定） 
 
-SDP：会话描述协议，表示参与通信的Peer的能力，例如分辨率、编解码格式、加解密算法等
+7. SDP：会话描述协议，表示参与通信的Peer的能力，例如分辨率、编解码格式、加解密算法等
 
-candidate：不知道是什么
+8. candidate：不知道是什么
+
 
 ### 2、交互时序
 
