@@ -1136,3 +1136,8 @@ https://blog.csdn.net/wangxudongx/article/details/105447416
 https://javascript.info/websocket
 ```
 
+还缺一点功夫，待续：
+
+1. 里面的datachannel我还没有调通
+2. 想用自己的熟悉的语言来开发peer端，不想用js，不会
+3. 怎么实现cs视频通信
