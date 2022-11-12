@@ -803,67 +803,329 @@ User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, 
 #### 4.3 一方进行call，刷的就视频接通了
 
 ```json
-收到消息：{
-    "type":"offer",
-    "offer":{
-        "sdp":"v=0\r\no=- 7177867662088728243 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0 1\r\na=extmap-allow-mixed\r\na=msid-semantic: WMS VIaqbdDm2xi6VPFfOrhC43TlEjxaOTcmQd34\r\nm=video 9 UDP/TLS/RTP/SAVPF 96 97 102 122 127 121 125 107 108 109 124 120 39 40 98 99 100 101 123 119 114 115 116\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:YsIK\r\na=ice-pwd:NUhfqDWhV6ipLG3G2eOE6Fd0\r\na=ice-options:trickle\r\na=fingerprint:sha-256 06:73:9A:61:F6:D9:26:99:F0:21:4B:12:E6:E7:27:65:15:63:2C:30:76:3B:21:8F:FE:40:CC:08:C9:C4:E2:94\r\na=setup:actpass\r\na=mid:0\r\na=extmap:1 urn:ietf:params:rtp-hdrext:toffset\r\na=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\na=extmap:3 urn:3gpp:video-orientation\r\na=extmap:4 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\na=extmap:5 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay\r\na=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type\r\na=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing\r\na=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space\r\na=extmap:9 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\na=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\r\na=sendrecv\r\na=msid:VIaqbdDm2xi6VPFfOrhC43TlEjxaOTcmQd34 c3da2fcd-1e4b-4258-90a0-9ed99c6e5c57\r\na=rtcp-mux\r\na=rtcp-rsize\r\na=rtpmap:96 VP8/90000\r\na=rtcp-fb:96 goog-remb\r\na=rtcp-fb:96 transport-cc\r\na=rtcp-fb:96 ccm fir\r\na=rtcp-fb:96 nack\r\na=rtcp-fb:96 nack pli\r\na=rtpmap:97 rtx/90000\r\na=fmtp:97 apt=96\r\na=rtpmap:102 H264/90000\r\na=rtcp-fb:102 goog-remb\r\na=rtcp-fb:102 transport-cc\r\na=rtcp-fb:102 ccm fir\r\na=rtcp-fb:102 nack\r\na=rtcp-fb:102 nack pli\r\na=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f\r\na=rtpmap:122 rtx/90000\r\na=fmtp:122 apt=102\r\na=rtpmap:127 H264/90000\r\na=rtcp-fb:127 goog-remb\r\na=rtcp-fb:127 transport-cc\r\na=rtcp-fb:127 ccm fir\r\na=rtcp-fb:127 nack\r\na=rtcp-fb:127 nack pli\r\na=fmtp:127 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f\r\na=rtpmap:121 rtx/90000\r\na=fmtp:121 apt=127\r\na=rtpmap:125 H264/90000\r\na=rtcp-fb:125 goog-remb\r\na=rtcp-fb:125 transport-cc\r\na=rtcp-fb:125 ccm fir\r\na=rtcp-fb:125 nack\r\na=rtcp-fb:125 nack pli\r\na=fmtp:125 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\r\na=rtpmap:107 rtx/90000\r\na=fmtp:107 apt=125\r\na=rtpmap:108 H264/90000\r\na=rtcp-fb:108 goog-remb\r\na=rtcp-fb:108 transport-cc\r\na=rtcp-fb:108 ccm fir\r\na=rtcp-fb:108 nack\r\na=rtcp-fb:108 nack pli\r\na=fmtp:108 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f\r\na=rtpmap:109 rtx/90000\r\na=fmtp:109 apt=108\r\na=rtpmap:124 H264/90000\r\na=rtcp-fb:124 goog-remb\r\na=rtcp-fb:124 transport-cc\r\na=rtcp-fb:124 ccm fir\r\na=rtcp-fb:124 nack\r\na=rtcp-fb:124 nack pli\r\na=fmtp:124 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=4d001f\r\na=rtpmap:120 rtx/90000\r\na=fmtp:120 apt=124\r\na=rtpmap:39 H264/90000\r\na=rtcp-fb:39 goog-remb\r\na=rtcp-fb:39 transport-cc\r\na=rtcp-fb:39 ccm fir\r\na=rtcp-fb:39 nack\r\na=rtcp-fb:39 nack pli\r\na=fmtp:39 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=4d001f\r\na=rtpmap:40 rtx/90000\r\na=fmtp:40 apt=39\r\na=rtpmap:98 VP9/90000\r\na=rtcp-fb:98 goog-remb\r\na=rtcp-fb:98 transport-cc\r\na=rtcp-fb:98 ccm fir\r\na=rtcp-fb:98 nack\r\na=rtcp-fb:98 nack pli\r\na=fmtp:98 profile-id=0\r\na=rtpmap:99 rtx/90000\r\na=fmtp:99 apt=98\r\na=rtpmap:100 VP9/90000\r\na=rtcp-fb:100 goog-remb\r\na=rtcp-fb:100 transport-cc\r\na=rtcp-fb:100 ccm fir\r\na=rtcp-fb:100 nack\r\na=rtcp-fb:100 nack pli\r\na=fmtp:100 profile-id=2\r\na=rtpmap:101 rtx/90000\r\na=fmtp:101 apt=100\r\na=rtpmap:123 H264/90000\r\na=rtcp-fb:123 goog-remb\r\na=rtcp-fb:123 transport-cc\r\na=rtcp-fb:123 ccm fir\r\na=rtcp-fb:123 nack\r\na=rtcp-fb:123 nack pli\r\na=fmtp:123 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=64001f\r\na=rtpmap:119 rtx/90000\r\na=fmtp:119 apt=123\r\na=rtpmap:114 red/90000\r\na=rtpmap:115 rtx/90000\r\na=fmtp:115 apt=114\r\na=rtpmap:116 ulpfec/90000\r\na=ssrc-group:FID 115665231 873595510\r\na=ssrc:115665231 cname:sljZmBCjr97gkqu5\r\na=ssrc:115665231 msid:VIaqbdDm2xi6VPFfOrhC43TlEjxaOTcmQd34 c3da2fcd-1e4b-4258-90a0-9ed99c6e5c57\r\na=ssrc:873595510 cname:sljZmBCjr97gkqu5\r\na=ssrc:873595510 msid:VIaqbdDm2xi6VPFfOrhC43TlEjxaOTcmQd34 c3da2fcd-1e4b-4258-90a0-9ed99c6e5c57\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:YsIK\r\na=ice-pwd:NUhfqDWhV6ipLG3G2eOE6Fd0\r\na=ice-options:trickle\r\na=fingerprint:sha-256 06:73:9A:61:F6:D9:26:99:F0:21:4B:12:E6:E7:27:65:15:63:2C:30:76:3B:21:8F:FE:40:CC:08:C9:C4:E2:94\r\na=setup:actpass\r\na=mid:1\r\na=sctp-port:5000\r\na=max-message-size:262144\r\n",
-        "type":"offer"
-    },
-    "name":"222",
-    "myName":"111"
-}
-Nov 12, 2022 6:49:18 PM io.bison.SignalServer onMessage
-INFO: Sending offer to 222 from 111
+收到消息：{"type":"offer","offer":{"sdp":"v=0...2"}
+Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
+INFO: Sending offer to 111 from 222
 
-收到消息：{
-    "type":"candidate",
-    "candidate":{
-        "candidate":"candidate:2642016979 1 udp 2113937151 f240a8cc-d207-4bce-b1fd-fee16d04e154.local 60366 typ host generation 0 ufrag YsIK network-cost 999",
-        "sdpMid":"0",
-        "sdpMLineIndex":0
-    },
-    "name":"222",
-    "myName":"111"
-}
-Nov 12, 2022 6:49:18 PM io.bison.SignalServer onMessage
-INFO: Sending candidate to 222
-收到消息：{"type":"candidate","candidate":{"candidate":"candidate:2152488294 1 udp 2113939711 f5ce8262-b8d9-4244-8fda-7ddb3778918c.local 60367 typ host generation 0 ufrag YsIK network-cost 999","sdpMid":"0","sdpMLineIndex":0},"name":"222","myName":"111"}
-Nov 12, 2022 6:49:18 PM io.bison.SignalServer onMessage
-INFO: Sending candidate to 222
-收到消息：{"type":"candidate","candidate":{"candidate":"candidate:2642016979 1 udp 2113937151 f240a8cc-d207-4bce-b1fd-fee16d04e154.local 60368 typ host generation 0 ufrag YsIK network-cost 999","sdpMid":"1","sdpMLineIndex":1},"name":"222","myName":"111"}
-Nov 12, 2022 6:49:18 PM io.bison.SignalServer onMessage
-INFO: Sending candidate to 222
-收到消息：{"type":"candidate","candidate":{"candidate":"candidate:2152488294 1 udp 2113939711 f5ce8262-b8d9-4244-8fda-7ddb3778918c.local 60369 typ host generation 0 ufrag YsIK network-cost 999","sdpMid":"1","sdpMLineIndex":1},"name":"222","myName":"111"}
-Nov 12, 2022 6:49:18 PM io.bison.SignalServer onMessage
-INFO: Sending candidate to 222
-收到消息：{"type":"candidate","candidate":{"candidate":"candidate:1845560544 1 udp 1677729535 223.73.185.58 2130 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag YsIK network-cost 999","sdpMid":"0","sdpMLineIndex":0},"name":"222","myName":"111"}
-Nov 12, 2022 6:49:18 PM io.bison.SignalServer onMessage
-INFO: Sending candidate to 222
-收到消息：{"type":"candidate","candidate":{"candidate":"candidate:1845560544 1 udp 1677729535 223.73.185.58 2131 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag YsIK network-cost 999","sdpMid":"1","sdpMLineIndex":1},"name":"222","myName":"111"}
-Nov 12, 2022 6:49:18 PM io.bison.SignalServer onMessage
-INFO: Sending candidate to 222
-收到消息：{
-    "type":"answer",
-    "answer":{
-        "sdp":"v=0\r\no=- 478619766029632258 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0 1\r\na=extmap-allow-mixed\r\na=msid-semantic: WMS vhyLlO7kbwDh2lbsSbMb1vdMEGhl9rBSMNQo\r\nm=video 9 UDP/TLS/RTP/SAVPF 96 97 102 122 127 121 125 107 108 109 124 120 39 40 98 99 100 101 123 119 114 115 116\r\nc=IN IP4 0.0.0.0\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=ice-ufrag:UTCv\r\na=ice-pwd:CHIXVYSuOit5L8G8UimXA/oj\r\na=ice-options:trickle\r\na=fingerprint:sha-256 D1:B1:49:80:5D:97:9F:C7:71:CD:DC:9F:1D:F2:34:4E:11:3F:92:7D:82:95:16:5E:F6:58:2B:CF:A9:9D:55:EF\r\na=setup:active\r\na=mid:0\r\na=extmap:1 urn:ietf:params:rtp-hdrext:toffset\r\na=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\na=extmap:3 urn:3gpp:video-orientation\r\na=extmap:4 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\r\na=extmap:5 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay\r\na=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type\r\na=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing\r\na=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space\r\na=extmap:9 urn:ietf:params:rtp-hdrext:sdes:mid\r\na=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\na=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id\r\na=sendrecv\r\na=msid:vhyLlO7kbwDh2lbsSbMb1vdMEGhl9rBSMNQo b0463589-1363-45da-86a7-49a77e573b0f\r\na=rtcp-mux\r\na=rtcp-rsize\r\na=rtpmap:96 VP8/90000\r\na=rtcp-fb:96 goog-remb\r\na=rtcp-fb:96 transport-cc\r\na=rtcp-fb:96 ccm fir\r\na=rtcp-fb:96 nack\r\na=rtcp-fb:96 nack pli\r\na=rtpmap:97 rtx/90000\r\na=fmtp:97 apt=96\r\na=rtpmap:102 H264/90000\r\na=rtcp-fb:102 goog-remb\r\na=rtcp-fb:102 transport-cc\r\na=rtcp-fb:102 ccm fir\r\na=rtcp-fb:102 nack\r\na=rtcp-fb:102 nack pli\r\na=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f\r\na=rtpmap:122 rtx/90000\r\na=fmtp:122 apt=102\r\na=rtpmap:127 H264/90000\r\na=rtcp-fb:127 goog-remb\r\na=rtcp-fb:127 transport-cc\r\na=rtcp-fb:127 ccm fir\r\na=rtcp-fb:127 nack\r\na=rtcp-fb:127 nack pli\r\na=fmtp:127 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f\r\na=rtpmap:121 rtx/90000\r\na=fmtp:121 apt=127\r\na=rtpmap:125 H264/90000\r\na=rtcp-fb:125 goog-remb\r\na=rtcp-fb:125 transport-cc\r\na=rtcp-fb:125 ccm fir\r\na=rtcp-fb:125 nack\r\na=rtcp-fb:125 nack pli\r\na=fmtp:125 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\r\na=rtpmap:107 rtx/90000\r\na=fmtp:107 apt=125\r\na=rtpmap:108 H264/90000\r\na=rtcp-fb:108 goog-remb\r\na=rtcp-fb:108 transport-cc\r\na=rtcp-fb:108 ccm fir\r\na=rtcp-fb:108 nack\r\na=rtcp-fb:108 nack pli\r\na=fmtp:108 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f\r\na=rtpmap:109 rtx/90000\r\na=fmtp:109 apt=108\r\na=rtpmap:124 H264/90000\r\na=rtcp-fb:124 goog-remb\r\na=rtcp-fb:124 transport-cc\r\na=rtcp-fb:124 ccm fir\r\na=rtcp-fb:124 nack\r\na=rtcp-fb:124 nack pli\r\na=fmtp:124 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=4d001f\r\na=rtpmap:120 rtx/90000\r\na=fmtp:120 apt=124\r\na=rtpmap:39 H264/90000\r\na=rtcp-fb:39 goog-remb\r\na=rtcp-fb:39 transport-cc\r\na=rtcp-fb:39 ccm fir\r\na=rtcp-fb:39 nack\r\na=rtcp-fb:39 nack pli\r\na=fmtp:39 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=4d001f\r\na=rtpmap:40 rtx/90000\r\na=fmtp:40 apt=39\r\na=rtpmap:98 VP9/90000\r\na=rtcp-fb:98 goog-remb\r\na=rtcp-fb:98 transport-cc\r\na=rtcp-fb:98 ccm fir\r\na=rtcp-fb:98 nack\r\na=rtcp-fb:98 nack pli\r\na=fmtp:98 profile-id=0\r\na=rtpmap:99 rtx/90000\r\na=fmtp:99 apt=98\r\na=rtpmap:100 VP9/90000\r\na=rtcp-fb:100 goog-remb\r\na=rtcp-fb:100 transport-cc\r\na=rtcp-fb:100 ccm fir\r\na=rtcp-fb:100 nack\r\na=rtcp-fb:100 nack pli\r\na=fmtp:100 profile-id=2\r\na=rtpmap:101 rtx/90000\r\na=fmtp:101 apt=100\r\na=rtpmap:123 H264/90000\r\na=rtcp-fb:123 goog-remb\r\na=rtcp-fb:123 transport-cc\r\na=rtcp-fb:123 ccm fir\r\na=rtcp-fb:123 nack\r\na=rtcp-fb:123 nack pli\r\na=fmtp:123 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=64001f\r\na=rtpmap:119 rtx/90000\r\na=fmtp:119 apt=123\r\na=rtpmap:114 red/90000\r\na=rtpmap:115 rtx/90000\r\na=fmtp:115 apt=114\r\na=rtpmap:116 ulpfec/90000\r\na=ssrc-group:FID 3259078472 3714637087\r\na=ssrc:3259078472 cname:lvpbVaT/zWLmLBHL\r\na=ssrc:3714637087 cname:lvpbVaT/zWLmLBHL\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\na=ice-ufrag:UTCv\r\na=ice-pwd:CHIXVYSuOit5L8G8UimXA/oj\r\na=ice-options:trickle\r\na=fingerprint:sha-256 D1:B1:49:80:5D:97:9F:C7:71:CD:DC:9F:1D:F2:34:4E:11:3F:92:7D:82:95:16:5E:F6:58:2B:CF:A9:9D:55:EF\r\na=setup:active\r\na=mid:1\r\na=sctp-port:5000\r\na=max-message-size:262144\r\n",
-        "type":"answer"
-    },
-    "name":"111",
-    "myName":"222"
-}
-Nov 12, 2022 6:49:18 PM io.bison.SignalServer onMessage
-INFO: answer from 222
-Nov 12, 2022 6:49:18 PM io.bison.SignalServer onMessage
-INFO: send answer to 111
+SDP：
+v=0
+o=- 727800857132210897 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1
+a=extmap-allow-mixed
+a=msid-semantic: WMS 5FBEHloS5pG7M3cjTBA8kGFpDcT8gP5CBxif
+m=video 9 UDP/TLS/RTP/SAVPF 96 97 102 122 127 121 125 107 108 109 124 120 39 40 98 99 100 101 123 119 114 115 116
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:RUtG
+a=ice-pwd:aMpyBrT2rIfKL8JM+9Q6puft
+a=ice-options:trickle
+a=fingerprint:sha-256 D7:AC:4D:97:15:C7:17:56:4C:0E:F4:44:CF:0B:EA:E7:32:EF:25:1B:61:83:26:37:DD:52:9F:F5:B9:97:67:FA
+a=setup:actpass
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:toffset
+a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:3 urn:3gpp:video-orientation
+a=extmap:4 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap:5 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay
+a=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type
+a=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing
+a=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space
+a=extmap:9 urn:ietf:params:rtp-hdrext:sdes:mid
+a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id
+a=sendrecv
+a=msid:5FBEHloS5pG7M3cjTBA8kGFpDcT8gP5CBxif e2932a59-9078-4795-8923-41a8ba7c8b62
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 goog-remb
+a=rtcp-fb:96 transport-cc
+a=rtcp-fb:96 ccm fir
+a=rtcp-fb:96 nack
+a=rtcp-fb:96 nack pli
+a=rtpmap:97 rtx/90000
+a=fmtp:97 apt=96
+a=rtpmap:102 H264/90000
+a=rtcp-fb:102 goog-remb
+a=rtcp-fb:102 transport-cc
+a=rtcp-fb:102 ccm fir
+a=rtcp-fb:102 nack
+a=rtcp-fb:102 nack pli
+a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f
+a=rtpmap:122 rtx/90000
+a=fmtp:122 apt=102
+a=rtpmap:127 H264/90000
+a=rtcp-fb:127 goog-remb
+a=rtcp-fb:127 transport-cc
+a=rtcp-fb:127 ccm fir
+a=rtcp-fb:127 nack
+a=rtcp-fb:127 nack pli
+a=fmtp:127 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f
+a=rtpmap:121 rtx/90000
+a=fmtp:121 apt=127
+a=rtpmap:125 H264/90000
+a=rtcp-fb:125 goog-remb
+a=rtcp-fb:125 transport-cc
+a=rtcp-fb:125 ccm fir
+a=rtcp-fb:125 nack
+a=rtcp-fb:125 nack pli
+a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
+a=rtpmap:107 rtx/90000
+a=fmtp:107 apt=125
+a=rtpmap:108 H264/90000
+a=rtcp-fb:108 goog-remb
+a=rtcp-fb:108 transport-cc
+a=rtcp-fb:108 ccm fir
+a=rtcp-fb:108 nack
+a=rtcp-fb:108 nack pli
+a=fmtp:108 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f
+a=rtpmap:109 rtx/90000
+a=fmtp:109 apt=108
+a=rtpmap:124 H264/90000
+a=rtcp-fb:124 goog-remb
+a=rtcp-fb:124 transport-cc
+a=rtcp-fb:124 ccm fir
+a=rtcp-fb:124 nack
+a=rtcp-fb:124 nack pli
+a=fmtp:124 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=4d001f
+a=rtpmap:120 rtx/90000
+a=fmtp:120 apt=124
+a=rtpmap:39 H264/90000
+a=rtcp-fb:39 goog-remb
+a=rtcp-fb:39 transport-cc
+a=rtcp-fb:39 ccm fir
+a=rtcp-fb:39 nack
+a=rtcp-fb:39 nack pli
+a=fmtp:39 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=4d001f
+a=rtpmap:40 rtx/90000
+a=fmtp:40 apt=39
+a=rtpmap:98 VP9/90000
+a=rtcp-fb:98 goog-remb
+a=rtcp-fb:98 transport-cc
+a=rtcp-fb:98 ccm fir
+a=rtcp-fb:98 nack
+a=rtcp-fb:98 nack pli
+a=fmtp:98 profile-id=0
+a=rtpmap:99 rtx/90000
+a=fmtp:99 apt=98
+a=rtpmap:100 VP9/90000
+a=rtcp-fb:100 goog-remb
+a=rtcp-fb:100 transport-cc
+a=rtcp-fb:100 ccm fir
+a=rtcp-fb:100 nack
+a=rtcp-fb:100 nack pli
+a=fmtp:100 profile-id=2
+a=rtpmap:101 rtx/90000
+a=fmtp:101 apt=100
+a=rtpmap:123 H264/90000
+a=rtcp-fb:123 goog-remb
+a=rtcp-fb:123 transport-cc
+a=rtcp-fb:123 ccm fir
+a=rtcp-fb:123 nack
+a=rtcp-fb:123 nack pli
+a=fmtp:123 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=64001f
+a=rtpmap:119 rtx/90000
+a=fmtp:119 apt=123
+a=rtpmap:114 red/90000
+a=rtpmap:115 rtx/90000
+a=fmtp:115 apt=114
+a=rtpmap:116 ulpfec/90000
+a=ssrc-group:FID 2960198605 2305541178
+a=ssrc:2960198605 cname:OhkUcqD0lFx1l6U5
+a=ssrc:2960198605 msid:5FBEHloS5pG7M3cjTBA8kGFpDcT8gP5CBxif e2932a59-9078-4795-8923-41a8ba7c8b62
+a=ssrc:2305541178 cname:OhkUcqD0lFx1l6U5
+a=ssrc:2305541178 msid:5FBEHloS5pG7M3cjTBA8kGFpDcT8gP5CBxif e2932a59-9078-4795-8923-41a8ba7c8b62
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:RUtG
+a=ice-pwd:aMpyBrT2rIfKL8JM+9Q6puft
+a=ice-options:trickle
+a=fingerprint:sha-256 D7:AC:4D:97:15:C7:17:56:4C:0E:F4:44:CF:0B:EA:E7:32:EF:25:1B:61:83:26:37:DD:52:9F:F5:B9:97:67:FA
+a=setup:actpass
+a=mid:1
+a=sctp-port:5000
+a=max-message-size:262144
 
-收到消息：{"type":"candidate","candidate":{"candidate":"candidate:117699864 1 udp 2113937151 c1d34526-3021-4ead-b105-581feac348bb.local 60370 typ host generation 0 ufrag UTCv network-cost 999","sdpMid":"0","sdpMLineIndex":0},"name":"111","myName":"222"}
-Nov 12, 2022 6:49:18 PM io.bison.SignalServer onMessage
+收到消息：{"type":"candidate","candidate":{"candidate":"candidate:1243366901 1 udp 2113937151 f0898bd7-43e5-4059-8a37-4a56bfd6c23d.local 54214 typ host generation 0 ufrag RUtG network-cost 999","sdpMid":"0","sdpMLineIndex":0},"name":"111","myName":"222"}
+Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
 INFO: Sending candidate to 111
-收到消息：{"type":"candidate","candidate":{"candidate":"candidate:439767725 1 udp 2113939711 88c3bf2f-f048-49ca-a9e7-1ec797d70979.local 60371 typ host generation 0 ufrag UTCv network-cost 999","sdpMid":"0","sdpMLineIndex":0},"name":"111","myName":"222"}
-Nov 12, 2022 6:49:18 PM io.bison.SignalServer onMessage
+收到消息：{"type":"candidate","candidate":{"candidate":"candidate:3366687973 1 udp 2113939711 bd535fac-91f4-437c-b974-1cfb716bf3c6.local 54215 typ host generation 0 ufrag RUtG network-cost 999","sdpMid":"0","sdpMLineIndex":0},"name":"111","myName":"222"}
+Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
 INFO: Sending candidate to 111
+收到消息：{"type":"candidate","candidate":{"candidate":"candidate:1243366901 1 udp 2113937151 f0898bd7-43e5-4059-8a37-4a56bfd6c23d.local 54216 typ host generation 0 ufrag RUtG network-cost 999","sdpMid":"1","sdpMLineIndex":1},"name":"111","myName":"222"}
+Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
+INFO: Sending candidate to 111
+收到消息：{"type":"candidate","candidate":{"candidate":"candidate:3366687973 1 udp 2113939711 bd535fac-91f4-437c-b974-1cfb716bf3c6.local 54217 typ host generation 0 ufrag RUtG network-cost 999","sdpMid":"1","sdpMLineIndex":1},"name":"111","myName":"222"}
+Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
+INFO: Sending candidate to 111
+收到消息：{"type":"candidate","candidate":{"candidate":"candidate:2341682919 1 udp 1677729535 223.73.185.58 2090 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag RUtG network-cost 999","sdpMid":"0","sdpMLineIndex":0},"name":"111","myName":"222"}
+Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
+INFO: Sending candidate to 111
+收到消息：{"type":"candidate","candidate":{"candidate":"candidate:2341682919 1 udp 1677729535 223.73.185.58 2091 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag RUtG network-cost 999","sdpMid":"1","sdpMLineIndex":1},"name":"111","myName":"222"}
+Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
+INFO: Sending candidate to 111
+收到消息：{"type":"answer","answer":{"sdp":"v..."}
+Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
+INFO: answer from 111
 
+SDP:
+v=0
+o=- 2339635737454351084 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0 1
+a=extmap-allow-mixed
+a=msid-semantic: WMS 25HJx1gIIdi4rLrJibTArTb91FIXBWrWz5K4
+m=video 9 UDP/TLS/RTP/SAVPF 96 97 102 122 127 121 125 107 108 109 124 120 39 40 98 99 100 101 123 119 114 115 116
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:UXpl
+a=ice-pwd:wM4XWfz5p8j99FhI5CmwKBBU
+a=ice-options:trickle
+a=fingerprint:sha-256 7A:8E:1F:93:E9:8B:E6:69:A9:28:9D:52:99:C2:44:42:54:F0:7F:12:91:CA:03:17:09:A8:E1:A3:AA:34:34:28
+a=setup:active
+a=mid:0
+a=extmap:1 urn:ietf:params:rtp-hdrext:toffset
+a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
+a=extmap:3 urn:3gpp:video-orientation
+a=extmap:4 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
+a=extmap:5 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay
+a=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type
+a=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-timing
+a=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space
+a=extmap:9 urn:ietf:params:rtp-hdrext:sdes:mid
+a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+a=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id
+a=sendrecv
+a=msid:25HJx1gIIdi4rLrJibTArTb91FIXBWrWz5K4 7db0a3c2-656f-4f1a-851b-4792b8172c05
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 goog-remb
+a=rtcp-fb:96 transport-cc
+a=rtcp-fb:96 ccm fir
+a=rtcp-fb:96 nack
+a=rtcp-fb:96 nack pli
+a=rtpmap:97 rtx/90000
+a=fmtp:97 apt=96
+a=rtpmap:102 H264/90000
+a=rtcp-fb:102 goog-remb
+a=rtcp-fb:102 transport-cc
+a=rtcp-fb:102 ccm fir
+a=rtcp-fb:102 nack
+a=rtcp-fb:102 nack pli
+a=fmtp:102 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f
+a=rtpmap:122 rtx/90000
+a=fmtp:122 apt=102
+a=rtpmap:127 H264/90000
+a=rtcp-fb:127 goog-remb
+a=rtcp-fb:127 transport-cc
+a=rtcp-fb:127 ccm fir
+a=rtcp-fb:127 nack
+a=rtcp-fb:127 nack pli
+a=fmtp:127 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f
+a=rtpmap:121 rtx/90000
+a=fmtp:121 apt=127
+a=rtpmap:125 H264/90000
+a=rtcp-fb:125 goog-remb
+a=rtcp-fb:125 transport-cc
+a=rtcp-fb:125 ccm fir
+a=rtcp-fb:125 nack
+a=rtcp-fb:125 nack pli
+a=fmtp:125 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f
+a=rtpmap:107 rtx/90000
+a=fmtp:107 apt=125
+a=rtpmap:108 H264/90000
+a=rtcp-fb:108 goog-remb
+a=rtcp-fb:108 transport-cc
+a=rtcp-fb:108 ccm fir
+a=rtcp-fb:108 nack
+a=rtcp-fb:108 nack pli
+a=fmtp:108 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f
+a=rtpmap:109 rtx/90000
+a=fmtp:109 apt=108
+a=rtpmap:124 H264/90000
+a=rtcp-fb:124 goog-remb
+a=rtcp-fb:124 transport-cc
+a=rtcp-fb:124 ccm fir
+a=rtcp-fb:124 nack
+a=rtcp-fb:124 nack pli
+a=fmtp:124 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=4d001f
+a=rtpmap:120 rtx/90000
+a=fmtp:120 apt=124
+a=rtpmap:39 H264/90000
+a=rtcp-fb:39 goog-remb
+a=rtcp-fb:39 transport-cc
+a=rtcp-fb:39 ccm fir
+a=rtcp-fb:39 nack
+a=rtcp-fb:39 nack pli
+a=fmtp:39 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=4d001f
+a=rtpmap:40 rtx/90000
+a=fmtp:40 apt=39
+a=rtpmap:98 VP9/90000
+a=rtcp-fb:98 goog-remb
+a=rtcp-fb:98 transport-cc
+a=rtcp-fb:98 ccm fir
+a=rtcp-fb:98 nack
+a=rtcp-fb:98 nack pli
+a=fmtp:98 profile-id=0
+a=rtpmap:99 rtx/90000
+a=fmtp:99 apt=98
+a=rtpmap:100 VP9/90000
+a=rtcp-fb:100 goog-remb
+a=rtcp-fb:100 transport-cc
+a=rtcp-fb:100 ccm fir
+a=rtcp-fb:100 nack
+a=rtcp-fb:100 nack pli
+a=fmtp:100 profile-id=2
+a=rtpmap:101 rtx/90000
+a=fmtp:101 apt=100
+a=rtpmap:123 H264/90000
+a=rtcp-fb:123 goog-remb
+a=rtcp-fb:123 transport-cc
+a=rtcp-fb:123 ccm fir
+a=rtcp-fb:123 nack
+a=rtcp-fb:123 nack pli
+a=fmtp:123 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=64001f
+a=rtpmap:119 rtx/90000
+a=fmtp:119 apt=123
+a=rtpmap:114 red/90000
+a=rtpmap:115 rtx/90000
+a=fmtp:115 apt=114
+a=rtpmap:116 ulpfec/90000
+a=ssrc-group:FID 3498837450 3401073440
+a=ssrc:3498837450 cname:1TsjTTcNusiwh1dy
+a=ssrc:3401073440 cname:1TsjTTcNusiwh1dy
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:UXpl
+a=ice-pwd:wM4XWfz5p8j99FhI5CmwKBBU
+a=ice-options:trickle
+a=fingerprint:sha-256 7A:8E:1F:93:E9:8B:E6:69:A9:28:9D:52:99:C2:44:42:54:F0:7F:12:91:CA:03:17:09:A8:E1:A3:AA:34:34:28
+a=setup:active
+a=mid:1
+a=sctp-port:5000
+a=max-message-size:262144
+
+Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
+INFO: send answer to 222
+
+收到消息：{"type":"candidate","candidate":{"candidate":"candidate:3031372602 1 udp 2113937151 d05702cc-9023-4171-89d2-d6c7a23e72b5.local 49996 typ host generation 0 ufrag UXpl network-cost 999","sdpMid":"0","sdpMLineIndex":0},"name":"222","myName":"111"}
+Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
+INFO: Sending candidate to 222
+收到消息：{"type":"candidate","candidate":{"candidate":"candidate:4046756185 1 udp 2113939711 db8608fa-054c-4468-b47b-5fe29f325086.local 49997 typ host generation 0 ufrag UXpl network-cost 999","sdpMid":"0","sdpMLineIndex":0},"name":"222","myName":"111"}
+Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
+INFO: Sending candidate to 222
+收到消息：{"type":"candidate","candidate":{"candidate":"candidate:3337783342 1 udp 1677729535 223.73.185.58 2092 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag UXpl network-cost 999","sdpMid":"0","sdpMLineIndex":0},"name":"222","myName":"111"}
+Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
+INFO: Sending candidate to 222
 ```
+
+可以看到，candidate中含有223.73.185.58这个地址，是我两个peer电脑的共同的移动宽带出口。如果关闭stun服务，是找不到这样一个IP的，candidate里只有局域网内的IP信息，但视频也能通，因为在同一个局域网内。
+
+
 
 ### 5、 参考资料
 
