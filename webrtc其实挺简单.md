@@ -4,7 +4,7 @@
 2. 信令服务器：作为中间人，帮助两个peer进行相互发现和信令间的交互。
 3. ICE：Interactive connectivity Establishment。有点模糊，可以指代浏览器的webrtc内核P2P通信框架，有的时候又包括STUN/TURN这些设施
 4. STUN：帮助位于NAT局域网内的Peer发现自己的外网地址，从而穿越NAT进行P2P通信
-5. NAT：就是NAT咯，有多种类型的NAT，不展开
+5. NAT：就是NAT咯，有4种类型的NAT，不展开，见参考材料
 6. TURN：中转服务器，如果不能直连，就要通过TURN中转。 
 7. SDP：会话描述协议，表示参与通信的Peer的能力，例如分辨率、编解码格式、加解密算法等，字段很多但看不明白。通信过程中一方发出offer，一方回以answer。offer和answer里主要构成就是SDP
 8. candidate：P2P的外网地址等关乎P2P通信的信息，相当于告诉对方门牌号（直连）或者接头的酒吧（中转）。即使P2P通信已经建立了，也可能继续交换candidate，并修改P2P通信通道。
@@ -564,7 +564,7 @@ yourConnection.addIceCandidate() //收到对方的candidate后，设置进去
 https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Signaling_and_video_calling
 ```
 
-
+题外话，我试过把html页面和js文件部署到apache服务器上，但是由于缺少证书，不是https域名，chrome浏览器拒绝让我访问摄像头。只好通过本地文件的方式完成了试验。当然不方便了，两台机器都要放本地文件。
 
 #### 3.2 搞一个信令服务器
 
@@ -1192,6 +1192,7 @@ https://blog.csdn.net/wangxudongx/article/details/105447416
 https://javascript.info/websocket
 https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Simple_RTCDataChannel_sample
 https://webrtc.org/getting-started/peer-connections
+https://en.wikipedia.org/wiki/Network_address_translation
 ```
 
 还缺一点功夫，待续：
