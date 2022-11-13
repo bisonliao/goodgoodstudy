@@ -5,7 +5,7 @@
 3. ICE：Interactive connectivity Establishment。有点模糊，可以指代浏览器的webrtc内核P2P通信框架，有的时候又包括STUN/TURN这些设施
 4. STUN：帮助位于NAT局域网内的Peer发现自己的外网地址，从而穿越NAT进行P2P通信
 5. NAT：就是NAT咯，有多种类型的NAT，不展开
-6. TURN：中转服务器，如果不能直连，就要通过TURN中转。 （不确定） 
+6. TURN：中转服务器，如果不能直连，就要通过TURN中转。 
 7. SDP：会话描述协议，表示参与通信的Peer的能力，例如分辨率、编解码格式、加解密算法等，字段很多但看不明白。通信过程中一方发出offer，一方回以answer。offer和answer里主要构成就是SDP
 8. candidate：P2P的外网地址等关乎P2P通信的信息，相当于告诉对方门牌号。即使P2P通信已经建立了，也可能继续交换candidate，并修改P2P通信通道。
 
