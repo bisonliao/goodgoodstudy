@@ -2,7 +2,7 @@
 
 1. RTCPeerConnection：代表与对端的webrtc连接，最重要的变量，两个peer的代码围绕它玩
 2. 信令服务器：作为中间人，帮助两个peer进行相互发现和信令间的交互。
-3. ICE：Interactive connectivity Establishment。有点模糊，可以指代浏览器的webrtc内核P2P通信框架
+3. ICE：Interactive connectivity Establishment。有点模糊，可以指代浏览器的webrtc内核P2P通信框架，有的时候又包括STUN/TURN这些设施
 4. STUN：帮助位于NAT局域网内的Peer发现自己的外网地址，从而穿越NAT进行P2P通信
 5. NAT：就是NAT咯，有多种类型的NAT，不展开
 6. TURN：中转服务器，如果不能直连，就要通过TURN中转。 （不确定） 
