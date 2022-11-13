@@ -177,12 +177,17 @@ https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Protocols
   function setupPeerConnection(stream) {
     if (yourConnection == null) {
       var configuration = {
-        // "iceServers": [{ "url": "stun:127.0.0.1:9876" }]
-        "iceServers": [{"url": "stun:119.28.214.71:3478"}, {
+        "iceServers": [
+          {"url": "stun:119.28.214.71:3478",
+          "username": "bison",
+          "credential": "liao"
+          }, 
+          {
           "url": "turn:119.28.214.71:3478",
           "username": "bison",
           "credential": "liao"
-        }]
+          }
+        ]
       };
       yourConnection = new RTCPeerConnection(configuration, {optional: [{RtpDataChannels: true}]});
     }
@@ -1186,6 +1191,7 @@ https://blog.csdn.net/wangxudongx/article/details/105414629
 https://blog.csdn.net/wangxudongx/article/details/105447416
 https://javascript.info/websocket
 https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Simple_RTCDataChannel_sample
+https://webrtc.org/getting-started/peer-connections
 ```
 
 还缺一点功夫，待续：
