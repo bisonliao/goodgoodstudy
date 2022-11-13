@@ -27,13 +27,15 @@
    2. 发送offer，对方会应答以answer，offer和answer两个报文的主要内容就是SDP
    3. 相互发送candidate，会作死的发，一开始发内网地址，等发现了自己的外网地址后就作死的发外网地址。
 
+借网友一张图：
+
 ![这里由张图片](img/webrtc/interaction.png)
 
 ### 3、实操整起
 
 #### 3.1 先整一个页面，带有js
 
-代码如下：
+借网友的代码如下：
 
 ```javascript
 // filename: rtc.js
@@ -531,6 +533,8 @@ html页面很简单，js代码有点复杂，尤其是对于不做前端开发�
 4. 对方收到后会在消息回调函数onOffer中处理，会据此设置对端的SDP。并进一步触发创建和发送answer，并设置本地的SDP
 5. 发起会话的一方，收到对方的answer后，会据此设置远端的SDP信息。
 6. 双方相互发送candidate，可能会发送多次
+
+借网友一张图：
 
 ![](img/webrtc/SetSDP.png)
 
