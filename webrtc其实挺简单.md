@@ -1181,6 +1181,15 @@ candidate的字段解读，可以见：
 https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Connectivity
 ```
 
+在STUN服务器上，可以抓到大量的包，应该是打洞的请求应答，而且一直持续：
+
+```shell
+$  sudo tcpdump -i eth0 port 3478
+
+17:32:23.695494 IP 223.73.185.58.2105 > VM-16-7-ubuntu.3478: UDP, length 28
+17:32:23.695576 IP VM-16-7-ubuntu.3478 > 223.73.185.58.2105: UDP, length 96
+```
+
 
 
 ### 5、 参考资料
