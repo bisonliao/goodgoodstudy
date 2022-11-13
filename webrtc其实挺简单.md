@@ -1,20 +1,21 @@
 ### 1、基本概念
 
 1. RTCPeerConnection：代表与对端的webrtc连接，最重要的变量，两个peer的代码围绕它玩
-
 2. 信令服务器：作为中间人，帮助两个peer进行相互发现和信令间的交互。
-
 3. ICE：Interactive connectivity Establishment。不知道具体指什么，应该是指整个通信建立的过程吧
-
 4. STUN：帮助位于NAT局域网内的Peer发现自己的外网地址，从而穿越NAT进行P2P通信
-
 5. NAT：就是NAT咯，有多种类型的NAT，不展开
-
 6. TURN：中转服务器，如果不能直连，就要通过TURN中转。 （不确定） 
-
 7. SDP：会话描述协议，表示参与通信的Peer的能力，例如分辨率、编解码格式、加解密算法等，字段很多但看不明白。通信过程中一方发出offer，一方回以answer。offer和answer里主要构成就是SDP
+8. candidate：P2P的外网地址等关乎P2P通信的信息，相当于告诉对方门牌号。
 
-8. candidate：我猜是P2P的外网地址等信息，告诉对方门牌号。
+更详细准确的描述见下面这个又科普又准确的资料：
+
+```
+https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Protocols
+```
+
+
 
 
 ### 2、交互时序
