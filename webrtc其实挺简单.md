@@ -2,12 +2,12 @@
 
 1. RTCPeerConnection：代表与对端的webrtc连接，最重要的变量，两个peer的代码围绕它玩
 2. 信令服务器：作为中间人，帮助两个peer进行相互发现和信令间的交互。
-3. ICE：Interactive connectivity Establishment。不知道具体指什么，应该是指整个通信建立的过程吧
+3. ICE：Interactive connectivity Establishment。有点模糊，可以指代浏览器的webrtc内核P2P通信框架
 4. STUN：帮助位于NAT局域网内的Peer发现自己的外网地址，从而穿越NAT进行P2P通信
 5. NAT：就是NAT咯，有多种类型的NAT，不展开
 6. TURN：中转服务器，如果不能直连，就要通过TURN中转。 （不确定） 
 7. SDP：会话描述协议，表示参与通信的Peer的能力，例如分辨率、编解码格式、加解密算法等，字段很多但看不明白。通信过程中一方发出offer，一方回以answer。offer和answer里主要构成就是SDP
-8. candidate：P2P的外网地址等关乎P2P通信的信息，相当于告诉对方门牌号。
+8. candidate：P2P的外网地址等关乎P2P通信的信息，相当于告诉对方门牌号。即使P2P通信已经建立了，也可能继续交换candidate，并修改P2P通信通道。
 
 更详细准确的描述见下面这个又科普又准确的资料：
 
@@ -530,10 +530,10 @@ html页面很简单，js代码有点复杂，尤其是对于不做前端开发�
 2. 双方都点击login按钮会触发login请求，应答会在上述回调函数的onLogin中处理，onLogin会调用startConnection为P2P连接做准备，重要的两个准备：
    1. navigator.mediaDevices.getUserMedia() 从本地媒体设备获取媒体数据
    2. 请求STUN服务器，生成RTCPeerConnection
-3. 一方点击call按钮，会触发startPeerConnection，就会创建和发送offer，设置本地的SDP。
+3. 一方点击call按钮，会创建和发送offer，同时设置本地的SDP。
 4. 对方收到后会在消息回调函数onOffer中处理，会据此设置对端的SDP。并进一步触发创建和发送answer，并设置本地的SDP
-5. 发起会话的一方，收到对方的answer后，会据此设置远端的SDP信息。
-6. 双方相互发送candidate，可能会发送多次
+5. 发起会话的一方，收到对方的answer后，会据此设置远端的SDP信息。到目前为止，双方都有了自己的SDP和对端的SDP，据此判断能否协商成功
+6. 如果上面的SDP协商成功（也可能不成功不是，看不对眼），浏览器会触发注册的 JS 回调代码发送candidate给对方，可能会发送多次；双方会相互发送，收到对方的candidate后会调用 RTCPeerConnection.addIceCandidate()把收到的candidate设置进去，浏览器底层开始P2P通信。
 
 借网友一张图：
 
@@ -546,11 +546,17 @@ yourConnection = new RTCPeerConnection(...）
 yourConnection.addStream(stream)
 yourConnection.createDataChannel() // 如果用的话
 yourConnection.createOffer()
-yourConnection.setLocalDescription(offer)//发出己方的offer或者answer的时候
+yourConnection.setLocalDescription(offer)//发出己方的offer或者answer的时候，设置一下本地的SDP
 yourConnection.setRemoteDescription()//收到对方的offer或者answer的时候
 yourConnection.createAnswer()
-yourConnection.addIceCandidate() //
+yourConnection.addIceCandidate() //收到对方的candidate后，设置进去
 同时，yourConnection也支持设置各种onicecandidate()  、onXXX()等事件
+```
+
+这个页面里的两个图片也说的很清楚：
+
+```
+https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Signaling_and_video_calling
 ```
 
 
