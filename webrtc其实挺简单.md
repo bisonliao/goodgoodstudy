@@ -1173,5 +1173,5 @@ https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Simple_RTCDataChanne
 
 还缺一点功夫，待续：
 
-1. 想用自己的熟悉的语言来开发peer端，不想用js，不太会
-2. 怎么实现cs视频通信
+1. 想用自己的熟悉的语言来开发peer端，不想用js，不太会。看起来安卓是有库支持的。
+2. 怎么实现cs视频通信，也就是server也作为一个peer端参与进来？
