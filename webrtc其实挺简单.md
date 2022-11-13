@@ -1168,7 +1168,13 @@ Nov 12, 2022 8:23:14 PM io.bison.SignalServer onMessage
 INFO: Sending candidate to 222
 ```
 
-可以看到，candidate中含有223.73.185.58这个地址，是我两个peer电脑的共同的移动宽带出口。如果关闭stun服务，是找不到这样一个IP的，candidate里只有局域网内的IP信息，但视频也能通，因为在同一个局域网内。
+可以看到，candidate中含有223.73.185.58这个地址，是我两个peer电脑的共同的移动宽带出口，srflx这个字段也表示来自STUN的发现。如果关闭stun服务，是找不到这样一个IP的，candidate里只有局域网内的IP信息，但视频也能通，因为在同一个局域网内。
+
+candidate的字段解读，可以见：
+
+```
+https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Connectivity
+```
 
 
 
