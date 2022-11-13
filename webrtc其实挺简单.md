@@ -1,10 +1,10 @@
 ### 1、基本概念
 
-1. RTCPeerConnection：代表与远端的webrtc连接。
+1. RTCPeerConnection：代表与对端的webrtc连接，最重要的变量，两个peer的代码围绕它玩
 
 2. 信令服务器：作为中间人，帮助两个peer进行相互发现和信令间的交互。
 
-3. ICE：Interactive connectivity Establishment。不知道具体指什么
+3. ICE：Interactive connectivity Establishment。不知道具体指什么，应该是指整个通信建立的过程吧
 
 4. STUN：帮助位于NAT局域网内的Peer发现自己的外网地址，从而穿越NAT进行P2P通信
 
@@ -12,9 +12,9 @@
 
 6. TURN：中转服务器，如果不能直连，就要通过TURN中转。 （不确定） 
 
-7. SDP：会话描述协议，表示参与通信的Peer的能力，例如分辨率、编解码格式、加解密算法等
+7. SDP：会话描述协议，表示参与通信的Peer的能力，例如分辨率、编解码格式、加解密算法等，字段很多但看不明白。通信过程中一方发出offer，一方回以answer。offer和answer里主要构成就是SDP
 
-8. candidate：不知道是什么
+8. candidate：我猜是P2P的外网地址等信息，告诉对方门牌号。
 
 
 ### 2、交互时序
@@ -25,7 +25,7 @@
 2. 通过信令服务器进行相互发现和握手，又包括：
    1. 登录信令服务器，以注册身份
    2. 发送offer，对方会应答以answer，offer和answer两个报文的主要内容就是SDP
-   3. 相互发送candidate，但里面似乎没有外网地址信息呀
+   3. 相互发送candidate，会作死的发，一开始发内网地址，等发现了自己的外网地址后就作死的发外网地址。
 
 ![这里由张图片](img/webrtc/interaction.png)
 
@@ -219,30 +219,46 @@
   }
 
   function openDataChannel() {
-    var dataChannelOptions = {
-      reliable: true
-    };
-    dataChannel = yourConnection.createDataChannel("myLabel", dataChannelOptions);
+    
+        dataChannel = yourConnection.createDataChannel("myLabel"); //主动call的一方会直接用dataChannel变量
+        yourConnection.ondatachannel = receiveChannelCallback; //被动call的一方会收到这个事件，重新设置dataChannel变量
 
-    dataChannel.onerror = function (error) {
-      console.log("Data Channel Error:", error);
-    };
+        dataChannel.onerror = function (error) {
+          console.log("Data Channel Error:", error);
+        };
 
+        dataChannel.onmessage = function (event) {
+          console.log("Got Data Channel Message:", event.data);
+
+          received.innerHTML += event.data + "<br />";
+          received.scrollTop = received.scrollHeight;
+        };
+
+        dataChannel.onopen = function () {
+          dataChannel.send("datachannel has connected.");
+        };
+
+        dataChannel.onclose = function () {
+          console.log("The Data Channel is Closed");
+        };
+  }
+
+  function receiveChannelCallback(event) {
+    dataChannel = event.channel;
     dataChannel.onmessage = function (event) {
       console.log("Got Data Channel Message:", event.data);
 
       received.innerHTML += event.data + "<br />";
       received.scrollTop = received.scrollHeight;
     };
-
-    dataChannel.onopen = function () {
-      dataChannel.send(name + " has connected.");
+    dataChannel.onopen =  function () {
+      dataChannel.send("datachannel has connected.");
     };
-
     dataChannel.onclose = function () {
       console.log("The Data Channel is Closed");
     };
   }
+
 
 // Bind our text input and received area
   sendButton.addEventListener("click", function (event) {
@@ -516,7 +532,23 @@ html页面很简单，js代码有点复杂，尤其是对于不做前端开发�
 5. 发起会话的一方，收到对方的answer后，会据此设置远端的SDP信息。
 6. 双方相互发送candidate，可能会发送多次
 
-![](img/webrtc/example.png)
+![](img/webrtc/SetSDP.png)
+
+所以关键就是在合适的交互环节调用这几个函数：
+
+```javascript
+yourConnection = new RTCPeerConnection(...）
+yourConnection.addStream(stream)
+yourConnection.createDataChannel() // 如果用的话
+yourConnection.createOffer()
+yourConnection.setLocalDescription(offer)//发出己方的offer或者answer的时候
+yourConnection.setRemoteDescription()//收到对方的offer或者answer的时候
+yourConnection.createAnswer()
+yourConnection.addIceCandidate() //
+同时，yourConnection也支持设置各种onicecandidate()  、onXXX()等事件
+```
+
+
 
 #### 3.2 搞一个信令服务器
 
@@ -775,6 +807,8 @@ sudo service coturn start
 ```
 
 ### 4、看看通信的报文
+
+![](img/webrtc/example.png)
 
 #### 4.1 websocket握手
 
@@ -1134,10 +1168,10 @@ https://blog.csdn.net/lym594887256/article/details/124081420
 https://blog.csdn.net/wangxudongx/article/details/105414629
 https://blog.csdn.net/wangxudongx/article/details/105447416
 https://javascript.info/websocket
+https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Simple_RTCDataChannel_sample
 ```
 
 还缺一点功夫，待续：
 
-1. 里面的datachannel我还没有调通
 2. 想用自己的熟悉的语言来开发peer端，不想用js，不会
 3. 怎么实现cs视频通信
