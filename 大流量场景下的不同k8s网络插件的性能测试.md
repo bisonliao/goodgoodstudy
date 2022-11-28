@@ -112,6 +112,17 @@ sar -n DEV 2 10
 
 
 
+### 情况六：使用K8S global router ，用node port暴露tcpserver，client从虚拟机上向NodePort发起请求，跨Node访问tcpserver
+
+1. 带宽跑到：
+   1. client侧观测到3075Mbps 
+   2. server侧观测到3281Mbps
+2. CPU占用：
+   1. client 35%cpu（0.35个核），8核node显示空闲率93%，说明K8S本身开销不大；
+   2. server 30%cpu（0.30个核）， 8核node显示空闲率94%，说明K8S本身开销不大；
+
+node port引入的转发，看起来开销也很小啊
+
 ### 附录测试代码：
 
 client.c
