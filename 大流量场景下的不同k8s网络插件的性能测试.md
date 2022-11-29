@@ -114,14 +114,17 @@ sar -n DEV 2 10
 
 ### 情况六：使用K8S global router ，用node port暴露tcpserver，client从虚拟机上向NodePort发起请求，跨Node访问tcpserver
 
+这时候需要三台虚拟机，假设叫A，B，C，都在K8S集群里。tcpserver的pod部署在C，对应的service开了NodePort端口是32000，从虚拟机A编译一个client，把请求发送给node B，端口为32000。B会把流量转发到C上面的pod。
+
 1. 带宽跑到：
    1. client侧观测到3075Mbps 
    2. server侧观测到3281Mbps
 2. CPU占用：
    1. client 35%cpu（0.35个核），8核node显示空闲率93%，说明K8S本身开销不大；
-   2. server 30%cpu（0.30个核）， 8核node显示空闲率94%，说明K8S本身开销不大；
+   2. server 34%cpu（0.34个核）， 8核node显示空闲率94%，说明K8S本身开销不大；
+   3. 转发NodePort流量的Node B，cpu空闲率97%
 
-node port引入的转发，看起来开销也很小啊
+**结论：node port引入的转发，开销也很小**
 
 ### 附录测试代码：
 
