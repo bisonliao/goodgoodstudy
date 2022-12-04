@@ -4,6 +4,8 @@
 
  本小文主要是演示如何在给pod中的应用程序（容器）访问api server的权限，例如在operator中经常需要。
 
+没有搞清楚，service account + role + binding的方式总提示没有权限
+
 ### 第一步：创建账号和账号的token，并记录命令显示的token信息，在kopf的代码里要用到
 
 ```yaml
@@ -22,7 +24,7 @@ kubectl describe sa jenkins
 kubectl describe secret jenkins-secret #这里会显示token，用于kopf的代码
 ```
 
-### 第二步：创建role，并bind到jenkins账号（后来证实：这一步不做，operator也能正常访问API server）
+### 第二步：创建role，并bind到jenkins账号
 
 ```yaml
 # role.yaml
@@ -153,8 +155,14 @@ spec:
 @kopf.on.login()
 def login_fn(logger, **kwargs):
     #登录api server，调试的时候可以不用这一步，直接在kubectl所在的机器上运行 kopf run xxx.py即可调试
-    return kopf.login_via_client(server='https://192.168.49.2:8443', token=token, logger=logger, kwargs=kwargs)
+    return kopf.login_via_client(logger=logger)
 
+    # 下面这行不知道怎么都不对，service account凭借token不就能登录吗
+	#return kopf.login_with_service_account(server='https://192.168.49.2:8443',  token=token, logger=logger, kwargs=kwargs)
+    # 下面这行不知道怎么都不对，有token和token里隐含的service account，就应该能登录
+    #return kopf.ConnectionInfo(server='https://192.168.49.2:8443', token=token)
+    #下面这行组织到怎么都不对，有证书和私钥 就应该可以登录。来自 .kube/config
+    #return kopf.ConnectionInfo(server='https://192.168.49.2:8443',  ca_path="/root/.minikube/ca.crt", certificate_path='/root/.minikube/profiles/minikube/client.crt',private_key_path='/root/.minikube/profiles/minikube/client.key')
 
 
 @kopf.on.create('ephemeralvolumeclaims')
