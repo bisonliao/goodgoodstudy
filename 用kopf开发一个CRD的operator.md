@@ -12,6 +12,8 @@
 
 3. 没有给到CRD所在的apiGroup的权限
 
+4. 我只注意了kopf的权限，一开始没有注意到operator里kubernetes client lib的权限，我靠我搞了半天
+
    
 
 
@@ -151,8 +153,11 @@ import yaml
 import logging
 import datetime
 
-token = "eyJhbGciOiJSUzI1NiIsImtpZCI6Im45ZlFPc0JIaG5IUXprMXY1dXUxYVpjMVFyS0pDa2s3X2FXd05qMGtLeXcifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImplbmtpbnMtc2VjcmV0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImplbmtpbnMiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIyZTgyZDIzOS03NzlkLTRjNTktOTgxZi0xMGJmMWExMGEwN2YiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6ZGVmYXVsdDpqZW5raW5zIn0.tWqBTuKXs-bCNlyrj9DEV-tnTBGLVThzzKVBh23kSqmYVNnsUPI7JbfZYpNvxnfVg0N2ZaYQQzPOS4FDdoKxFy25oYNkvEPgMYDcD0QVU-v3tkzJrMCFVgPCj2dGIuDNUCbYBvpJEFSa3Cf2KIvCx9uBgDWNtw__vUe8k3wfQ6KjcfZL2jUQYTV-Yr-QzZZZbO2KmCO9IvGg4Hw_bGnHShDA-e4ARxZGC8GerJKSVNSA0zVGyUjNMMi_lhzD2DC2DIDDn5xuaSRjCTHyUecLlx7gzly7Dkm_9oeYR30Yw_ReNPOAQq8cNw-F9eQsZYPLZsvh8RFjyK4R2K9E4mp3BA"
-
+token = "eyJhbGciOiJSUzI1NiIsImtpZC..."
+cadata = 'LS0tLS1CRUdJTiBDRVJUSU...'
+clientcadata='LS0tLS1CRUdJTiBDRV...'
+clientkeydata='LS0tLS1CRUdJTiBS...'
+serverUrl = 'https://169.254.128.18:60002'
 
 template = '''
 apiVersion: v1
@@ -169,27 +174,22 @@ spec:
       storage: "{size}"
 '''
 
-
 @kopf.on.login()
 def login_fn(logger, **kwargs):
     #不知道为什么写成这个鸟样这一行也能工作
     return kopf.login_via_client(logger=logger)
 
-    # 下面这行不知道怎么都不对，service account凭借token不就能登录吗
-	#return kopf.login_with_service_account(server='https://192.168.49.2:8443',  token=token, logger=logger, kwargs=kwargs)
+    # 这两行是可以的
+    return kopf.ConnectionInfo(server=serverUrl, token=token, scheme='Bearer',  ca_data=cadata, expiration=datetime.datetime(2099, 12, 31, 23, 59, 59))
+    return kopf.ConnectionInfo(server=serverUrl,  ca_data=cadata, certificate_data=clientcadata, private_key_data=clientkeydata, expiration=datetime.datetime(2099, 12, 31, 23, 59, 59))
+
     # 下面这行不知道怎么都不对，有token和token里隐含的service account，就应该能登录
-    #return kopf.ConnectionInfo(server='https://192.168.49.2:8443', token=token)
-    #下面这行组织到怎么都不对，有证书和私钥 就应该可以登录。来自 .kube/config
-    #return kopf.ConnectionInfo(server='https://192.168.49.2:8443',  ca_path="/root/.minikube/ca.crt", certificate_path='/root/.minikube/profiles/minikube/client.crt',private_key_path='/root/.minikube/profiles/minikube/client.key')
+    #return kopf.login_with_service_account(server=serverUrl,  token=token, logger=logger, kwargs=kwargs)
 
 
 @kopf.on.create('ephemeralvolumeclaims')
 def create_fn(spec, name, namespace, body, logger, **kwargs):
-
-    
     logger.info(body)
- 
-
     size = spec.get('size')
     if not size:
         raise kopf.PermanentError(f"Size must be set. Got {size!r}.")
@@ -198,30 +198,46 @@ def create_fn(spec, name, namespace, body, logger, **kwargs):
     text = tmpl.format(name=name, size=size)
     data = yaml.safe_load(text)
 
-    api = kubernetes.client.CoreV1Api()
+    configuration = kubernetes.client.Configuration()
+    # Configure API key authorization: BearerToken
+    configuration.api_key['authorization'] = token
+    # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+    configuration.api_key_prefix['authorization'] = 'Bearer'
+    configuration.verify_ssl=False
+
+    # Defining host is optional and default to http://localhost
+    configuration.host = serverUrl
+    api = kubernetes.client.CoreV1Api(kubernetes.client.ApiClient(configuration))
     obj = api.create_namespaced_persistent_volume_claim(
         namespace=namespace,
         body=data,
     )
-    
+
 
     logger.info(f"PVC child is created: {obj}")
     return { "size": size}
 
 @kopf.on.delete('ephemeralvolumeclaims')
 def delete_fn(spec, name, namespace, logger, **kwargs):
-    api = kubernetes.client.CoreV1Api()
+    configuration = kubernetes.client.Configuration()
+    # Configure API key authorization: BearerToken
+    configuration.api_key['authorization'] = token
+    # Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+    configuration.api_key_prefix['authorization'] = 'Bearer'
+    configuration.verify_ssl=False
+
+    # Defining host is optional and default to http://localhost
+    configuration.host = serverUrl
+    api = kubernetes.client.CoreV1Api(kubernetes.client.ApiClient(configuration))
     obj = api.delete_namespaced_persistent_volume_claim(name, namespace)
-    
+
     logger.info(f"PVC child is deleted: {obj}")
-
-
 @kopf.on.update('ephemeralvolumeclaims')
 def update_fn(spec,name, status, namespace, logger, **kwargs):
     size = spec.get('size', None)
     if not size:
         raise kopf.PermanentError(f"Size must be set. Got {size!r}.")
-      
+
     '''pvc_patch = {'spec': {'resources': {'requests': {'storage': size}}}}
     api = kubernetes.client.CoreV1Api()
     obj = api.patch_namespaced_persistent_volume_claim(name, namespace, body=pvc_patch)
@@ -231,7 +247,6 @@ def update_fn(spec,name, status, namespace, logger, **kwargs):
 @kopf.on.field('ephemeralvolumeclaims', field='spec.size')
 def size_changed(old, new, logger,**kwargs):
     logger.info(f"{old}->{new}")
-
 
 ```
 
