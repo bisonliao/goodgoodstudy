@@ -4,7 +4,17 @@
 
  本小文主要是演示如何在给pod中的应用程序（容器）访问api server的权限，例如在operator中经常需要。
 
-没有搞清楚，service account + role + binding的方式总提示没有权限
+一开始踩坑里了，service account + role + binding的方式总提示没有权限，我role binding的时候犯错了：
+
+1. 我把参数写成了--user=jenkins，应该是--serviceaccount=jenkins。用户不存在k8s也不报错，反正给你建立这个绑定映射关系
+
+2. 绑定clusterrole的时候，应该创建clusterrolebinding，我创建了rolebinding，以为只要指定--clusterrole=xxx即可，k8s也不报错。
+
+3. 没有给到CRD所在的apiGroup的权限
+
+   
+
+
 
 ### 第一步：创建账号和账号的token，并记录命令显示的token信息，在kopf的代码里要用到
 
@@ -35,10 +45,10 @@ metadata:
   name: evc-operator
 rules:
 - apiGroups: [""] # "" 标明 core API 组
-  resources: ["pods"]
-  verbs: ["get", "list", "watch"]
+  resources: ["*"]
+  verbs: ["*"]
 - apiGroups: ["kopf.dev"] # 我的crd的group
-  resources: ["evc"]
+  resources: ["*"]
   verbs: ["*"]
   
 ---
@@ -52,12 +62,20 @@ rules:
   resources: ["*"]
   verbs: ["*"]
 - apiGroups: ["kopf.dev"] # 我的crd的group
-  resources: ["evc"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["apiextensions.k8s.io"] #CRD所在的apiGroup的权限
+  resources: ["*"]
   verbs: ["*"]
 
+
 kubectl  create -f role.yaml
-kubectl create rolebinding jenkins-binding --role=evc-operator --user=jenkins
-kubectl create rolebinding jenkins-binding2 --clusterrole=evc-operator --user=jenkins
+kubectl create rolebinding jenkins-binding --role=evc-operator --serviceaccount=default:jenkins
+kubectl create clusterrolebinding jenkins-binding2 --clusterrole=evc-operator --serviceaccount=default:jenkins
+
+#用curl验证权限,我通常path也写不对，搞不清楚
+export TOKEN=...
+curl --cacert /root/.minikube/ca.crt -H "Authorization: Bearer $TOKEN" -s 'https://192.168.49.2:8443/kopf.dev/ephemeralvolumeclaims'
 ```
 
 ### 第三步：创建CRD和CR，详细见kopf的官方文档
@@ -154,7 +172,7 @@ spec:
 
 @kopf.on.login()
 def login_fn(logger, **kwargs):
-    #登录api server，调试的时候可以不用这一步，直接在kubectl所在的机器上运行 kopf run xxx.py即可调试
+    #不知道为什么写成这个鸟样这一行也能工作
     return kopf.login_via_client(logger=logger)
 
     # 下面这行不知道怎么都不对，service account凭借token不就能登录吗
