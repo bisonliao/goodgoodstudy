@@ -176,14 +176,19 @@ spec:
 
 @kopf.on.login()
 def login_fn(logger, **kwargs):
-    #不知道为什么写成这个鸟样这一行也能工作
+    #不知道为什么写成这个鸟样这一行也能工作, login_via_client源代码也没有看太懂
     return kopf.login_via_client(logger=logger)
 
     # 这两行是可以的
     return kopf.ConnectionInfo(server=serverUrl, token=token, scheme='Bearer',  ca_data=cadata, expiration=datetime.datetime(2099, 12, 31, 23, 59, 59))
     return kopf.ConnectionInfo(server=serverUrl,  ca_data=cadata, certificate_data=clientcadata, private_key_data=clientkeydata, expiration=datetime.datetime(2099, 12, 31, 23, 59, 59))
 
-    # 下面这行不知道怎么都不对，有token和token里隐含的service account，就应该能登录
+	'''
+    下面这行在K8S集群外调试的时候怎么都不行，后来看login_with_service_account的代码发现，它只适合在容器内工作，因为它hardcode到如下目录去读鉴权信息：
+    token_path = '/var/run/secrets/kubernetes.io/serviceaccount/token'
+    ns_path = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
+    ca_path = '/var/run/secrets/kubernetes.io/serviceaccount/ca.crt'
+    '''
     #return kopf.login_with_service_account(server=serverUrl,  token=token, logger=logger, kwargs=kwargs)
 
 
