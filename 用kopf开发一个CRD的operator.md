@@ -179,7 +179,7 @@ def login_fn(logger, **kwargs):
     #不知道为什么写成这个鸟样这一行也能工作, login_via_client源代码也没有看太懂
     return kopf.login_via_client(logger=logger)
 
-    # 这两行是可以的
+    # 这两行是可以的，一个是用的sa的token，一个是用的kubectl的用户证书，从~/.kube/config里可以拿到
     return kopf.ConnectionInfo(server=serverUrl, token=token, scheme='Bearer',  ca_data=cadata, expiration=datetime.datetime(2099, 12, 31, 23, 59, 59))
     return kopf.ConnectionInfo(server=serverUrl,  ca_data=cadata, certificate_data=clientcadata, private_key_data=clientkeydata, expiration=datetime.datetime(2099, 12, 31, 23, 59, 59))
 
@@ -326,3 +326,66 @@ No resources found in default namespace.
 root@VM-16-7-ubuntu:~/kopf# kubectl logs evc-operator-84df664cd-tgn47 #可以看到operator的详细日志
 ```
 
+### 多说几句身份与权限
+
+#### 验证方式：
+
+可以看到，K8S至少支持两种验证方式：
+
+1. serviceaccount + bearer token的方式。token里面本身带有serviceaccount，无需额外提供serviceaccount。可以使用secret为sa创建一个token
+2. 用户证书的方式，认证用户。证书本身带有用户id，无需额外提供userid，往往用于user的验证，没有验证是否可以用于sa。相比sa，不存在user这样一个实体的k8s资源
+
+同时，如果要校验 API server的身份，需要提供ca证书；否则可以不提供，某些实现需要特别指明，例如上面的kubernetes client api，就要调用一下:
+
+```
+configuration.verify_ssl=False
+```
+
+两种验证方式我们都已经在operator代码的login事件里有演示。 通过minikube的kubectl配置文件，可以看清楚第二种验证方式：
+
+```yaml
+current-context: minikube
+kind: Config
+preferences: {}
+users:
+- name: minikube
+  user:
+    client-certificate: /root/.minikube/profiles/minikube/client.crt
+    client-key: /root/.minikube/profiles/minikube/client.key
+```
+
+这个user叫 minikubeCA，我们可以从证书里的看到用户身份：
+
+```
+root@VM-16-7-ubuntu:~/kopf# openssl x509 -in  /root/.minikube/profiles/minikube/client.crt -noout -text
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 2 (0x2)
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN = minikubeCA
+        Validity
+            Not Before: Aug 20 12:39:22 2022 GMT
+            Not After : Aug 20 12:39:22 2025 GMT
+        Subject: O = system:masters, CN = minikube-user
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                RSA Public-Key: (2048 bit)
+```
+
+如何添加用户和用户证书，可以查K8S官方资料：
+
+```
+https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests/
+```
+
+
+
+#### 权限管理
+
+主要是两种组合：
+
+1. role + rolebinding
+2. clusterrole + clusterrolebinding
+
+他们都可以binding user，也可以binding serviceaccount。 上面已经演示了。权限只能白名单叠加（或的关系），不能做黑名单。
