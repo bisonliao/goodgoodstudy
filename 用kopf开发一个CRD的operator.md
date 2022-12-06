@@ -333,7 +333,7 @@ root@VM-16-7-ubuntu:~/kopf# kubectl logs evc-operator-84df664cd-tgn47 #可以看
 可以看到，K8S至少支持两种验证方式：
 
 1. serviceaccount + bearer token的方式。token里面本身带有serviceaccount，无需额外提供serviceaccount。可以使用secret为sa创建一个token
-2. 用户证书的方式，认证用户。证书本身带有用户id，无需额外提供userid，往往用于user的验证，没有验证是否可以用于sa。相比sa，不存在user这样一个实体的k8s资源
+2. 用户证书的方式，认证用户。证书本身带有用户id，无需额外提供userid，往往用于user的验证，没有测试是否可以用于sa。相比sa，不存在user这样一个实体的k8s资源
 
 同时，如果要校验 API server的身份，需要提供ca证书；否则可以不提供，某些实现需要特别指明，例如上面的kubernetes client api，就要调用一下:
 
@@ -341,7 +341,7 @@ root@VM-16-7-ubuntu:~/kopf# kubectl logs evc-operator-84df664cd-tgn47 #可以看
 configuration.verify_ssl=False
 ```
 
-两种验证方式我们都已经在operator代码的login事件里有演示。 通过minikube的kubectl配置文件，可以看清楚第二种验证方式：
+两种验证方式我们都已经在operator代码的login事件里有演示。 通过minikube的kubectl配置文件，可以更直观感受第二种验证方式：
 
 ```yaml
 current-context: minikube
@@ -356,7 +356,7 @@ users:
 
 这个user叫 minikubeCA，我们可以从证书里的看到用户身份：
 
-```
+```shell
 root@VM-16-7-ubuntu:~/kopf# openssl x509 -in  /root/.minikube/profiles/minikube/client.crt -noout -text
 Certificate:
     Data:
@@ -373,13 +373,11 @@ Certificate:
                 RSA Public-Key: (2048 bit)
 ```
 
-如何添加用户和用户证书，可以查K8S官方资料：
+如何添加用户和用户证书，可以查K8S官方资料Normal User这一段：
 
 ```
 https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests/
 ```
-
-
 
 #### 权限管理
 
