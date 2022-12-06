@@ -183,13 +183,12 @@ def login_fn(logger, **kwargs):
     return kopf.ConnectionInfo(server=serverUrl, token=token, scheme='Bearer',  ca_data=cadata, expiration=datetime.datetime(2099, 12, 31, 23, 59, 59))
     return kopf.ConnectionInfo(server=serverUrl,  ca_data=cadata, certificate_data=clientcadata, private_key_data=clientkeydata, expiration=datetime.datetime(2099, 12, 31, 23, 59, 59))
 
-	'''
-    下面这行在K8S集群外调试的时候怎么都不行，后来看login_with_service_account的代码发现，它只适合在容器内工作，因为它hardcode到如下目录去读鉴权信息：
-    token_path = '/var/run/secrets/kubernetes.io/serviceaccount/token'
-    ns_path = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
-    ca_path = '/var/run/secrets/kubernetes.io/serviceaccount/ca.crt'
-    '''
-    #return kopf.login_with_service_account(server=serverUrl,  token=token, logger=logger, kwargs=kwargs)
+	
+    #下面这行在K8S集群外调试的时候怎么都不行，后来看login_with_service_account的代码发现，它只适合在容器内工作，因为它hardcode到如下目录去读鉴权信息：
+    #token_path = '/var/run/secrets/kubernetes.io/serviceaccount/token'
+    #ns_path = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
+    #ca_path = '/var/run/secrets/kubernetes.io/serviceaccount/ca.crt'
+    return kopf.login_with_service_account(logger=logger, kwargs=kwargs)
 
 
 @kopf.on.create('ephemeralvolumeclaims')
@@ -297,6 +296,7 @@ spec:
       labels:
         app: evc-operator
     spec:
+      #serviceAccountName: jenkins  #如果operator用kopf.login_with_service_account方式login k8s，就可以在这里配置用到的serviceaccount
       containers:
       - image: bisonliao/evc
         name: evc-operator
