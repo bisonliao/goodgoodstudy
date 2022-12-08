@@ -77,7 +77,9 @@ kubectl create clusterrolebinding jenkins-binding2 --clusterrole=evc-operator --
 
 #用curl验证权限,我通常path也写不对，需要查文档
 export TOKEN=...
- curl --cacert /root/.minikube/ca.crt -H "Authorization: Bearer $TOKEN" -s 'https://192.168.49.2:8443/apis/kopf.dev/v1/ephemeralvolumeclaims/'
+curl --cacert /root/.minikube/ca.crt -H "Authorization: Bearer $TOKEN" -s 'https://192.168.49.2:8443/apis/kopf.dev/v1/ephemeralvolumeclaims/'
+
+curl --cacert /root/.minikube/ca.crt -H "Authorization: Bearer $TOKEN" -s 'https://192.168.49.2:8443/apis/kopf.dev/v1/namespaces/default/ephemeralvolumeclaims/my-claim'
 ```
 
 多说几句：
