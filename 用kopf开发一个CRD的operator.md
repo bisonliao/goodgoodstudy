@@ -75,10 +75,30 @@ kubectl  create -f role.yaml
 kubectl create rolebinding jenkins-binding --role=evc-operator --serviceaccount=default:jenkins
 kubectl create clusterrolebinding jenkins-binding2 --clusterrole=evc-operator --serviceaccount=default:jenkins
 
-#用curl验证权限,我通常path也写不对，搞不清楚
+#用curl验证权限,我通常path也写不对，需要查文档
 export TOKEN=...
-curl --cacert /root/.minikube/ca.crt -H "Authorization: Bearer $TOKEN" -s 'https://192.168.49.2:8443/kopf.dev/ephemeralvolumeclaims'
+ curl --cacert /root/.minikube/ca.crt -H "Authorization: Bearer $TOKEN" -s 'https://192.168.49.2:8443/apis/kopf.dev/v1/ephemeralvolumeclaims/'
 ```
+
+多说几句：
+
+curl命令访问k8s的restful api接口，往往不知道path怎么写，这里有个好文档：
+
+```
+https://github.com/kubernetes-client/python/blob/master/kubernetes/README.md#documentation-for-api-endpoints
+```
+
+这部分表格，除了告诉我们某种资源怎么写path，还告诉我们python的kubernetes client api怎么用，以创建CRD和创建CR为例：
+
+```python
+api = kubernetes.client.ApiextensionsV1Api()
+api.create_custom_resource_definition(body)
+
+api = kubernetes.client.CustomObjectsApi()
+api.create_namespaced_custom_object(group, version, namespace, plural, body)
+```
+
+
 
 ### 第三步：创建CRD和CR，详细见kopf的官方文档
 
