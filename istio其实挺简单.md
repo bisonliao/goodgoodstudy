@@ -140,12 +140,47 @@ spec:
  http:
  - route:
    - destination:
-       host: calcserver
+       host: calcserver #内部有效的K8S服务
        subset: v1
      weight: 90
    - destination:
-       host: calcserver
+       host: calcserver #内部有效的K8S服务
        subset: v2
      weight: 10
+```
+
+把istio ingress上进入的外部流量引导到内部某个服务：
+
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: gw-client
+spec:
+# selector:
+#    istio: ingressgateway # use Istio default gateway implementation
+  servers:
+    - hosts:
+      - calcclient.com
+      port:
+        number: 80
+        name: http
+        protocol: HTTP
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-calcclient
+spec:
+  hosts:
+    - calcclient.com
+  gateways:
+    - gw-client
+  http:
+    - route:
+      - destination:
+           host: calcclient #内部有效的K8S服务
+
 ```
 
