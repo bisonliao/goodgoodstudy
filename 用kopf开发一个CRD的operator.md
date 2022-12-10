@@ -36,6 +36,14 @@ kubectl describe sa jenkins
 kubectl describe secret jenkins-secret #这里会显示token，用于kopf的代码
 ```
 
+多说几句，如果不确定yaml文件的格式该怎么写，可以查k8s的官方api文档，但似乎也说得不清不楚：
+
+```
+https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#secret-v1-core
+```
+
+
+
 ### 第二步：创建role，并bind到jenkins账号
 
 ```yaml
