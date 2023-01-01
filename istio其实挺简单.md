@@ -345,10 +345,10 @@ spec:
 
 You use a [gateway](https://istio.io/latest/docs/reference/config/networking/gateway/#Gateway) to manage inbound and outbound traffic for your mesh, letting you specify which traffic you want to enter or leave the mesh. Gateway configurations are applied to standalone Envoy proxies that are running at the edge of the mesh, rather than sidecar Envoy proxies running alongside your service workloads.
 
-我的疑问是：下面的例子我创建成功后：
+我的疑问是：下面的例子我创建成功后还是有问题，好像缺少VIP：
 
 1. 在k8s集群外面访问calcclient.com还是提示dns解析失败
-2. 如果我添加DNS A记录，IP是多少呢？
+2. 如果我添加DNS A记录，IP是多少呢？有istio-ingressgateway-cd445fcdb-2lf4b这个pod存在
 
 ```yaml
 apiVersion: networking.istio.io/v1alpha3
@@ -356,13 +356,13 @@ kind: Gateway
 metadata:
  name: gw-client
 spec:
-# selector:
-#    istio: ingressgateway # use Istio default gateway implementation
- servers:
+  selector:
+    istio: ingressgateway # use Istio default gateway implementation
+  servers:
    - hosts:
      - calcclient.com
      port:
-       number: 80
+       number: 8080  
        name: http
        protocol: HTTP
 
@@ -380,5 +380,13 @@ spec:
     - route:
       - destination:
            host: calcclient
+```
+
+用这个命令查看gw的配置
+
+```shell
+istioctl proxy-config route deploy/istio-ingressgateway -o json --name http.8080 -n istio-system
+kubectl -n istio-system get svc istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+kubectl -n istio-system get svc istio-ingressgateway -o jsonpath='{.status}'
 ```
 
