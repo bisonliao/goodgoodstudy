@@ -272,6 +272,16 @@ target/generated-sources/
 # mvn package就会把依赖库一起打包进来
 ```
 
+要特别注意，maven生成的pom.xml文件，在build和plugins之间，有一个pluginManagement，一定要删除它，否则上面的依赖打包的指示不会生效。他妈的搞得老子折腾2个小时！
+
+```xml
+ <build>
+    <pluginManagement><!-- 一定要删除这个屌毛 -->
+      <plugins>
+
+```
+
+
 
 客户端代码很简单：
 
