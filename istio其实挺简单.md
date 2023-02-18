@@ -15,7 +15,14 @@ kubectl label namespace default istio-injection=enabled
 #### 简介：
 
 ```
-As the data-plane service proxy, Envoy intercepts all incoming and outgoing requests at runtime (as traffic flows through the service mesh). This interception is done trans‐ parently via iptables rules or a Berkeley Packet Filter (BPF) program that routes all network traffic, in and out through Envoy. Envoy inspects the request and uses the request’s hostname, SNI, or service virtual IP address to determine the request’s target (the service to which the client is intending to send a request). Envoy applies that tar‐ get’s routing rules to determine the request’s destination (the service to which the ser‐ vice proxy is actually going to send the request). Having determined the destination, Envoy applies the destination’s rules. 
+As the data-plane service proxy, Envoy intercepts all incoming and outgoing requests at runtime (as traffic 
+flows through the service mesh). This interception is done trans‐ parently via iptables rules or a Berkeley 
+Packet Filter (BPF) program that routes all network traffic, in and out through Envoy. Envoy inspects the 
+request and uses the request’s hostname, SNI, or service virtual IP address to determine the request’s 
+target (the service to which the client is intending to send a request). Envoy applies that tar‐ 
+get’s routing rules to determine the request’s destination (the service to which the ser‐ vice proxy is 
+actually going to send the request). Having determined the destination, Envoy applies the destination’s 
+rules. 
 ```
 
 
