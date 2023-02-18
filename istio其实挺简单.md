@@ -397,3 +397,114 @@ kubectl -n istio-system get svc istio-ingressgateway -o jsonpath='{.status.loadB
 kubectl -n istio-system get svc istio-ingressgateway -o jsonpath='{.status}'
 ```
 
+### 四、用官方例子bookinfo做实验
+
+#### 1、在腾讯云部署k8s标准集群和托管的网格集群
+
+比较简单，不展开
+
+#### 2、使用helm安装bookinfo
+
+```shell
+# install helm
+wget https://get.helm.sh/helm-v3.11.1-linux-amd64.tar.gz 
+tar zxf helm-v3.11.1-linux-amd64.tar.gz 
+mv linux-amd64/helm /usr/local/bin
+
+# install bookinfo
+helm repo add evry-ace https://evry-ace.github.io/helm-charts/
+helm search repo evry-ace |grep bookinfo
+helm install  istio-bookinfo evry-ace/istio-bookinfo
+```
+
+#### 3、配置hosts中的域名指向LB
+
+##### 3.1 linux下用curl请求
+
+bookinfo里用到的入口的host本来是要配置为example.com，但如果这个域名没有备案，就算是修改hosts的方式来测试，浏览器也会提示域名没有备案。应该是腾讯云搞的鬼。但用curl是走得通的：
+
+```shell
+vi /etc/hosts #加上这么一行，具体的外网地址，要查看网格集群里的gateway的公网IP
+159.75.192.183 example.com
+
+curl -v http://example.com/productpage #会返回一个带有login字样的html页面
+```
+
+但上面的步骤在windows下用浏览器访问就行不通，会提示域名没有备案，即使修改user-agent伪装为curl也不行。
+
+##### 3.2 windows下用浏览器请求
+
+我也是被逼的没有办法了。就像修改bookinfo项目里virtual service 和gateway的hosts为www.baidu.com算了，因为这个域名是明显备案了，而且我也不会用到百度。
+
+幸亏bookinfo项目里要修改的vs和gw都只有一个，都叫bookinfo，直接编辑yaml修改里面的example.com字样为www.baidu.com。
+
+然后修改C:\Windows\System32\drivers\etc 目录里的hosts文件，添加：
+
+```shell
+159.75.192.183 www.baidu.com #具体的外网地址，要查看网格集群里的gateway的公网IP
+```
+
+修改需要一点小技巧，先把该文件在当前目录拷贝，就会重命名一个文件，把这个重命名后的文件拿到e盘修改好。拷贝回来，删除掉hosts文件，再修改这个重命名的文件为hosts就生效了。
+
+注意执行一下DNS刷新并检查是否有效：
+
+```shell
+ipconfig /flushdns
+ping www.baidu.com #看ip生效没有
+```
+
+然后用浏览器请求就可以生效了:
+
+```
+http://www.baidu.com/productpage
+```
+
+#### 4、练习一：对reviews的三个版本做流量分配
+
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+ name: dr-reviews
+spec:
+ host: reviews
+ subsets:
+ - name: v1
+   labels:
+      version: v1
+ - name: v2
+   labels:
+      version: v2
+ - name: v3
+   labels:
+      version: v3
+#用vs对不同的set分发不同比例的流量
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+ name: vs-reviews
+spec:
+ hosts:
+ - reviews
+ http:
+ - route:
+   - destination:
+       host: reviews   #内部有效的K8S服务
+       subset: v1
+     weight: 1
+   - destination:
+       host: reviews #内部有效的K8S服务
+       subset: v2
+     weight: 1
+   - destination:
+       host: reviews #内部有效的K8S服务
+       subset: v3
+     weight: 98
+```
+
+```shell
+kubectl create -f vs.yaml
+```
+
+不断的刷新浏览器，会发现与页面的行为改变了：之前是reviews的三个版本等比例出现，有时候是红猩猩有时候是黑猩猩有时候不出星星，改动后现在是大概率是没有星星，偶尔出现红猩猩或者黑猩猩。
