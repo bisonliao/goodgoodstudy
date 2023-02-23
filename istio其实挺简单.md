@@ -589,7 +589,8 @@ https://docs.github.com/en/pages/quickstart
 很重要的一句话：
 
 ```
-A chart repository is an HTTP server that houses an index.yaml file and optionally some packaged charts. When you're ready to share your charts, the preferred way to do so is by uploading them to a chart repository.
+A chart repository is an HTTP server that houses an index.yaml file and optionally some packaged charts. 
+When you're ready to share your charts, the preferred way to do so is by uploading them to a chart repository.
 ```
 
 重要的步骤摘录如下：
