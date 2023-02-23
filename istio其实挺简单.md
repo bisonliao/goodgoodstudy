@@ -508,3 +508,106 @@ kubectl create -f vs.yaml
 ```
 
 不断的刷新浏览器，会发现与页面的行为改变了：之前是reviews的三个版本等比例出现，有时候是红猩猩有时候是黑猩猩有时候不出星星，改动后现在是大概率是没有星星，偶尔出现红猩猩或者黑猩猩。
+
+#### 5、练习二、基于bookinfo创建自己的charts
+
+##### 5.1 下载并修改bookinfo，可以指定replicas和cpu的requests
+
+```yaml
+helm pull evry-ace/istio-bookinfo
+tar zxf istio-bookinfo-1.2.2.tgz
+mv istio-bookinfo bookinfo
+
+#在values.yaml里追加：
+productpage:
+  replicas: 3
+  requests:
+    cpu: 300m
+    memory: 512Mi
+
+details:
+  replicas: 3
+  requests:
+    cpu: 300m
+    memory: 512Mi
+
+ratings:
+  replicas: 3
+  requests:
+    cpu: 300m
+    memory: 512Mi
+
+reviews:
+  replicas: 3
+  requests:
+    cpu: 300m
+    memory: 512Mi
+    
+# 修改template里的 ratings.yaml等文件，在deployment的定义里引用上述的values：
+spec:
+  replicas: {{ .Values.ratings.replicas }}
+  selector:
+    matchLabels:
+      app: ratings
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: ratings
+        version: v1
+    spec:
+      serviceAccountName: bookinfo-ratings
+      containers:
+      - name: ratings
+        image: docker.io/istio/examples-bookinfo-ratings-v1:1.15.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9080
+        resources:
+          requests:
+            cpu: {{ .Values.ratings.requests.cpu }}
+            memory: {{ .Values.ratings.requests.memory }}
+#调试，看看values替换是否符合预期            
+ helm template --debug bookinfo
+ helm lint
+```
+
+##### 5.2 打包，并提交到一个http服务器
+
+如何创建一个自己的helm repository，可以参考文档：
+
+```
+https://helm.sh/docs/topics/chart_repository/#github-pages-example
+```
+
+如何用github快速部署一个http服务器，并拥有自己的主页，可以参考：
+
+```
+https://docs.github.com/en/pages/quickstart
+```
+
+很重要的一句话：
+
+```
+A chart repository is an HTTP server that houses an index.yaml file and optionally some packaged charts. When you're ready to share your charts, the preferred way to do so is by uploading them to a chart repository.
+```
+
+重要的步骤摘录如下：
+
+```shell
+helm package bookinfo
+cd bookinfo;  helm repo index --url https://bisonliao.github.io/bookinfo/ ./
+```
+
+##### 5.3 使用自己的helm repo
+
+把获得的tgz文件和index.yaml文件push到github项目里，就可以作为一个helm repository来用了：
+
+```shell
+helm repo add bisonliao https://bisonliao.github.io/bookinfo
+helm repo list
+helm search repo bookinfo
+helm install  bookinfo bisonliao/istio-bookinfo
+helm uninstall bookinfo
+```
+
