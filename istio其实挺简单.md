@@ -612,3 +612,11 @@ helm install  bookinfo bisonliao/istio-bookinfo
 helm uninstall bookinfo
 ```
 
+##### 5.4 广而告之
+
+如果你希望把自己做的charts分享给其他人，可以通过artifacthub等网站把刚才的http服务和charts公示出去。但这不是charts正常运行的必须的步骤。
+
+```
+https://artifacthub.io/
+```
+
