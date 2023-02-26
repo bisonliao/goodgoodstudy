@@ -620,3 +620,98 @@ helm uninstall bookinfo
 https://artifacthub.io/
 ```
 
+#### 6、练习三：负载均衡策略、熔断、限流等控制
+
+##### 6.1 负载均衡策略
+
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: dr-reviews
+spec:
+  host: reviews.default.svc.cluster.local
+  trafficPolicy:
+      loadBalancer:
+        consistentHash:
+          useSourceIp: True
+```
+
+再用浏览器刷新的时候，会发现productpage只会访问reviews1 2 3中间的一个，reviews图标不会变化了，因为这时候的路由是使用按调用方IP的一致性hash的。
+
+##### 6.2 限流/retry ???
+
+这两个不是很好搞...
+
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: dr-foo
+spec:
+  host: productpage.default.svc.cluster.local
+  trafficPolicy:
+      connectionPool:
+        tcp:
+          maxConnections: 1
+        http:
+          http1MaxPendingRequests: 1
+          maxRequestsPerConnection: 1
+          
+----
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+ name: vs-foo2
+spec:
+ hosts:
+   - reviews
+ http:
+ - route:
+   - destination:
+       host: reviews
+   retries:
+      attempts: 3
+      perTryTimeout: 1s
+```
+
+##### 6.3 熔断
+
+修改productpage为2个pod，查找到其中一个pod ip，在node上通过iptables使得不能访问：
+
+```
+sudo iptables -A OUTPUT -p all -d 172.31.0.94 -j DROP
+sudo iptables -A INPUT -p all -d 172.31.0.94 -j DROP
+```
+
+同样的，也把reviews-v2也通过iptables设置为不能访问。
+
+过一会，这两个pod状态显示为不健康。不断的刷新浏览器，可以看到黑色星星的评价不在出现了。但页面本身不会返回5xx。
+
+##### 6.4 故障注入 
+
+下面这个如果是改为productpage，就不会生效，还没有搞清楚。其他微服务是有效的。
+
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+ name: vs-foo
+spec:
+ hosts:
+ - reviews.default.svc.cluster.local
+ http:
+ - route:
+   - destination:
+       host: reviews.default.svc.cluster.local
+   fault:
+     abort:
+        percentage:
+          value: 50
+        httpStatus: 503
+     delay:
+        percentage:
+          value: 50
+        fixedDelay: 2s
+```
+
