@@ -639,56 +639,7 @@ spec:
 
 再用浏览器刷新的时候，会发现productpage只会访问reviews1 2 3中间的一个，reviews图标不会变化了，因为这时候的路由是使用按调用方IP的一致性hash的。
 
-##### 6.2 限流/retry ???
-
-这两个不是很好搞...
-
-```yaml
-apiVersion: networking.istio.io/v1alpha3
-kind: DestinationRule
-metadata:
-  name: dr-foo
-spec:
-  host: productpage.default.svc.cluster.local
-  trafficPolicy:
-      connectionPool:
-        tcp:
-          maxConnections: 1
-        http:
-          http1MaxPendingRequests: 1
-          maxRequestsPerConnection: 1
-          
-----
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
- name: vs-foo2
-spec:
- hosts:
-   - reviews
- http:
- - route:
-   - destination:
-       host: reviews
-   retries:
-      attempts: 3
-      perTryTimeout: 1s
-```
-
-##### 6.3 熔断
-
-修改productpage为2个pod，查找到其中一个pod ip，在node上通过iptables使得不能访问：
-
-```
-sudo iptables -A OUTPUT -p all -d 172.31.0.94 -j DROP
-sudo iptables -A INPUT -p all -d 172.31.0.94 -j DROP
-```
-
-同样的，也把reviews-v2也通过iptables设置为不能访问。
-
-过一会，这两个pod状态显示为不健康。不断的刷新浏览器，可以看到黑色星星的评价不在出现了。但页面本身不会返回5xx。
-
-##### 6.4 故障注入 
+##### 6.2 故障注入 
 
 下面这个如果是改为productpage，就不会生效，还没有搞清楚。其他微服务是有效的。
 
@@ -715,3 +666,131 @@ spec:
         fixedDelay: 2s
 ```
 
+
+
+##### 6.3 超时控制
+
+reviews时延比较大，访问路径一路设置超时时间。CLB的超时时间设置为18s。预期的应该是10s后能成功拉到包含reviews信息的页面。
+
+但不符合预期，6s超时，reviews没有拉到，我怀疑是ingress的默认超时时间是6s，所以用curl尝试直接访问productpage的pod来绕过ingress，也还是拉不到reviews。
+
+```shell
+ time curl -v -H 'Host:www.baidu.com' http://172.31.0.73:9080/productpage|grep Sorry
+```
+
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-foo
+spec:
+  hosts:
+  - www.baidu.com
+  - productpage
+  http:
+  - route:
+    - destination:
+        host: productpage
+    timeout: 15s
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-foo1
+spec:
+  hosts:
+  - reviews
+  http:
+  - route:
+    - destination:
+        host: reviews
+    timeout: 13s
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+ name: vs-foo2
+spec:
+ hosts:
+ - reviews.default.svc.cluster.local
+ http:
+ - route:
+   - destination:
+       host: reviews.default.svc.cluster.local
+   fault:
+     delay:
+        percentage:
+          value: 100
+        fixedDelay: 10s
+
+```
+
+
+
+##### 6.4 熔断
+
+修改productpage为2个pod，查找到其中一个pod ip，在node上通过iptables使得不能访问：
+
+```
+sudo iptables -A OUTPUT -p all -d 172.31.0.94 -j DROP
+sudo iptables -A INPUT -p all -d 172.31.0.94 -j DROP
+```
+
+同样的，也把reviews-v2也通过iptables设置为不能访问。
+
+过一会，这两个pod状态显示为不健康。不断的刷新浏览器，可以看到黑色星星的评价不在出现了。但页面本身不会返回5xx。
+
+##### 6.5 重试
+
+下面这样实验从浏览器的感觉来看似乎是有效的，但在productpage所在的node上抓包没有抓到重复发出的包，下面172.31.0.8是productpage的pod IP：
+
+```shell
+sudo tcpdump -i cbr0 -A 'host 172.31.0.8 and port 9080 and tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420'
+```
+
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-foo1
+spec:
+  hosts:
+  - reviews
+  http:
+  - route:
+    - destination:
+        host: reviews
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+    timeout: 6s
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+ name: vs-foo2
+spec:
+ hosts:
+ - reviews.default.svc.cluster.local
+ http:
+ - route:
+   - destination:
+       host: reviews.default.svc.cluster.local
+   fault:
+     delay:
+        percentage:
+          value: 50
+        fixedDelay: 10s
+```
+
+参考资料：
+
+```
+https://istio.io/latest/zh/docs/concepts/traffic-management/#network-resilience-and-testing
+```
+
+##### 6.6 限流
+
+听xx说DestineRule的限流功能太弱了，需要用到envoyfilter。还没有来得及学习。
