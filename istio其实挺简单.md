@@ -453,7 +453,7 @@ ipconfig /flushdns
 ping www.baidu.com #看ip生效没有
 ```
 
-然后用浏览器请求就可以生效了:
+然后用浏览器请求就可以生效了，如果还不行，大概率是因为梯子或者代理导致的:
 
 ```
 http://www.baidu.com/productpage
