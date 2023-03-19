@@ -5,7 +5,7 @@
 ```shell
 #省去安装maven和java的过程，这个比较容易
 
-mvn archetype:generate  #创建基本工程
+mvn archetype:generate -DgroupId=org.example -DartifactId=Channel -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false  #创建基本工程，注意修改groupId和artifactID
 
 calc/
 ├── pom.xml
