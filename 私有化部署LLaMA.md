@@ -1,6 +1,8 @@
 ### 私有化部署LLaMA的纪要
 
-##### 1、购买一台海外的云主机，至少8c32G，200GB硬盘，安装好python等，不一定要GPU
+##### 1、购买一台海外的云主机，至少8c32G，200GB硬盘，安装好python等
+
+不一定要GPU也可以跑，有GPU会快很多，但对7B的测试发现只能使用单机多卡中的一个GPU。
 
 ##### 2、下载模型的参数。
 
@@ -39,7 +41,7 @@ Running on public URL: https://88882ef3-a75f-47cb.gradio.live
 
 ##### 5、遇到奇怪的问题
 
-1. 当使用30B模型的时候，内存至少要198G
+1. 当使用30B模型的时候，内存至少要198G；7B模型内存32G够了。
 2. 当加载模型参数的时候，如果提示Tokenizer class LLaMATokenizer does not exist or is not currently imported. 要修改 tokenizer_config.json文件里的"tokenizer_class"值为 "LlamaTokenizer"
 
 ##### 6、运行效果
