@@ -2,7 +2,7 @@
 
 ##### 1、购买一台海外的云主机，至少8c32G，200GB硬盘，安装好python等
 
-不一定要GPU也可以跑，有GPU会快很多，但对7B的测试发现只能使用单机多卡中的一个GPU。
+不一定要GPU也可以跑，有GPU会快很多。
 
 ##### 2、下载模型的参数。
 
@@ -39,6 +39,14 @@ Running on local URL:  http://127.0.0.1:7860
 Running on public URL: https://88882ef3-a75f-47cb.gradio.live
 ```
 
+如果要使用单机多GPU卡，命令是：
+
+```
+python server.py    --auto-devices --gpu-memory 26 26 26 26  #我的机器有4片VT100，每片32G
+```
+
+
+
 ##### 5、遇到奇怪的问题
 
 1. 当使用30B模型的时候，内存至少要198G；7B模型内存32G够了。
@@ -47,6 +55,46 @@ Running on public URL: https://88882ef3-a75f-47cb.gradio.live
 ##### 6、运行效果
 
 ```c
+Every 2.0s: nvidia-smi                                                                                                                                VM-0-6-ubuntu: Sun Mar 26 14:44:07 2023
+
+Sun Mar 26 14:44:07 2023
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 450.102.04   Driver Version: 450.102.04   CUDA Version: 11.0     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  Tesla V100-SXM2...  On   | 00000000:00:09.0 Off |                    0 |
+| N/A   34C    P0    63W / 300W |   4202MiB / 32510MiB |     11%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   1  Tesla V100-SXM2...  On   | 00000000:00:0A.0 Off |                    0 |
+| N/A   34C    P0    57W / 300W |   4448MiB / 32510MiB |     12%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   2  Tesla V100-SXM2...  On   | 00000000:00:0B.0 Off |                    0 |
+| N/A   34C    P0    51W / 300W |   4448MiB / 32510MiB |     12%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   3  Tesla V100-SXM2...  On   | 00000000:00:0C.0 Off |                    0 |
+| N/A   34C    P0    50W / 300W |   3918MiB / 32510MiB |      8%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|    0   N/A  N/A      2684      C   python                           4199MiB |
+|    1   N/A  N/A      2684      C   python                           4445MiB |
+|    2   N/A  N/A      2684      C   python                           4445MiB |
+|    3   N/A  N/A      2684      C   python                           3915MiB |
++-----------------------------------------------------------------------------+
+
+
+
 //////////////////////////////我让他写一段ffmpeg转码的代码，算是有模有样：（还没有写完，我不等了）
 I write a c function to convert ogg to mp3, this function use ffmpeg library::
 
@@ -129,6 +177,26 @@ before swap: 5,3
 
   after swap: 5,3
 \end{blockquote}
+
+////////////////////////////
+//c语言冒泡排序一个整数数组组
+#include <stdio.h>
+#include <time.h>
+int main() {
+  int a[10] = {5, 4, 3, 2, 6, 8, 9, 7, 1, 0};
+  int i, j, temp;
+  srand((unsigned int) time(NULL));
+  for (i = 0; i < 10; i++) {
+    j = rand() % 10;
+    temp = a[i];
+    a[i] = a[j];
+    a[j] = temp;
+  }
+  for (i = 0; i < 10; i++) {
+    printf("%d ", a[i]);
+  }
+  return 0;
+}
 ```
 
 
