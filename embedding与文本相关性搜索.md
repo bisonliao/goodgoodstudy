@@ -93,6 +93,7 @@ print(cc.max(), cc.min())
 https://developer.nvidia.com/cuda-python
 https://docs.cupy.dev/en/stable/install.html
 https://docs.cupy.dev/en/stable/user_guide/kernel.html
+https://huggingface.co/sentence-transformers
 ```
 
 
