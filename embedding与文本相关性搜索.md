@@ -93,9 +93,71 @@ print(cc.max(), cc.min())
 https://developer.nvidia.com/cuda-python
 https://docs.cupy.dev/en/stable/install.html
 https://docs.cupy.dev/en/stable/user_guide/kernel.html
+```
+
+#### 3、使用pretrained模型本地化部署实现embedding也是可以的
+
+```python
+from fastparquet import ParquetFile
+import pandas as pd
+import pyarrow.parquet as pq
+import torch
+from sentence_transformers import SentenceTransformer,util # from:https://huggingface.co/sentence-transformers
+
+'''
+#下面这样都会报错，我也不知道该怎么搞
+pf = ParquetFile("E:\\Temp\\download\\train-00000-of-00001-ebc48879f34571f6.parquet") #type:ParquetFile
+df = pf.to_pandas() #type:pd.DataFrame
+'''
+#把从huggingface下载的新闻语料进行embdding，并保存到本地文件
+def embedNews():
+    # dataset from https://huggingface.co/datasets/argilla/news-summary
+    dataset = pq.ParquetDataset("E:\\Temp\\download\\test-00000-of-00001-6227bd8eb10a9b50.parquet")
+    df = dataset.read_pandas().to_pandas() #type:pd.DataFrame
+
+    model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    embList = list()
+    print(df.shape)
+    for i in range(df.shape[0]):
+        sentence = df.at[i, "text"]
+        emb = model.encode(sentence)
+        embList.append(emb)
+        if (i%97) == 7:
+            print(i)
+    embDict = {'emb':embList, 'text':df["text"]}
+    embDict = pd.DataFrame(embDict) #type:pd.DataFrame
+    print(embDict.shape)
+    embDict.to_pickle("e:\\news.pkl")
+
+#从本地文件加载embedding向量，然后搜索与sentence相关的
+def search(sentence:str):
+    model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    embdf = pd.read_pickle("e:\\news.pkl") #type:pd.DataFrame
+    tensor = torch.tensor(embdf["emb"])
+    emb = model.encode(sentence)
+
+    result = util.semantic_search(emb, tensor, top_k=4) #type:list
+    #result is a list of list. each entry is a list of dictionary, each dictionary is for a similar text
+    # corpus_id and score
+    result = result[0] #type:list
+    for i in range(len(result)):
+        entry = result[i] #type:dict
+        corpus_id = entry["corpus_id"]
+        score = entry["score"]
+        print("----------------------------------")
+        print("idx:", corpus_id, " score:", score)
+        print(embdf["text"][corpus_id])
+
+# 这个新闻是有关环保的，搜出来的结果确实都是环保相关的
+search("Over the past decade, China has developed the world's largest clean coal-burning power generation base and built up the world's highest installed wind and photovoltaic power capacity. It has produced the most new energy vehicles globally for eight consecutive years.")
+```
+
+参考资料：
+
+```
 https://huggingface.co/sentence-transformers
+https://zhuanlan.zhihu.com/p/457876366
 ```
 
 
 
-#### 4、参考文档
