@@ -338,8 +338,9 @@ bb = bb.sum(axis=1)
 cc = similar(ab, aa, bb) #type:cp.ndarray
 
 cc = cc.get() # copy to host memory as an np.ndarray
-print(cc)
-print(cc.max(), cc.min())
+cc = torch.from_numpy(cc)
+topk = torch.topk(cc, k= 4)
+print(topk)
 ```
 
 参考文档：
