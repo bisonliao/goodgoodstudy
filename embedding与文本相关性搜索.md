@@ -14,9 +14,220 @@
 
 ##### 2.1 数据预处理和embedding
 
+```python
+# -*- coding:utf-8 -*-
+import pandas as pd
+import csv
+import os
+import openai
+import json
+import tiktoken
+import time
+
+# openai embedding api处理的文本长度有限制，不超过8190个token
+encoding = tiktoken.get_encoding("cl100k_base")
+def cutStrByTokens(string: str) -> str:
+    tokenList = encoding.encode(string)
+    return encoding.decode(tokenList[:8190])
+
+# 把要embedding的文本从文档中提取出来并去掉换行
+text = list()
+with open("E:\\新建文件夹\\飞书\\技术文档中文_20230418.csv", 'r', encoding='utf-8-sig') as f:
+   r = csv.reader(f)
+   for row in r:
+       s = row[0] #type:str
+       s = s.replace("\r\n", " ")
+       s = s.replace("\n", " ")
+       s = cutStrByTokens(s)
+       if (len(s) < 3000):
+           continue
+       text.append(s)
+print(len(text))
+
+# embedding
+openai.api_key = "sk-..."
+emb=list()
+for i in range(0, len(text)):
+    s = text[i]#type:str
+    resp = openai.Embedding.create(
+        model="text-embedding-ada-002",
+        input=text[i]
+    )
+    if  (i%7) == 5:
+        time.sleep(1)
+    print(i)
+    j = json.loads(str(resp))
+    if j["data"]:
+        a = j["data"][0]["embedding"] #type:list
+        #print(len(a))
+        emb.append(a)
+#存储到文件里
+df = {"text":text, "emb":emb}
+df = pd.DataFrame(df) #type:pd.DataFrame
+df.to_pickle("e:\\save.pkl")
+```
+
+
+
 ##### 2.2 数据入库
 
+```python
+import redis
+import pandas as pd
+from transformers import BertTokenizer, BertForSequenceClassification
+from transformers import pipeline
+from sentence_transformers import SentenceTransformer
+from redis.commands.search import Search
+from redis.commands.search.query import Query
+import numpy as np
+import pandas as pd
+import csv
+import os
+import openai
+import json
+import tiktoken
+import time
+
+#把文本原文和embedding后的向量入库
+def load_vectors(client:redis.Redis, df, vector_field_name):
+    p = client.pipeline(transaction=False)
+    for index, row in df.iterrows():
+        #hash key
+        key='article:'+ str(index)
+        #hash fields
+        content = row['text']
+        vector = np.array(row['emb']).astype(np.float32).tobytes()
+        data_mapping ={'content':content, vector_field_name:vector}
+
+        p.hset(key,mapping=data_mapping)
+        if (index % 300) == 0:
+            p.execute()
+            p = client.pipeline(transaction=False)
+    p.execute()
+
+#Utility Functions to Create Indexes on Vector field
+def create_flat_index (redis_conn,vector_field_name,number_of_vectors, vector_dimensions=1536, distance_metric='COSINE'):
+    create_command =  ["FT.CREATE", "idx", "SCHEMA", "content","TEXT"]
+    create_command += ["txtvector", "VECTOR", "FLAT", "8",
+                        "TYPE", "FLOAT32",
+                        "DIM", str(vector_dimensions),
+                        "DISTANCE_METRIC", str(distance_metric),
+                        "INITIAL_CAP", 300]
+    redis_conn.execute_command(*create_command)
+
+def create_hnsw_index (redis_conn,vector_field_name,number_of_vectors, vector_dimensions, distance_metric='COSINE',M=40,EF=200):
+
+    create_command =  ["FT.CREATE", "idx", "SCHEMA", "content","TEXT"]
+    create_command += ["txtvector", "VECTOR", "HNSW", "12",
+                        "TYPE", "FLOAT32",
+                        "DIM", str(vector_dimensions),
+                        "DISTANCE_METRIC", str(distance_metric),
+                        "INITIAL_CAP", 300,
+                        "M", M,
+                        "EF_CONSTRUCTION", EF]
+
+    redis_conn.execute_command(*create_command)
+
+    
+df = pd.read_pickle('e:\\save.pkl')
+host = '119.x.x.x'
+port = 6379
+redis_conn = redis.Redis(host = host, port = port)
+print ('Connected to redis')
+
+NUMBER_ARTICLES = 1800
+VECTOR_FIELD_NAME = 'txtvector'
+DISTANCE_METRIC = 'COSINE'
+DIMENSIONS = 1536
+
+redis_conn.flushall()
+create_hnsw_index(redis_conn, VECTOR_FIELD_NAME, NUMBER_ARTICLES, DIMENSIONS, DISTANCE_METRIC)
+load_vectors(redis_conn, df, VECTOR_FIELD_NAME)
+print ('1800 News Articles loaded and indexed')
+
+```
+
+
+
 ##### 2.3 数据查询
+
+```python
+# -*- coding:utf-8 -*-
+import redis
+import pandas as pd
+from transformers import BertTokenizer, BertForSequenceClassification
+from transformers import pipeline
+from sentence_transformers import SentenceTransformer
+from redis.commands.search import Search
+from redis.commands.search.query import Query
+import json
+import openai
+import numpy as np
+import time
+
+openai.api_key = "sk-..."
+
+user_query='服务端后台API，服务器异步回调'
+resp = openai.Embedding.create(
+    model="text-embedding-ada-002",
+    input=user_query
+)
+j = json.loads(str(resp))
+e = j["data"][0]["embedding"] #type:list
+e = np.array(e).astype(np.float32) #type:np.array
+
+print(len(e))
+
+
+q = Query(f'*=>[KNN $K @headline_vector $BLOB]').return_fields('content').dialect(2)
+
+#connect to redis
+host = '119.x.x.x'
+port = 6379
+redis_conn = redis.Redis(host = host, port = port)
+print ('Connected to redis')
+
+#parameters to be passed into search
+params_dict = {"K": 4, "BLOB": e.tobytes()}
+docs = redis_conn.ft().search(q,params_dict).docs
+print("-----------------------------------")
+for doc in docs:
+    print ("********DOCUMENT: " + str(doc.id) + ' ********')
+    print(doc.content)
+
+print("\n\n")
+
+user_query='开始混流，停止混流'
+resp = openai.Embedding.create(
+    model="text-embedding-ada-002",
+    input=user_query
+)
+j = json.loads(str(resp))
+e = j["data"][0]["embedding"] #type:list
+e = np.array(e).astype(np.float32)
+params_dict = {"K": 4, "BLOB": e.tobytes()}
+docs = redis_conn.ft().search(q,params_dict).docs
+print("-----------------------------------")
+for doc in docs:
+    print ("********DOCUMENT: " + str(doc.id) + ' ********')
+    print(doc.content)
+
+
+```
+
+参考资料：
+
+```
+https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
+https://platform.openai.com/docs/api-reference/embeddings/create?lang=python
+https://help.openai.com/en/articles/7437458-embeddings
+https://github.com/RediSearch/RediSearch
+https://hub.docker.com/r/redis/redis-stack
+https://github.com/RedisAI/financial-news/blob/main/GettingStarted.ipynb
+https://zhuanlan.zhihu.com/p/80737146
+```
+
+
 
 ##### 2.4 也可以利用GPU进行暴力搜索
 
@@ -95,7 +306,7 @@ https://docs.cupy.dev/en/stable/install.html
 https://docs.cupy.dev/en/stable/user_guide/kernel.html
 ```
 
-#### 3、使用pretrained模型本地化部署实现embedding也是可以的
+#### 3、使用pretrained模型本地化部署来实现embedding也是可以的
 
 ```python
 from fastparquet import ParquetFile
