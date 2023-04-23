@@ -215,6 +215,36 @@ for doc in docs:
 
 ```
 
+效果展示，可以看到有不错的相关性：
+
+```shell
+search   服务端后台API
+1536
+Connected to redis
+-----------------------------------
+********DOCUMENT: article:847 ********
+# 调用方式 ---  ## 使用说明  ZEGO 服务端 API 支持 HTTPS 网络请求协议，允许 GET 或 POST 方法。您可以通过以下方式调用服务端 API：  - 根据 API 文档编写代码，访问相应 API。 - 参考 [使用 Postman 调测指南\|_blank](!Server_APIs_v2-Postman/Postman)，使用 ZEGO 提供的 Postman AP
+********DOCUMENT: article:1006 ********
+# 调测指南  - - - 在本文中我们为您介绍如何使用 Postman 调测服务端 API。  Postman 是一款 API 调测工具，可在让开发者在图形化界面中方便、直观地调测服务端 API。  为便于开发者调测云端录制的服务端 API，我们提供了对应的 Postman Collection，预先定义好了每个接口的请求参数，开发者导入后仅需修改参数取值即可调测。  ## 1 前提条件  -
+********DOCUMENT: article:1078 ********
+# 调测指南  - - -  在本文中我们为您介绍如何使用 Postman 调测服务端 API。  Postman 是一款 API 调测工具，可在让开发者在图形化界面中方便、直观地调测服务端 API。  为便于开发者调测超级白板的服务端 API，我们提供了对应的 Postman Collection，预先定义好了每个接口的请求参数，开发者导入后仅需修改参数取值即可调测。  ## 1 前提条件  -
+********DOCUMENT: article:1204 ********
+# 使用 Postman 调试  - - -  本文中将介绍如何使用 Postman 调试服务端 API。  Postman 是一款 API 调试工具，可在让开发者在图形化界面中方便、直观地调试服务端 API。  为便于开发者调试云通讯产品的服务端 API，ZEGO 提供了对应的 Postman Collection，预先定义好了每个接口的请求参数，开发者导入后仅需修改参数取值即可调试。  ##
+
+
+search   开始混流，停止混流
+-----------------------------------
+********DOCUMENT: article:45 ********
+# 混流 - - -  ## 1 功能简介 混流是把多路音视频流从云端混合成单流的技术。  ### 1.1 混流优点 1. 降低了开发实现上的复杂性。比如当有 N 个主播进行连麦，如果采用混流，观众端不必同时拉 N 路视频流，开发实现上省去了拉 N 路流并布局的步骤。 2. 降低了对设备的性能要求，减少设备的性能开销和网络带宽的负担。比如当连麦方过多时，观众端需要拉 N 路视频流，需要设备硬件上能
+********DOCUMENT: article:82 ********
+# 停止混流接口 - - -  > 请注意：该功能需要联系 ZEGO 技术支持开通。  ## 1 接口调用说明 > http请求方式: POST/FORM,需使用https <br>正式环境地址 <br>[https://webapi.zego.im/cgi/stop-mix?access_token=ACCESS_TOKEN | _blank](https://webapi.zego.im/cg
+********DOCUMENT: article:202 ********
+  # 停止混流接口 - - -  > 请注意：该功能需要联系 ZEGO 技术支持开通。  ## 1 接口调用说明 > http请求方式: POST/FORM,需使用https <br>正式环境地址 <br>[https://webapi.zego.im/cgi/stop-mix?access_token=ACCESS_TOKEN | _blank](https://webapi.zego.im/
+********DOCUMENT: article:526 ********
+# 多路混流 - - -  ## 1 功能简介 混流是把多路音视频流从云端混合成单流的技术。  ### 1.1 混流优点 1. 降低了开发实现上的复杂性。比如当有 N 个主播进行连麦，如果采用混流，观众端不必同时拉 N 路视频流，开发实现上省去了拉 N 路流并布局的步骤。 2. 降低了对设备的性能要求，减少设备的性能开销和网络带宽的负担。比如当连麦方过多时，观众端需要拉 N 路视频流，需要设备硬件
+
+```
+
 参考资料：
 
 ```
