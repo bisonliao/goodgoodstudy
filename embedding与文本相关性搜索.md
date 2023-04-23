@@ -179,7 +179,7 @@ e = np.array(e).astype(np.float32) #type:np.array
 print(len(e))
 
 
-q = Query(f'*=>[KNN $K @headline_vector $BLOB]').return_fields('content').dialect(2)
+q = Query(f'*=>[KNN $K @txtvector $BLOB]').return_fields('content').dialect(2)
 
 #connect to redis
 host = '119.x.x.x'
