@@ -245,6 +245,18 @@ search   开始混流，停止混流
 
 ```
 
+如果数据量不大，可以直接使用sentence-transformer库里的函数：
+
+```python
+util.semantic_search()
+```
+
+详细见：
+
+```
+https://www.sbert.net/examples/applications/semantic-search/README.html#util-semantic-search
+```
+
 参考资料：
 
 ```shell
@@ -358,7 +370,7 @@ def embedNews():
     dataset = pq.ParquetDataset("E:\\Temp\\download\\test-00000-of-00001-6227bd8eb10a9b50.parquet")
     df = dataset.read_pandas().to_pandas() #type:pd.DataFrame
 
-    model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    model = SentenceTransformer('paraphrase-MiniLM-L6-v2') #如果有GPU且torch的版本是带cuda的，会自动利用GPU
     embList = list()
     print(df.shape)
     for i in range(df.shape[0]):
@@ -367,6 +379,22 @@ def embedNews():
         embList.append(emb)
         if (i%97) == 7:
             print(i)
+    embDict = {'emb':embList, 'text':df["text"]}
+    embDict = pd.DataFrame(embDict) #type:pd.DataFrame
+    print(embDict.shape)
+    embDict.to_pickle("e:\\news.pkl")
+
+    #也可以这样写，支持一次encoding 多个sentence
+def embedNews():
+    # dataset from https://huggingface.co/datasets/argilla/news-summary
+    dataset = pq.ParquetDataset("E:\\Temp\\download\\test-00000-of-00001-6227bd8eb10a9b50.parquet")
+    df = dataset.read_pandas().to_pandas() #type:pd.DataFrame
+    print(df.shape)
+    model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    
+    input = df.get("text").values.tolist()
+    embList = model.encode(input) #type:np.ndarray
+    embList = embList.tolist()
     embDict = {'emb':embList, 'text':df["text"]}
     embDict = pd.DataFrame(embDict) #type:pd.DataFrame
     print(embDict.shape)
