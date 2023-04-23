@@ -247,7 +247,7 @@ search   开始混流，停止混流
 
 参考资料：
 
-```
+```shell
 https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
 https://platform.openai.com/docs/api-reference/embeddings/create?lang=python
 https://help.openai.com/en/articles/7437458-embeddings
@@ -255,6 +255,8 @@ https://github.com/RediSearch/RediSearch
 https://hub.docker.com/r/redis/redis-stack
 https://github.com/RedisAI/financial-news/blob/main/GettingStarted.ipynb
 https://zhuanlan.zhihu.com/p/80737146
+https://github.com/CLUEbenchmark/CLUE #这里可以下载到很多中文语料库
+https://huggingface.co/sentence-transformers #这里有很多英文语料库
 ```
 
 
