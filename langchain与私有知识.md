@@ -20,6 +20,7 @@
 https://github.com/imClumsyPanda/langchain-ChatGLM
 https://zhuanlan.zhihu.com/p/613155165
 https://github.com/jerryjliu/llama_index
+https://github.com/facebookresearch/faiss
 ```
 
 ### 亲测结果
