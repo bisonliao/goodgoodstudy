@@ -47,5 +47,33 @@ Input your local knowledge file path 请输入本地知识文件路径：/privat
 文件加载完毕，正在生成向量库
 Input your question 请输入问题：白嘉轩的职业是什么
 白嘉轩的职业是白鹿原上一位富有的地主和娶过七房女人的多事男子。他通过购买鹿子霖家的土地获得了成功，并且娶到了多任妻子。他的人生充满了娶妻和生育，但是他也因为自己的贪心和冲动而面临了危险。
+
+#把c++并发编程.pdf喂给AI，也就这个问题答得还可以，其他问题都一团糟
+
+Input your question 请输入问题：使用c++ mutex时候，怎么确保及时释放mutex也就是及时unlock
+在使用C++的 mutex 时，可以通过编写适当的代码来确保及时释放mutex,也就是及时unlock。
+
+以下是一些实现的方法：
+
+1. 使用std::lock_guard:
+
+std::lock_guard可以使用类似于线程安全的锁来保护mutex。使用std::lock_guard可以在需要解锁mutex时进行解锁。例如：
+
+​```
+std::lock_guard<std::mutex> lock(mu);
+​```
+
+在代码中，使用std::lock_guard<std::mutex>类型的锁来保护mutex。当需要解锁mutex时，可以调用mu.unlock()方法来解锁。
+
+2. 使用std::unique_lock:
+
+std::unique_lock可以使用类似于线程安全的锁来保护mutex。使用std::unique_lock可以在需要解锁mutex时进行解锁。例如：
+
+​```
+std::unique_lock<std::mutex> lock(mu);
+​```
+
+在代码中，使用std::unique_lock类型的锁来保护mutex。在需要解锁mutex时，可以调用lock.Unlock()方法来解锁。
+
 ```
 
