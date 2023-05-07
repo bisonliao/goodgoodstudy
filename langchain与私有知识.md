@@ -22,7 +22,9 @@ https://zhuanlan.zhihu.com/p/613155165
 https://github.com/jerryjliu/llama_index
 ```
 
-### 亲测llama_index的结果
+### 亲测结果
+
+#### llama_index
 
 ```shell
 把白鹿原第一章内容喂给AI，然后
@@ -31,5 +33,18 @@ https://github.com/jerryjliu/llama_index
 
 ----AI明显混淆了，可能某个地方的“他”没有分清楚是冷先生还是白嘉轩，所以误认为也是冷先生的父亲。
 
+```
+
+#### chatGLM：
+
+```shell
+docker run --gpus all  -d --name chatglm -v /root/.cache:/root/.cache  -v /root/private:/private chatglm-cuda:latest  sh -c 'sleep 10000000'
+
+root@23dec2396b03:/chatGLM# python3 ./cli_demo.py
+Input your local knowledge file path 请输入本地知识文件路径：/private
+加载文件: 100%|
+文件加载完毕，正在生成向量库
+Input your question 请输入问题：白嘉轩的职业是什么
+白嘉轩的职业是白鹿原上一位富有的地主和娶过七房女人的多事男子。他通过购买鹿子霖家的土地获得了成功，并且娶到了多任妻子。他的人生充满了娶妻和生育，但是他也因为自己的贪心和冲动而面临了危险。
 ```
 
