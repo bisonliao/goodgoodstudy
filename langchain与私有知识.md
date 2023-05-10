@@ -77,3 +77,14 @@ std::unique_lock<std::mutex> lock(mu);
 
 ```
 
+### fine tuning也是一个办法
+
+如果私有知识可以整理成prompt/completion的形式（类似FAQ），也可以对模型进行fine tuning。调用openai的api接口很容易实现，但是我没有成功，提示欠费。
+
+我在本地按照教程对chatGLM进行衣服广告词生成的fine tuning是成功的，fine tuning前后对比明显。详细可以见官方文档：
+
+```shell
+https://www.heywhale.com/mw/project/6436d82948f7da1fee2be59e
+https://platform.openai.com/docs/api-reference/fine-tunes
+```
+
