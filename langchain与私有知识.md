@@ -88,3 +88,9 @@ https://www.heywhale.com/mw/project/6436d82948f7da1fee2be59e
 https://platform.openai.com/docs/api-reference/fine-tunes
 ```
 
+对chatGLM进行fine tuning的时候，需要安装cuda的开发包：
+
+```shell
+apt install nvidia-cuda-dev
+```
+
