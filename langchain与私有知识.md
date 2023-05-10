@@ -79,7 +79,24 @@ std::unique_lock<std::mutex> lock(mu);
 
 ### fine tuning也是一个办法
 
-如果私有知识可以整理成prompt/completion的形式（类似FAQ），也可以对模型进行fine tuning。调用openai的api接口很容易实现，但是我没有成功，提示欠费。
+如果私有知识可以整理成prompt/completion的形式（类似FAQ），也可以对模型进行fine tuning。
+
+调用openai的api接口很容易实现，就是很贵，4分钱一条训练样本（可能和token数也有关系）：
+
+```shell
+    {
+      "object": "fine-tune-event",
+      "level": "info",
+      "message": "Fine-tune costs $40.42",
+      "created_at": 1683684071
+    },
+    {
+      "object": "fine-tune-event",
+      "level": "info",
+      "message": "Completed epoch 1/4",
+      "created_at": 1683684989
+    }
+```
 
 我在本地按照教程对chatGLM进行衣服广告词生成的fine tuning是成功的，fine tuning前后对比明显。详细可以见官方文档：
 
