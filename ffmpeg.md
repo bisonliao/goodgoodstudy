@@ -184,3 +184,163 @@ https://ffmpeg.org/ffmpeg-filters.html
 
 
 
+## 5、两个有意思的应用
+
+### 5.1 把一个mp4文件模拟成不断推流的直播HLS
+
+```shell
+ffmpeg -re -stream_loop -1 -i 0729.mp4 -c:v h264_nvenc -c:a aac -f hls -hls_time 6 -hls_list_size 5 -hls_flags delete_segments+append_list output2/output.m3u8
+```
+
+这条命令使用了ffmpeg工具，它的各个参数的意义如下：
+
+- `-re`：以原始帧率读取输入。
+- `-stream_loop -1`：无限循环输入流。
+- `-i 0729.mp4`：指定输入文件为0729.mp4。
+- `-c:v h264_nvenc`：指定视频编码器为h264_nvenc。
+- `-c:a aac`：指定音频编码器为aac。
+- `-f hls`：指定输出格式为HLS。
+- `-hls_time 6`：指定每个HLS分段的持续时间为6秒。
+- `-hls_list_size 5`：指定HLS播放列表中最多包含5个分段。
+- `-hls_flags delete_segments+append_list`：指定HLS标志为delete_segments和append_list，表示删除旧的分段并将新的分段追加到播放列表中。
+- `output2/output.m3u8`：指定输出文件为output2/output.m3u8。
+
+有时候，我们需要把生成的HLS文件及时上传到COS等云存储里，作为CDN的源，那就需要这样一段python代码：
+
+```python
+import os
+import sys
+import ffmpeg
+from google.cloud import storage
+from google.api_core.exceptions import NotFound
+import time
+import m3u8
+import re
+
+def check_file_modifiedtime(indexfile:str)->int:
+    # Path to the file/directory
+    path = indexfile
+    ti_m = os.path.getmtime(path)
+    return ti_m
+
+def get_ts_file_from_indexfile(indexfile:str)->list:
+    playlist = m3u8.load(indexfile)  # this could also be an absolute filename
+    return playlist.segments
+
+def upload_to_gcs(bucket_name, source_folder, destination_folder):
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket(bucket_name)
+    mtime = 0
+    index = "output.m3u8"
+    indexfile = source_folder + "/" + index
+    pattern = re.compile(r'#EXT.*\n')
+    uploaded = set()
+    while (True):
+        mtime2 = check_file_modifiedtime(indexfile)
+        if mtime2 <= mtime:
+            time.sleep(1)
+            continue
+        mtime = mtime2
+        time.sleep(1)
+        segments = get_ts_file_from_indexfile(indexfile)
+        fileInM3U8 = set()
+        blob = bucket.blob(os.path.join(destination_folder, index))
+        blob.upload_from_filename(indexfile)
+        for seg in segments:
+            seg = str(seg)
+            seg = re.sub(pattern, "", seg)
+            fileInM3U8.add(seg)
+            if uploaded.__contains__(seg):
+                continue
+            print(seg)
+            segfile = source_folder + "/" + seg
+            blob = bucket.blob(os.path.join(destination_folder, seg))
+            blob.upload_from_filename(segfile)
+            uploaded.add(seg)
+        #delete file that in object storage but not in m3u8 file
+        diff = uploaded.difference(fileInM3U8)
+        print("diffsize:", diff.__len__())
+        for seg in diff:
+            uploaded.remove(seg)
+            blob = bucket.blob(os.path.join(destination_folder, seg))
+            blob.delete()
+
+if __name__ == "__main__":
+    input_file = "./0729.mp4"
+    output_dir = "./output2"
+    stream_id = "0729"
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'zegocdn.json'
+    upload_to_gcs('cdn-source-by-bison', output_dir, stream_id)
+
+```
+
+### 5.2 生成带当前时间的视频流用于测试端到端的时延
+
+opencv基于本地的一个black.jpg作为背景，不断生成带有当前时间的图片，通过管道输送给ffmpeg生成HLS直播文件到一个目录
+
+```python
+import cv2
+import subprocess
+import time
+
+# 设置帧率和总帧数
+fps = 30
+frame_count = 6000
+
+# 设置字体和颜色
+font = cv2.FONT_HERSHEY_SIMPLEX
+color = (255, 255, 255)
+
+# 启动ffmpeg进程
+command = ['ffmpeg',
+           '-y',
+           '-f', 'rawvideo',
+           '-pix_fmt', 'bgr24',
+           '-video_size', '1280x720',
+           '-vcodec', 'rawvideo',
+           '-s', '640x480',
+           '-framerate', str(fps),
+           '-i', '-',
+           '-c:v', 'h264',
+           '-b:v', '1M',
+           '-pix_fmt', 'yuv420p',
+           '-hls_time', '3',
+           '-hls_list_size', '3',
+           '-f', 'hls',
+           'output2/output.m3u8']
+ffmpeg = subprocess.Popen(command, stdin=subprocess.PIPE)
+
+# 生成视频帧
+for i in range(frame_count):
+    # 创建一个黑色背景的图像
+    img = cv2.imread('black.jpg')
+    # 获取当前时间并绘制到图像上
+    current_time = time.strftime("%H:%M:%S", time.localtime())
+    cv2.putText(img, current_time, (100, 100), font, 2, color, 2)
+    # 将图像数据写入ffmpeg的标准输入
+    ffmpeg.stdin.write(img.tobytes())
+    # 等待1/fps秒
+    time.sleep(1.0 / fps)
+
+# 关闭ffmpeg的标准输入
+ffmpeg.stdin.close()
+# 等待ffmpeg进程结束
+ffmpeg.wait()
+```
+
+需要安装的库有：
+
+```shell
+apt-get install ffmpeg
+apt-get install libx264-dev
+apt-get install x26
+apt install python3-pi
+apt-get install python3-opencv
+apt-get install ffmpeg
+
+pip3 install ffmpeg-python
+pip3 instal scikit-build
+pip3 install opencv-python
+pip3 install m3u
+```
+
