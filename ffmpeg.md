@@ -294,6 +294,7 @@ color = (255, 255, 255)
 # 启动ffmpeg进程
 command = ['ffmpeg',
            '-y',
+           '-re',
            '-f', 'rawvideo',
            '-pix_fmt', 'bgr24',
            '-video_size', '1280x720',
@@ -306,12 +307,14 @@ command = ['ffmpeg',
            '-pix_fmt', 'yuv420p',
            '-hls_time', '3',
            '-hls_list_size', '3',
+           '-force_key_frames', 'expr:gte(t,n_forced*1)',
            '-f', 'hls',
            'output2/output.m3u8']
 ffmpeg = subprocess.Popen(command, stdin=subprocess.PIPE)
 
 # 生成视频帧
 for i in range(frame_count):
+    start_time = time.time()
     # 创建一个黑色背景的图像
     img = cv2.imread('black.jpg')
     # 获取当前时间并绘制到图像上
@@ -319,8 +322,9 @@ for i in range(frame_count):
     cv2.putText(img, current_time, (100, 100), font, 2, color, 2)
     # 将图像数据写入ffmpeg的标准输入
     ffmpeg.stdin.write(img.tobytes())
+    end_time = time.time()
     # 等待1/fps秒
-    time.sleep(1.0 / fps)
+    time.sleep(max(1.0/fps - (end_time - start_time), 0))
 
 # 关闭ffmpeg的标准输入
 ffmpeg.stdin.close()
