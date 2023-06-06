@@ -208,29 +208,3 @@ int main() {
 https://juejin.cn/post/7209850311258898490
 ```
 
-还可以直接用hugging face提供的python库本地运行：
-
-```python
-from transformers import AutoTokenizer, AutoModel
-tokenizer = AutoTokenizer.from_pretrained("THUDM/chatglm-6b", trust_remote_code=True)
-
-# 加载模型，可以设置不同的版本
-model = AutoModel.from_pretrained("THUDM/chatglm-6b", trust_remote_code=True).half().cuda()
-
-# 第一次对话
-response, history = model.chat(tokenizer, "你好", history=[])
-print(response)
-
-# 第二次对话
-while True:
-    queryStr = input("input your query:");
-    if queryStr == "clear":
-        history = list()
-        continue
-    if queryStr == "quit":
-        exit(0)
-    response, history = model.chat(tokenizer, queryStr, history=history)
-    print(response)
-    print(type(history))
-```
-
