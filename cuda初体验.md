@@ -212,3 +212,97 @@ For this reason it is recommended that CUDA is run on a GPU that is NOT attached
 一开始我还担心在linux下可以使用GPU/CUDA的caffe在windows下不能正常使用GPU/CUDA，实验验证没有问题。
 
 这里是[dct的代码](code/cuda/dct.cu)
+
+### 4、在python里使用CUDA加速通用计算
+
+在安装好cuda后，检查cuda的版本：
+
+```shell
+>nvidia-smi
+Sat Aug 26 21:21:32 2023
++---------------------------------------------------------------------------------------+
+| NVIDIA-SMI 531.14                 Driver Version: 531.14       CUDA Version: 12.1     |
+|-----------------------------------------+----------------------+----------------------+
+| GPU  Name                      TCC/WDDM | Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf            Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                                         |                      |               MIG M. |
+|=========================================+======================+======================|
+|   0  NVIDIA GeForce GTX 1060       WDDM | 00000000:01:00.0 Off |                  N/A |
+| N/A   39C    P0               23W /  N/A|      0MiB /  6144MiB |      1%      Default |
+|                                         |                      |                  N/A |
++-----------------------------------------+----------------------+----------------------+
+
++---------------------------------------------------------------------------------------+
+| Processes:                                                                            |
+|  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+|        ID   ID                                                             Usage      |
+|=======================================================================================|
+|  No running processes found                                                           |
++---------------------------------------------------------------------------------------+
+```
+
+用pip命令安装对应版本的cupy：
+
+```shell
+>pip3 install cupy-cuda12x
+#我一开始pip3 install cupy怎么都编译不通过
+```
+
+写一个简单的示例代码，关于20万个1536维的向量的余弦相似度：
+
+```python
+import numpy as np
+import cupy as cp
+import datetime
+import time
+import torch
+
+ROW=200000
+COL=1536
+
+unix_timestamp = (datetime.datetime.now() - datetime.datetime(1970, 1, 1)).total_seconds()
+np.random.seed(int(unix_timestamp))
+
+def genData()->np.ndarray:
+    return np.random.randint(-65535, 65535, (ROW, COL), np.int32) / 65537
+
+multiply = cp.ElementwiseKernel(
+   'float32 x, float32 y',
+   'float32 z',
+   'z = x * y',
+   'multiply')
+similar = cp.ElementwiseKernel(
+   'float32 x, float32 y, float32 z',
+   'float32 result',
+   'result = x / (sqrt(y) * sqrt(z))',
+   'similar')
+
+a = genData()# type:np.ndarray
+a = a.astype(np.float32)
+a = cp.asarray(a)
+
+'''b = genData() #type:np.ndarray
+b = b.astype(np.float32)
+b = cp.asarray(b)'''
+# 假设要搜索的元素的embedding等于a[1]，把它broadcast为同a的形状，a和b可以逐行求余弦相似性
+b = cp.broadcast_to(a[1], (ROW,COL))
+
+
+
+print("begin calclulate cos similarity...")
+
+ab = multiply(a, b) #type:cp.ndarray
+aa = multiply(a, a) #type:cp.ndarray
+bb = multiply(b, b) #type:cp.ndarray
+
+ab = ab.sum(axis=1)
+aa = aa.sum(axis=1)
+bb = bb.sum(axis=1)
+#time.sleep(10)
+cc = similar(ab, aa, bb) #type:cp.ndarray
+cc = cc.get() # copy to host memory as an np.ndarray
+cc = torch.from_numpy(cc)
+topk = torch.topk(cc, k= 4)
+print(topk)
+```
+
