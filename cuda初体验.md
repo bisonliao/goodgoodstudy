@@ -32,9 +32,15 @@ testKey<<<blockNumPerGrid, threadNumPerBlock>>>(A, B, C);
 
 而testkey函数提内部还是用上面的方式获得当前线程的ID
 
-2、  二维的方式：假设我们要对20000*10000的一个矩阵的每个元素进行并行的修改。准备启动1w*1w个线程，每个线程负责对一个元素进行修改。我们定义一个20*10大小的Grid，即这个Grid包含20*10个block，每个Block尺寸为1000*1000，即每个block包含1000*1000个thread。
+2、  二维的方式：假设我们要对20000X10000的一个矩阵的每个元素进行并行的修改。
 
-dim3 dimGrid(10, 10);
+1. 准备启动1000X1000个线程，每个线程负责对一个元素进行修改。
+2. 定义一个20X10大小的Grid，即这个Grid包含20X10个block，
+3. 每个Block尺寸为1000X1000，即每个block包含1000*1000个thread。
+
+二维坐标是列优先的，也就是先x坐标，再y坐标
+
+dim3 dimGrid(20, 10);
 dim3 dimBlock(1000, 1000);
 
 vectorModify<<<dimGrid, dimBlock>>>(A,B,C);
