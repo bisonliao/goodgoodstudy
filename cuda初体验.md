@@ -38,9 +38,12 @@ testKey<<<blockNumPerGrid, threadNumPerBlock>>>(A, B, C);
 2. 定义一个20X10大小的Grid，即这个Grid包含20X10个block，
 3. 每个Block尺寸为1000X1000，即每个block包含1000*1000个thread。
 
-二维坐标是列优先的，也就是先x坐标，再y坐标
+注意事项（容易犯错导致一整天没有进展的）：
 
-dim3 dimGrid(20, 10);
+1. dim的二维坐标是列优先的，也就是先x坐标，再y坐标，再z坐标，不是行优先
+2. block的大小，也就线程的个数，不要超过硬件的cuda核心数
+
+dim3 dimGrid(20, 10); //注意区分x向和y向的尺寸，先x后y
 dim3 dimBlock(1000, 1000);
 
 vectorModify<<<dimGrid, dimBlock>>>(A,B,C);
@@ -310,5 +313,31 @@ cc = cc.get() # copy to host memory as an np.ndarray
 cc = torch.from_numpy(cc)
 topk = torch.topk(cc, k= 4)
 print(topk)
+```
+
+再来一个例子，对一个5000X5的矩阵逐行加和：
+
+```python
+add = cp.RawKernel(r'''
+#include <cupy/complex.cuh>
+extern "C" __global__
+void my_func(int * x, int * y) {
+    int tid = blockDim.y * blockIdx.y + threadIdx.y;
+    int i;
+    for (i = 0; i < 5; ++i)
+        y[tid] += x[tid*5+i];
+}
+''', 'my_func')
+
+x = cp.arange(25000, dtype=cp.int32).reshape(5000, 5)
+y = cp.zeros((5000, 1), dtype=cp.int32)
+add((1, 500), (1, 10), (x, y))  # grid, block and arguments
+print(y)
+```
+
+cupy的文档：
+
+```shell
+https://docs.cupy.dev/en/stable/user_guide/kernel.html
 ```
 
