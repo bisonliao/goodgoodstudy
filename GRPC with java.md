@@ -596,3 +596,10 @@ sys     0m1.055s
 大多数时间是在等待网络， rpc本身占用cpu很少，约2.5s， **那如果不考虑网络同步等待，可以认为单纯rpc的性能可以达到4万次每秒**。
 
 背后是多线程的，如果启动20个grpccli请求同一个grpcsrv，可以看到grpcsrv会占用2.5个CPU。
+
+网上有个哥们测试的性能数据和我接近：
+
+```
+https://github.com/LesnyRumcajs/grpc_bench/wiki/2022-04-23-bench-results
+```
+
