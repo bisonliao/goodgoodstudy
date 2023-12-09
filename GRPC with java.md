@@ -432,3 +432,174 @@ mvn exec:java -Dexec.mainClass="io.bison.calc.App" -Dexec.args="127.0.0.1:50012"
 https://grpc.io/docs/languages/java/
 ```
 
+### grpc with c++也搞一下
+
+```shell
+sudo apt install g++
+sudo apt install protobuf-compiler-grpc
+sudo apt install protobuf-compiler
+sudo apt install libprotobuf-dev
+
+sudo apt-get install libgrpc++-dev
+sudo apt-get install libgrpc-dev
+```
+
+echo.proto
+
+```protobuf
+syntax = "proto3";
+
+package echo;
+
+service EchoService {
+  rpc Echo(EchoRequest) returns (EchoResponse) {}
+}
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string message = 1;
+}
+```
+
+grpccli.cpp
+
+```c++
+#include <grpcpp/grpcpp.h>
+#include "echo.grpc.pb.h"
+
+using grpc::Channel;
+using grpc::ClientContext;
+using grpc::Status;
+using echo::EchoRequest;
+using echo::EchoResponse;
+using echo::EchoService;
+
+class EchoClient {
+public:
+    EchoClient(std::shared_ptr<Channel> channel)
+        : stub_(EchoService::NewStub(channel)) {}
+
+    std::string Echo(const std::string& message) {
+        EchoRequest request;
+        request.set_message(message);
+
+        EchoResponse response;
+        ClientContext context;
+
+        Status status = stub_->Echo(&context, request, &response);
+
+        if (status.ok()) {
+            return response.message();
+        } else {
+            std::cout << "RPC failed with error code: " << status.error_code()
+                      << ", error message: " << status.error_message()
+                      << std::endl;
+            return "";
+        }
+    }
+
+private:
+    std::unique_ptr<EchoService::Stub> stub_;
+};
+
+int main() {
+    std::string server_address("10.11.7.239:50051");
+    EchoClient client(grpc::CreateChannel(server_address,
+                                          grpc::InsecureChannelCredentials()));
+
+    int i;
+    for (i = 0; i < 100000; ++i)
+    {
+    std::string message = "Hello, gRPC!";
+    std::string response = client.Echo(message);
+    std::cout << "Client received: " << response << std::endl;
+    }
+
+    return 0;
+}
+
+```
+
+grpcsrv.cpp
+
+```c++
+#include <iostream>
+#include <memory>
+#include <string>
+
+#include <grpcpp/grpcpp.h>
+
+#include "echo.grpc.pb.h"
+
+using grpc::Server;
+using grpc::ServerBuilder;
+using grpc::ServerContext;
+using grpc::Status;
+using echo::EchoRequest;
+using echo::EchoResponse;
+using echo::EchoService;
+
+// 实现EchoService
+class EchoServiceImpl final : public EchoService::Service {
+    Status Echo(ServerContext* context, const EchoRequest* request,
+                EchoResponse* response) override {
+        // 直接将客户端发送的字符串作为响应返回
+        response->set_message(request->message());
+        return Status::OK;
+    }
+};
+
+void RunServer() {
+    std::string server_address("0.0.0.0:50051");
+    EchoServiceImpl service;
+
+    ServerBuilder builder;
+    builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+    builder.RegisterService(&service);
+
+    std::unique_ptr<Server> server(builder.BuildAndStart());
+    std::cout << "Server listening on " << server_address << std::endl;
+
+    server->Wait();
+}
+
+int main() {
+    RunServer();
+    return 0;
+}
+
+```
+
+build.sh
+
+```shell
+protoc -I. --cpp_out=. --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` echo.proto
+g++ -std=c++11 grpccli.cpp echo.grpc.pb.cc echo.pb.cc -o grpccli `pkg-config --cflags --libs grpc++ grpc` -lprotobuf -pthread
+g++ -std=c++11 grpcsrv.cpp echo.grpc.pb.cc echo.pb.cc -o grpcsrv `pkg-config --cflags --libs grpc++ grpc` -lprotobuf -pthread
+```
+
+测试10万次执行的耗时：
+
+```shell
+ubuntu@VM-7-84-ubuntu:~$ time ./grpccli  >/tmp/bison
+
+real    0m12.426s
+user    0m1.484s
+sys     0m1.055s
+```
+
+背后是单进程的，开销是1个核的27%， 客户端还要轻量一点，21%。
+
+大多数时间是在等待网络， rpc本身占用cpu很少，约2.5s， **那如果不考虑网络同步等待，可以认为单纯rpc的性能可以达到4万次每秒**。
+
+背后是多线程的，如果启动20个grpccli请求同一个grpcsrv，可以看到grpcsrv会占用2.5个CPU。
+
+网上有个哥们测试的性能数据和我接近：
+
+```
+https://github.com/LesnyRumcajs/grpc_bench/wiki/2022-04-23-bench-results
+```
+
