@@ -794,3 +794,185 @@ https://istio.io/latest/zh/docs/concepts/traffic-management/#network-resilience-
 ##### 6.6 限流
 
 听xx说DestineRule的限流功能太弱了，需要用到envoyfilter。还没有来得及学习。
+
+#### 7、 vs/dr和envoyfilter还有xDS的关系
+
+envoy本质上和nginx没有什么不同。路由和流量分配信息，例如多少比例的流量发送到后端哪个ip地址，这些都是envoy的配置决定的。而后端的pod是在变化的，那就是由istiod根据pod的变化情况实时生成新的配置信息发送给envoy，他们之间使用xDS（各种discover service）协议通信。
+
+envoy的最终的配置，是类似naginx那种偏静态的代理配置，我们暂且叫它xDS配置吧。
+
+我们通过vs/dr，可以方便的筛选pod进行流量分配，istiod根据我们的筛选指示和当时的pod的实际情况，生成带有pod地址作为endpoint的偏静态的xDS配置信息，发送给envoy。当pod发生变化的时候，例如弹性伸缩后pod的集合与地址都可能变化，istiod会重新生成xDS配置信息，刷新给envoy。
+
+参考：[Envoy 基础入门教程-腾讯云开发者社区-腾讯云 (tencent.com)](https://cloud.tencent.com/developer/article/2352018)
+
+下面是vs/dr转换为 envoyfilter、并进一步转换为xDS配置的示意：
+
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: weighted-route
+spec:
+  configPatches:
+  - applyTo: HTTP_ROUTE
+    match:
+      context: SIDECAR_OUTBOUND
+      routeConfiguration:
+        vhost:
+          name: my-service
+    patch:
+      operation: MERGE
+      value:
+        route:
+          weighted_clusters:
+            clusters:
+            - name: my-service-v1
+              weight: 80
+            - name: my-service-v2
+              weight: 20
+
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: cluster-definition
+spec:
+  configPatches:
+  - applyTo: CLUSTER
+    patch:
+      operation: ADD
+      value:
+        name: "my-service-v1"
+        connect_timeout: 0.25s
+        type: STATIC
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: "my-service-v1"
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: 127.0.0.1
+                    port_value: 8081
+  - applyTo: CLUSTER
+    patch:
+      operation: ADD
+      value:
+        name: "my-service-v2"
+        connect_timeout: 0.25s
+        type: STATIC
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: "my-service-v2"
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: 127.0.0.1
+                    port_value: 8082
+
+```
+
+上面的envoyfilter可以表示为xDS：
+
+```json
+{
+  "version_info": "2023-12-09T15:09:19Z",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "my-service",
+      "virtual_hosts": [
+        {
+          "name": "my-service",
+          "domains": [
+            "*"
+          ],
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "weighted_clusters": {
+                  "clusters": [
+                    {
+                      "name": "my-service-v1",
+                      "weight": 80
+                    },
+                    {
+                      "name": "my-service-v2",
+                      "weight": 20
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+{
+  "version_info": "2023-12-09T15:09:19Z",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "my-service-v1",
+      "connect_timeout": "0.25s",
+      "type": "STATIC",
+      "lb_policy": "ROUND_ROBIN",
+      "load_assignment": {
+        "cluster_name": "my-service-v1",
+        "endpoints": [
+          {
+            "lb_endpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socket_address": {
+                      "address": "127.0.0.1",
+                      "port_value": 8081
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "my-service-v2",
+      "connect_timeout": "0.25s",
+      "type": "STATIC",
+      "lb_policy": "ROUND_ROBIN",
+      "load_assignment": {
+        "cluster_name": "my-service-v2",
+        "endpoints": [
+          {
+            "lb_endpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socket_address": {
+                      "address": "127.0.0.1",
+                      "port_value": 8082
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+
+```
+
