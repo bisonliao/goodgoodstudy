@@ -1,8 +1,18 @@
 
 
-### 首先：istio的sidecar和K8S的kubeproxy的区别
+### 首先：几个容易混淆的概念
 
-kubeproxy运行在每个节点上，负责实现kubernetes的Service概念，也就是将集群内外的请求转发到正确的后端Pod。kubeproxy支持多种代理模式，主要有iptables和ipvs两种模式，kubeproxy主要工作在网络的四层（传输层）。
+有三个容易混淆的概念
+
+1. kubeproxy
+2. 网络插件，例如flanneld
+3. istio sidecar，例如envoy
+
+#### 先说kubeproxy
+
+kubeproxy运行在每个节点上，负责实现kubernetes的Service概念，也就是将集群内外的请求转发到正确的后端Pod。
+
+kubeproxy支持多种代理模式，主要有iptables和ipvs两种模式，kubeproxy主要工作在网络的四层（传输层）。
 
 举个例子：Node甲上的Pod A访问service echo的Pod B， Pod B运行在Node 乙上，这个过程中，kubeproxy在以下环节发生作用：
 
@@ -11,9 +21,13 @@ kubeproxy运行在每个节点上，负责实现kubernetes的Service概念，也
    最后，Node 乙上的kubeproxy会根据Pod B的IP和端口，将请求转发给Pod B，完成服务的访问
 3. 简单来说，kubeproxy的作用是实现service的负载均衡和流量转发，它在每个节点上都有运行，维护着网络规则和代理服务
 
+#### 再说网络插件，例如flanneld
 
+网络代理负责为pod提供IP地址和互通性，类似一个tap/tun设备。详细可以搜索tap/tun设备的技术文章。它用ipip技术，把发往pod的原始IP包，封装成宿主网络的IP包，发到Node乙后，脱去外层的IP，得到原始IP包，发送给Pod B。
 
-而sidecar是运行在pod里面，提供pod间的流量管理、安全、观察性等能力，主要工作在网络的七层。可以对http、gRPC、WebSocket等协议进行更细粒度的控制。
+#### sidecar，例如envoy
+
+sidecar是运行在pod里面，提供pod间的流量管理、安全、观察性等能力，主要工作在网络的七层。可以对http、gRPC、WebSocket等协议进行更细粒度的控制。和nginx很类似。
 
 
 
