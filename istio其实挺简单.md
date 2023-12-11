@@ -1,5 +1,22 @@
 
 
+### 首先：istio的sidecar和K8S的kubeproxy的区别
+
+kubeproxy运行在每个节点上，负责实现kubernetes的Service概念，也就是将集群内外的请求转发到正确的后端Pod。kubeproxy支持多种代理模式，主要有iptables和ipvs两种模式，kubeproxy主要工作在网络的四层（传输层）。
+
+举个例子：Node甲上的Pod A访问service echo的Pod B， Pod B运行在Node 乙上，这个过程中，kubeproxy在以下环节发生作用：
+
+1. 首先，Pod A需要通过service echo的域名或者Cluster IP来访问Pod B，这个域名或者Cluster IP是由K8S的内部DNS服务解析的。
+2. 其次，Node甲上的kubeproxy会根据service echo的Cluster IP和端口，查找对应的iptables或者ipvs规则，将请求重定向到一个随机的Pod B的IP和端口23。
+   最后，Node 乙上的kubeproxy会根据Pod B的IP和端口，将请求转发给Pod B，完成服务的访问
+3. 简单来说，kubeproxy的作用是实现service的负载均衡和流量转发，它在每个节点上都有运行，维护着网络规则和代理服务
+
+
+
+而sidecar是运行在pod里面，提供pod间的流量管理、安全、观察性等能力，主要工作在网络的七层。可以对http、gRPC、WebSocket等协议进行更细粒度的控制。
+
+
+
 ### 一、安装和注入sidecar
 
 ```shell
@@ -795,7 +812,7 @@ https://istio.io/latest/zh/docs/concepts/traffic-management/#network-resilience-
 
 听xx说DestineRule的限流功能太弱了，需要用到envoyfilter。还没有来得及学习。
 
-#### 7、 vs/dr和envoyfilter还有xDS的关系
+### 五、 vs/dr和envoyfilter还有xDS的关系
 
 envoy本质上和nginx没有什么不同。路由和流量分配信息，例如多少比例的流量发送到后端哪个ip地址，这些都是envoy的配置决定的。而后端的pod是在变化的，那就是由istiod根据pod的变化情况实时生成新的配置信息发送给envoy，他们之间使用xDS（各种discover service）协议通信。
 
