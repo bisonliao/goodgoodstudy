@@ -176,7 +176,7 @@ static_resources:
 
 ### 实验三：增加超时和重试
 
-重试间隔不太符合预期
+后端服务要保持监听可连接状态，但是不及时回包，制造超时的情形。后台可以抓包发现有每间隔1s重试3次
 
 ```yaml
 static_resources:
@@ -210,13 +210,16 @@ static_resources:
                     - name: other_cluster # 20%的请求转发到other_cluster
                       weight: 20
                     total_weight: 100 # 权重总和必须为100
-                  timeout: 4s # 设置超时时间为1s
-                  retry_policy: # 设置重试策略
-                    retry_on: 5xx # 重试条件为5xx错误
-                    num_retries: 2 # 重试次数为2
-                    retry_back_off: # 设置重试间隔
-                      base_interval: 1s # 基础间隔为2s
-                      max_interval: 2s # 最大间隔为4s
+                  timeout: 0s # 超时时间
+                  retry_policy: # 重试策略
+                    retry_on: "5xx" # 重试条件
+                    num_retries: 2 # 重试次数
+                    per_try_timeout: 1s # 每次重试超时时间
+                    retry_host_predicate: # 重试主机谓词
+                    - name: envoy.retry_host_predicates.previous_hosts # 谓词名称
+                    host_selection_retry_max_attempts: 2 # 主机选择重试最大尝试次数
+                    retriable_status_codes: # 可重试状态码
+                    - 14 # UNAVAILABLE
           http_filters:
           - name: envoy.filters.http.grpc_web
           - name: envoy.filters.http.router
