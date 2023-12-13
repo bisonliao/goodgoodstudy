@@ -262,6 +262,12 @@ static_resources:
 
 将grpc方法为/echo.Echo的请求发送到后端集群，后端集群有两个endpointer：10.11.7.239:8888和10.11.7.239:50051。希望配置熔断，如果失败率超过10%就熔断1分钟
 
+#### envoy的熔断
+
+envoy的circuit-break更像是限频，我们通常理解的熔断，在envoy这里叫做异常点隔离。
+
+例如下面的配置，像是限频：
+
 ```yaml
 # envoy.yaml
 static_resources: # 静态资源配置
@@ -369,3 +375,83 @@ tcpdump: listening on any, link-type LINUX_SLL (Linux cooked v1), capture size 2
 ```
 
 恢复故障的endpointer后，请求立即打过来，两个endpointer一半一半的请求。
+
+#### envoy的异常点隔离
+
+```yaml
+# envoy.yaml
+static_resources: # 静态资源配置
+  listeners: # 监听器配置
+  - name: listener_0 # 监听器名称
+    address: # 地址
+      socket_address: # 套接字地址
+        protocol: TCP # 协议
+        address: 0.0.0.0 # IP地址
+        port_value: 7890 # 端口值
+    filter_chains: # 过滤器链配置
+    - filters: # 过滤器配置
+      - name: envoy.filters.network.http_connection_manager # 过滤器名称
+        typed_config: # 类型化配置
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager # 类型
+          access_log:
+            - name: envoy.access_loggers.stdout
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+          stat_prefix: ingress_http # 统计前缀
+          codec_type: AUTO # 编解码器类型
+          route_config: # 路由配置
+            name: local_route # 路由名称
+            virtual_hosts: # 虚拟主机配置
+            - name: local_service # 虚拟主机名称
+              domains: ["*"] # 域名
+              routes: # 路由配置
+              - match: # 匹配配置
+                  prefix: "/" # 前缀
+                  grpc: {} # grpc匹配
+                route: # 路由配置
+                  cluster: echo_cluster # 集群名称
+                  timeout: 3s # 超时时间
+                  retry_policy: # 重试策略
+                    retry_on: "5xx" # 重试条件
+                    num_retries: 2 # 重试次数
+                    per_try_timeout: 1s # 每次重试超时时间
+                    retry_host_predicate: # 重试主机谓词
+                    - name: envoy.retry_host_predicates.previous_hosts # 谓词名称
+                    host_selection_retry_max_attempts: 2 # 主机选择重试最大尝试次数
+                    retriable_status_codes: # 可重试状态码
+                    - 14 # UNAVAILABLE
+          http_filters: # HTTP过滤器配置
+          - name: envoy.filters.http.router # 过滤器名称
+            typed_config: {} # 类型化配置
+  clusters: # 集群配置
+  - name: echo_cluster # 集群名称
+    connect_timeout: 0.25s # 连接超时时间
+    type: STATIC # 集群类型
+    http2_protocol_options: {}
+    lb_policy: ROUND_ROBIN # 负载均衡策略
+    outlier_detection: # 异常点检测配置
+      success_rate_minimum_hosts: 1 # 最小主机数
+      success_rate_request_volume: 5 # 请求量
+      success_rate_stdev_factor: 1900 # 标准差因子
+      interval: 10s # 检测时间间隔
+      base_ejection_time: 60s # 基本隔离时间
+      max_ejection_percent: 50 # 最大隔离百分比
+      enforcing_success_rate: 100 # 强制执行成功率
+    load_assignment: # 负载分配配置
+      cluster_name: echo_cluster # 集群名称
+      endpoints: # 端点配置
+      - lb_endpoints: # 负载均衡端点配置
+        - endpoint: # 端点
+            address: # 地址
+              socket_address: # 套接字地址
+                address: 10.11.7.239 # IP地址
+                port_value: 8888 # 端口值
+        - endpoint: # 端点
+            address: # 地址
+              socket_address: # 套接字地址
+                address: 10.11.7.239 # IP地址
+                port_value: 50051 # 端口值
+
+```
+
+envoy 的异常点隔离，相当于对单个endpointer的熔断，而实际业务通常是需要对一个service进行熔断。这个不太符合需求。
