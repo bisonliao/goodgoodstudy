@@ -454,4 +454,103 @@ static_resources: # 静态资源配置
 
 ```
 
-envoy 的异常点隔离，相当于对单个endpointer的熔断，而实际业务通常是需要对一个service进行熔断。这个不太符合需求。
+envoy 的异常点隔离，相当于对单个endpointer的熔断，而实际业务通常是需要对一个service进行熔断。这个不太符合需求。需要在业务层面做熔断。
+
+### 实验五：故障注入
+
+代理的请求，10%的概率丢包，15%的概率延迟0.1s
+
+```yaml
+static_resources: # 静态资源配置
+  listeners: # 监听器配置
+  - name: listener_0 # 监听器名称
+    address: # 地址
+      socket_address: # 套接字地址
+        protocol: TCP # 协议
+        address: 0.0.0.0 # IP地址
+        port_value: 7890 # 端口值
+    filter_chains: # 过滤器链配置
+    - filters: # 过滤器配置
+      - name: envoy.filters.network.http_connection_manager # 过滤器名称
+        typed_config: # 类型化配置
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager # 类型
+          access_log:
+            - name: envoy.access_loggers.stdout
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+          stat_prefix: ingress_http # 统计前缀
+          codec_type: AUTO # 编解码器类型
+          route_config: # 路由配置
+            name: local_route # 路由名称
+            virtual_hosts: # 虚拟主机配置
+            - name: local_service # 虚拟主机名称
+              domains: ["*"] # 域名
+              routes: # 路由配置
+              - match: # 匹配配置
+                  prefix: "/" # 前缀
+                  grpc: {} # grpc匹配
+                route: # 路由配置
+                  cluster: echo_cluster # 集群名称
+          http_filters: # HTTP过滤器配置
+          - name: envoy.filters.http.fault
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.fault.v3.HTTPFault
+              abort:
+                percentage:
+                  numerator: 10
+                  denominator: HUNDRED
+                http_status: 503
+              delay:
+                percentage:
+                  numerator: 15
+                  denominator: HUNDRED
+                fixed_delay: 0.1s
+          - name: envoy.filters.http.router # 过滤器名称
+            typed_config: {} # 类型化配置
+  clusters: # 集群配置
+  - name: echo_cluster # 集群名称
+    connect_timeout: 0.25s # 连接超时时间
+    type: STATIC # 集群类型
+    http2_protocol_options: {}
+    lb_policy: ROUND_ROBIN # 负载均衡策略
+    outlier_detection: # 异常点检测配置
+      success_rate_minimum_hosts: 1 # 最小主机数
+      success_rate_request_volume: 5 # 请求量
+      success_rate_stdev_factor: 1900 # 标准差因子
+      interval: 10s # 检测时间间隔
+      base_ejection_time: 60s # 基本隔离时间
+      max_ejection_percent: 50 # 最大隔离百分比
+      enforcing_success_rate: 100 # 强制执行成功率
+    load_assignment: # 负载分配配置
+      cluster_name: echo_cluster # 集群名称
+      endpoints: # 端点配置
+      - lb_endpoints: # 负载均衡端点配置
+        - endpoint: # 端点
+            address: # 地址
+              socket_address: # 套接字地址
+                address: 10.11.7.239 # IP地址
+                port_value: 8888 # 端口值
+        - endpoint: # 端点
+            address: # 地址
+              socket_address: # 套接字地址
+                address: 10.11.7.239 # IP地址
+                port_value: 50051 # 端口值
+
+```
+
+可以看到，客户端程序的统计到的时延偶尔会大于100ms，部分rpc调用失败：
+
+```shell
+Client received: Hello, gRPC! 0
+RPC failed with error code: 14, error message: fault filter abort
+Client received: Hello, gRPC! 0
+RPC failed with error code: 14, error message: fault filter abort
+Client received: Hello, gRPC! 0
+Client received: Hello, gRPC! 101
+Client received: Hello, gRPC! 0
+RPC failed with error code: 14, error message: fault filter abort
+Client received: Hello, gRPC! 0
+Client received: Hello, gRPC! 0
+Client received: Hello, gRPC! 104
+```
+
