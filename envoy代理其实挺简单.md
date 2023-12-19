@@ -554,3 +554,75 @@ Client received: Hello, gRPC! 0
 Client received: Hello, gRPC! 104
 ```
 
+### 实验六：在callee端进行限频
+
+```yaml
+static_resources:
+  listeners:
+  - name: listener_0
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 7890 }
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          codec_type: AUTO
+          stat_prefix: ingress_http
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: backend
+              domains: ["*"]
+              routes:
+              - match: # Specific match for /echo.Echo
+                  prefix: "/echo.Echo"
+                route:
+                  cluster: grpc_backend
+                typed_per_filter_config:
+                  envoy.filters.http.local_ratelimit:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+                    stat_prefix: local_rate_limiter_echo
+                    token_bucket:
+                      max_tokens: 800
+                      tokens_per_fill: 800
+                      fill_interval: 1s
+                    filter_enabled:
+                      runtime_key: local_rate_limit_enabled
+                      default_value: { numerator: 100, denominator: HUNDRED }
+                    filter_enforced:
+                      runtime_key: local_rate_limit_enforced
+                      default_value: { numerator: 100, denominator: HUNDRED }
+                    stage: 0
+              - match: # Default match for all other requests
+                  prefix: "/"
+                route:
+                  cluster: grpc_backend
+          http_filters:
+          - name: envoy.filters.http.local_ratelimit
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+              stat_prefix: local_rate_limiter
+          - name: envoy.filters.http.router
+  clusters:
+  - name: grpc_backend
+    connect_timeout: 0.25s
+    type: STATIC
+    lb_policy: ROUND_ROBIN
+    http2_protocol_options: {}
+    load_assignment:
+      cluster_name: grpc_backend
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 10.11.7.239
+                port_value: 8888
+admin:
+  access_log_path: "/tmp/admin_access.log"
+  address:
+    socket_address: { address: 0.0.0.0, port_value: 8001 }
+
+```
+
