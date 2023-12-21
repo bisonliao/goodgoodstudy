@@ -166,6 +166,14 @@ https://istio.io/v1.1/docs/reference/config/networking/v1alpha3/destination-rule
 
 subset可能是DR用的比较多的一种，例子见下面的VS的部分。
 
+在 Istio 的 `DestinationRule` 中，`spec.host` 字段指定了该规则适用的目标服务。这个字段的含义通常更直接和具体，相比于 `VirtualService` 的 `spec.hosts` 字段。以下是 `DestinationRule` 的 `spec.host` 可能包含的情形：
+
+1. **Kubernetes Services**：最常见的用法是指定 Kubernetes 集群内的服务（Service）。这意味着 `DestinationRule` 将应用于所有发送到这个特定 Kubernetes 服务的流量。它通常用于定义特定服务的负载均衡策略、连接池大小、TLS 设置等。
+2. **服务入口**：在一些场景下，`spec.host` 可以被设置为服务网格中定义的服务入口（ServiceEntry）。这主要用于外部服务的流量管理。当您在服务网格中定义了外部服务的访问策略时，`DestinationRule` 可以用来为这些外部服务指定特定的流量策略。
+3. **域名**：对于外部服务，`spec.host` 也可以是一个具体的域名。这在定义外部服务的流量策略时特别有用，比如对外部 API 或第三方服务的调用。
+
+这个字段**不**用于匹配 HTTP 请求头部中的 `Host` 字段。这一点与 `VirtualService` 的行为有所不同。`DestinationRule` 主要用于配置针对特定服务的策略，如负载均衡、连接池、TLS 设置等，而不是基于 HTTP 请求的属性（如头部信息）来路由流量。
+
 #### 3、Virtual Service
 
 A virtual service lets you configure how requests are routed to a service within an Istio service mesh, building on the basic connectivity and discovery provided by Istio and your platform. Both for http and tcp.
@@ -309,6 +317,14 @@ spec:
      weight: 10
 ```
 
+在 Istio 的 `VirtualService` 配置中，`spec.hosts` 字段指定了该路由规则将应用于哪些服务的访问。这个字段的含义取决于 `VirtualService` 的上下文和位置。`spec.hosts` 字段可以包含以下情形：
+
+1. **Kubernetes Services**：在大多数情况下，`spec.hosts` 中的条目指的是 Kubernetes 中的服务（Service）。这意味着，当您在 `VirtualService` 中指定一个服务名时，它会影响到所有发送到这个 Kubernetes 服务的流量。
+2. **目的域名**：`spec.hosts` 也可以包含外部服务的域名。这在您想要控制流量到外部服务（不在 Kubernetes 服务网格中）时非常有用。通过在 `VirtualService` 中定义外部服务的域名，您可以对这些外部服务的流量应用路由规则。
+3. **请求中的 Host 头部**：在处理 HTTP 请求时，`spec.hosts` 字段也可以与请求头部中的 `Host` 或 `:authority` 字段匹配。这意味着，当客户端发起一个 HTTP 请求，并且请求头部中的 `Host` 字段与 `spec.hosts` 中定义的条目匹配时，相应的路由规则就会被应用。
+
+
+
 把istio ingress上进入的外部流量引导到内部某个服务：
 
 ```yaml
@@ -427,6 +443,55 @@ istioctl proxy-config route deploy/istio-ingressgateway -o json --name http.8080
 kubectl -n istio-system get svc istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 kubectl -n istio-system get svc istio-ingressgateway -o jsonpath='{.status}'
 ```
+
+向chatGPT 4.0学习了解到：
+
+在 Istio 中，`Gateway` 资源和 `Ingress Gateway` 控制器之间的关系是非常重要的概念。chatGPT解释如下：
+
+1. **默认 Ingress Gateway**：在 Istio 中，默认的 `Ingress Gateway` 是一个预配置的、部署在 Kubernetes 集群中的特殊负载均衡器，它作为服务网格的入口点，处理从外部网络到网格内服务的流量。它是通过一个 Kubernetes Deployment 和相应的 Service 来实现的，并且通常在安装 Istio 时一起部署。通常使用envoy。
+2. **Gateway 资源与 Ingress Gateway 的关系**：
+   - `Gateway` 资源是一个配置实体，它定义了如何处理进入网格的流量。它本身不处理流量，而是告诉 Ingress Gateway 如何处理流量。
+   - 在 `Gateway` 资源中的 `spec.selector` 字段指定了哪个 Ingress Gateway 控制器应该应用这个 `Gateway` 的配置。通过这个选择器，Istio 知道将这个 `Gateway` 配置应用到哪个实际运行的 Gateway 实例上。
+
+您可以在 Istio 中配置和运行多个 Ingress Gateways。这对于处理不同的流量类型或满足不同的安全需求非常有用。
+
+例如下面的配置文件创建了自定义的ingress gateway:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-custom-ingressgateway
+spec:
+  selector:
+    matchLabels:
+      istio: custom-ingressgateway
+  template:
+    metadata:
+      labels:
+        istio: custom-ingressgateway
+    spec:
+      containers:
+      - name: istio-proxy
+        image: gcr.io/istio-release/proxyv2:1.8.0 # 使用与您的Istio版本相匹配的镜像
+        ports:
+          - containerPort: 80
+          - containerPort: 443
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-custom-ingressgateway
+spec:
+  type: LoadBalancer
+  selector:
+    istio: custom-ingressgateway
+  ports:
+  - port: 80
+  - port: 443
+```
+
+
 
 ### 四、用官方例子bookinfo做实验
 
