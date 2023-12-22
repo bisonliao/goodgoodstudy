@@ -323,7 +323,7 @@ spec:
 2. **目的域名**：`spec.hosts` 也可以包含外部服务的域名。这在您想要控制流量到外部服务（不在 Kubernetes 服务网格中）时非常有用。通过在 `VirtualService` 中定义外部服务的域名，您可以对这些外部服务的流量应用路由规则。
 3. **请求中的 Host 头部**：在处理 HTTP 请求时，`spec.hosts` 字段也可以与请求头部中的 `Host` 或 `:authority` 字段匹配。这意味着，当客户端发起一个 HTTP 请求，并且请求头部中的 `Host` 字段与 `spec.hosts` 中定义的条目匹配时，相应的路由规则就会被应用。
 
-
+在 Istio 的 `VirtualService` 配置中，`spec.hosts` 字段不能是另一个 `VirtualService` 的名称。`VirtualService` 之间不会直接通过名称引用对方。
 
 把istio ingress上进入的外部流量引导到内部某个服务：
 
@@ -453,9 +453,7 @@ kubectl -n istio-system get svc istio-ingressgateway -o jsonpath='{.status}'
    - `Gateway` 资源是一个配置实体，它定义了如何处理进入网格的流量。它本身不处理流量，而是告诉 Ingress Gateway 如何处理流量。
    - 在 `Gateway` 资源中的 `spec.selector` 字段指定了哪个 Ingress Gateway 控制器应该应用这个 `Gateway` 的配置。通过这个选择器，Istio 知道将这个 `Gateway` 配置应用到哪个实际运行的 Gateway 实例上。
 
-您可以在 Istio 中配置和运行多个 Ingress Gateways。这对于处理不同的流量类型或满足不同的安全需求非常有用。
-
-例如下面的配置文件创建了自定义的ingress gateway:
+您可以在 Istio 中配置和运行多个 Ingress Gateways。这对于处理不同的流量类型或满足不同的安全需求非常有用。方法就是创建一个新的 Deployment 和 Service。例如下面的配置文件创建了自定义的ingress gateway:
 
 ```yaml
 apiVersion: apps/v1
