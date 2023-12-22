@@ -489,7 +489,13 @@ spec:
   - port: 443
 ```
 
+另外，说到gateway，就不得不说公有云上的LoadBalance产品。对同一个虚拟IP的请求负载，LB怎么做到无上限的横向扩展容量的呢？ 毕竟如果虚拟IP绑定到一台物理服务器上，其网卡和cpu的能力一定是有上限的，而一个IP又不能同时绑定到多台物理服务器。
 
+通过使用虚拟IP、负载均衡技术、网络地址转换等方法，多个物理或虚拟服务器可以共同响应发送到单个虚拟IP的请求，而无需直接将该虚拟IP绑定到每台服务器上。这种方法允许LB灵活地管理流量，并将请求分发到后端服务器池中的任何服务器，从而实现高效的流量管理和高可用性。
+
+与K8S中的cluster IP/Pods的关系很类似，LB的虚拟IP并没有绑定到物理服务器，只是一个地址标识。机房里的路由器被下发了一组规则：如果目的IP是指定的虚拟IP，就把请求包按一定的路由规则（RR、random、sticky等等）下发给一系列的物理服务器。
+
+想象一下机房里的路由器都接受SDN控制面的指令，在iptables里写入了路由规则：目的地为x.x.x.x这个虚拟IP的请求包，就RR的方式发给一组服务器中的某一台。转发的时候，使用的是实际的服务器的物理IP地址作为目的地址。
 
 ### 四、用官方例子bookinfo做实验
 
@@ -888,6 +894,74 @@ https://istio.io/latest/zh/docs/concepts/traffic-management/#network-resilience-
 ##### 6.6 限流
 
 听xx说DestineRule的限流功能太弱了，需要用到envoyfilter。还没有来得及学习。
+
+##### 6.7 弹性与k8s的对比
+
+istio主要的三个功能：
+
+1. **弹性（resiliency）**，其实不是我们理解的容量扩缩，自动剔除故障endpointer、对暂时性的网络波动进行重试和超时、剔除异常节点等，对应我们常说的服务治理
+2. **流量控制**，例如路由5%的流量到新版本
+3. **可观察性**
+
+对于第一点，弹性。即使在没有 Istio 的情况下，Kubernetes 本身就有机制来检测并剔除有故障的 Pod，这主要通过存活探针和就绪探针来实现。这些探针帮助 Kubernetes 维护服务的健康状态，确保流量只被发送到健康的 Pod。
+
+在 Kubernetes 环境中，即使没有使用 Istio 这样的服务网格，Kubernetes 本身也提供了一种机制来自动检测并剔除有故障的 Pod。这主要是通过 Kubernetes 的健康检查机制，包括存活探针（Liveness Probes）和就绪探针（Readiness Probes）来实现的。
+
+**Kubernetes 健康检查机制**
+
+1. **存活探针（Liveness Probes）**：这些探针用于确定 Pod 是否仍然活着。如果存活探针检查失败（比如超过一定次数），Kubernetes 将会重启该 Pod。
+2. **就绪探针（Readiness Probes）**：这些探针用于确定 Pod 是否准备好接受流量。如果一个 Pod 的就绪探针失败，Kubernetes 会从与该 Pod 关联的所有服务的负载均衡器中移除该 Pod。只有当就绪探针成功时，Pod 才会被重新加入负载均衡池。
+
+**原理**
+
+- **探针类型**：存活和就绪探针可以是 HTTP GET 请求、TCP 套接字连接尝试，或者是执行 Pod 内的命令。
+- **探针结果**：
+  - 如果存活探针失败，意味着程序处于非活动状态，Kubernetes 会重启该 Pod。
+  - 如果就绪探针失败，意味着 Pod 无法正常处理流量，Kubernetes 则会暂时从服务端点中移除该 Pod，直到就绪探针再次成功。
+- **负载均衡和服务发现**：在 Kubernetes 中，服务（Service）资源用于负载均衡和服务发现。当服务的后端 Pod 发生变化（如 Pod 崩溃、重启、变得不可用或者新 Pod 变得可用）时，Kubernetes 会自动更新服务的端点（Endpoints），确保流量只会被路由到健康的 Pod。
+
+**Kubernetes 与 Istio 的区别**
+
+- **Kubernetes 本身的能力**：即使没有 Istio，Kubernetes 本身就可以处理 Pod 的健康检查和流量的基本路由。
+- **Istio 的额外功能**：使用 Istio 可以在 Kubernetes 的基础上提供更复杂的流量管理和故障处理策略，如高级路由规则、流量复制、故障注入等。
+
+k8s的探针的举例：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp-container
+        image: myapp:1.0
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 3
+```
+
+应用程序应该在 `/healthz` 路径上实现一个端点，以响应健康检查的请求。这通常是一个简单的 HTTP 端点，返回 200 OK 状态表示健康。
 
 ### 五、 vs/dr和envoyfilter还有xDS的关系
 
