@@ -68,7 +68,9 @@ ServiceEntrys are how you manually add/remove service listings in Istio’s serv
 
  Istio does not populate DNS entries based on ServiceEntrys. This means that Example 8-1, which gives the address 2.2.2.2 the name some.domain.com, will not allow an application to resolve some.domain.com to 2.2.2.2 via DNS. There is a core DNS plug-in for Istio that generates DNS records from Istio ServiceEntrys, which  you can use to populate DNS for Istio services in environments outside of Kubernetes
 
+一个典型的用途就是，网格内的流量访问集群外部的服务时，如果希望用白名单的方式，那就把目标服务封装成ServiceEntry，通过ServiceEntry来访问这个外部服务。创建指向该外部服务的ServiceEntry，就相当于向istio注册了一个可访问的白名单。
 
+注意：istio默认是放行访问集群外部的请求，如果需要改为白名单这样更安全的方式，需要用istioctl命令把outboundTrafficPolicy 改为 REGISTRY_ONLY。
 
 ```yaml
 apiVersion: networking.istio.io/v1alpha3
@@ -358,6 +360,31 @@ spec:
       - destination:
            host: calcclient #内部有效的K8S服务
 
+```
+
+流量镜像：
+
+从镜像目的地回来的应答不会影响到业务，istio sidecar会丢弃它。
+
+```yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: catalog
+spec:
+  hosts:
+  - catalog
+  gateways:
+  - mesh
+  http:
+  - route:
+    - destination:
+       host: catalog
+       subset: version-v1
+       weight: 100
+    mirror:
+      host: catalog
+      subset: version-v2
 ```
 
 注入故障：
@@ -901,7 +928,7 @@ https://istio.io/latest/zh/docs/concepts/traffic-management/#network-resilience-
 
 istio主要的三个功能：
 
-1. **弹性（resiliency）**，其实不是我们理解的容量扩缩，自动剔除故障endpointer、对暂时性的网络波动进行重试和超时、剔除异常节点等，对应我们常说的服务治理
+1. **弹性（resiliency）**，其实不是我们理解的容量扩缩，自动剔除故障endpointer、对暂时性的网络波动进行重试和超时、剔除异常节点等，对应我们常说的服务治理。我觉得这里翻译为韧性比较好，容量扩缩的弹性，用Elastics这个词更好。
 2. **流量控制**，例如路由5%的流量到新版本
 3. **可观察性**
 
