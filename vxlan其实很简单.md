@@ -6,6 +6,12 @@ VXLAN 全称是 `Virtual eXtensible Local Area Network`，虚拟可扩展的局�
 
 它解决的问题是：越来越多的数据中心（尤其是公有云服务）需要提供多租户的功能，不同用户之间需要独立地分配 ip 和 MAC 地址，而传统的 VLAN 技术只能支持 4096 个网络上限。另外公有云服务的虚拟机需要在整个机房的不同设备间灵活迁移和部署，保持网络可用，需要一个大二层。
 
+借用两张网友的图来说明原理：
+
+<img src="./img/vxlan/tunnel.png" style="zoom:80%;" />
+
+<img src="./img/vxlan/packet.png" style="zoom:70%;" />
+
 #### 在linux上搭建vxlan的实验
 
 假设有两台linux服务器，他们内网可通，IP分别是10.11.7.199和10.11.7.84。
