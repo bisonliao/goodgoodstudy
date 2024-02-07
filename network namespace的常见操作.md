@@ -82,10 +82,12 @@ iptables -D INPUT -i eth0 -d 183.2.193.201 -m statistic --mode random --probabil
 
 有意思的是，如果在宿主机上执行上述丢包策略，宿主机上的从该ip的下载会明显降速，但该宿主机上的容器不会受到影响，一定要到容器里面去执行iptables命令。
 
-原因就是规则放置的位置有讲究，INPUT是在路由决策之后，而发到容器里的报文不会去到这条链，路由决策的时候转到DOCKER链去了。所以应该写入到FORWARD表，且用插入而不是追加的方式：
+原因就是规则放置的位置有讲究，宿主机上路由决策的后转到DOCKER链去了。所以应该写入到FORWARD表，且用插入而不是追加的方式：
 
 ```
 sudo iptables -I FORWARD 1 -i eth0 -s 183.2.193.201 -m statistic --mode random --probability 0.3 -j DROP
 ```
 
 上面这样在宿主机设置，在容器就会限速了。
+
+![](img/namespace/iptables_flow.jpg)
