@@ -1,5 +1,7 @@
 #### 1、如何在一个容器的namespace下执行命令
 
+常规的方法当然是kubectl exec到这个容器下去执行命令，但经常遇到iptables等工具没有安装的情况，这时候就需要用另外一种方式了：
+
 1. 先用docker ps和ps找到对应的进程的pid
 2. 然后用lsns查看指定进程的net namespace
 3. 然后用nsenter在指定的netnamespace里执行命令，例如ifconfig或者iptables
