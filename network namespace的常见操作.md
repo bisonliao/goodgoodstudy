@@ -91,3 +91,7 @@ sudo iptables -I FORWARD 1 -i eth0 -s 183.2.193.201 -m statistic --mode random -
 上面这样在宿主机设置，在容器就会限速了。
 
 ![](img/namespace/iptables_flow.jpg)
+
+网上对于INPUT链的位置解释，可以看出是路由决策后确定是要上抛到应用层的：
+
+iptables 里的 INPUT 链是处于内核的 NetFilter 框架中的一个规则链，它主要用于过滤进入本机的数据包。当一个数据包进入网卡时，它首先进入 PREROUTING 链，内核根据数据包目的 IP 判断是否需要转送出去。如果数据包就是进入本机的，它就会沿着图向下移动，到达 INPUT 链
