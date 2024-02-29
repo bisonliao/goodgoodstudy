@@ -47,7 +47,7 @@ PreDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -
 PublicKey = 4zoLpBxMlcD4frS5II/HWo07lN1k6PIMqpv5eEV1LUM=
 #对端的IP地址和端口，用于真正的udp通信
 Endpoint = 119.28.214.71:10086
-# 允许对端请求过来的网段，可以配置为0.0.0.0/0不限制
+# 允许对端请求过来的网段，可以配置为0.0.0.0/0不限制（小心，会影响默认路由）
 AllowedIPs = 10.0.0.2,172.19.16.0/20
 PersistentKeepalive = 30
 # wg0.conf end ============================
@@ -58,6 +58,8 @@ netstat -anpl|grep 10086
 
 
 ```
+
+特别说明：AllowedIPs = 10.0.0.2,172.19.16.0/20这项配置，wireguard会据此修改路由表，把目的地为这些IP段的请求都经wg0这个虚拟网卡发送出去。
 
 同样的在右边这个黄底的机器上执行：
 
