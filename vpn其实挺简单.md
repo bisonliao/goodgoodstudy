@@ -130,6 +130,10 @@ ip route add 10.11.7.0/24 via 172.19.16.7 dev eth0
 
 在云主机的vpc里上面这样做行不通，因为腾讯云的vpc是用Gre实现的虚拟网络，不是用vxlan实现的。每个主机不知道同vpc下其他主机的mac地址，做不到二层转发。只能做三层转发，必须通过云控制台设置路由。
 
+wireguard的原理可以[阅读这边文章]([WireGuard: Next Generation Kernel Network Tunnel](https://www.wireguard.com/papers/wireguard.pdf))
 
+摘抄一段：
 
-其实还有个vpn软件叫strongswan也不错，但是我折腾了2个小时没有建立起连接，就放弃了。
+![wireguard.png](img/namespace/wireguard.png)
+
+其实还有个看起来不错的vpn软件叫strongswan也不错，但是我折腾了2个小时没有建立起连接，就放弃了。
