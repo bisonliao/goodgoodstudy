@@ -143,3 +143,47 @@ wireguard的原理可以[阅读这边文章]([WireGuard: Next Generation Kernel 
 ![wireguard.png](img/namespace/wireguard.png)
 
 其实还有个看起来不错的vpn软件叫strongswan也不错，但是我折腾了2个小时没有建立起连接，就放弃了。
+
+## 四、用wireguard联通两台机器上的docker容器
+
+同样的，我们可以用wireguard在两台机器间建立vpn，把两台机器上的docker容器打通。亲测有效。
+
+需要注意的是：
+
+1. 每台机器上docker容器的ip段要错开，例如一台是172.17.0.0/16，一台上的容器是172.18.0.0/16
+2. 类似上面的iptables的命令还是需要的，实现双向nat。我一开始以为这种情况下可以不需要，但不行。
+3. docker创建自定义的网桥，建议使用docker network命令，不要用brctl这些命令，我发现后者会导致本机都ping不通容器。
+
+下面是在一台机器的一个容器里，ping另外一台机器上的某容器的记录：
+
+```shell
+# docker exec -it busybox sh
+/ # ifconfig
+eth0      Link encap:Ethernet  HWaddr 02:42:AC:11:00:02
+          inet addr:172.17.0.2  Bcast:172.17.255.255  Mask:255.255.0.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:48 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:35 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0
+          RX bytes:3800 (3.7 KiB)  TX bytes:2814 (2.7 KiB)
+
+lo        Link encap:Local Loopback
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+/ # ping 172.18.0.2
+PING 172.18.0.2 (172.18.0.2): 56 data bytes
+64 bytes from 172.18.0.2: seq=0 ttl=62 time=10.066 ms
+64 bytes from 172.18.0.2: seq=1 ttl=62 time=10.034 ms
+64 bytes from 172.18.0.2: seq=2 ttl=62 time=10.080 ms
+^C
+--- 172.18.0.2 ping statistics ---
+3 packets transmitted, 3 packets received, 0% packet loss
+round-trip min/avg/max = 10.034/10.060/10.080 ms
+
+```
+
