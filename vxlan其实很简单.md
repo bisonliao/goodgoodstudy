@@ -123,6 +123,21 @@ bridge fdb
 ip route
 ```
 
+注意，抛开vxlan不说，我们通常用namespace模拟多个容器，如果上面的network namespace里需要能ping通外部，需要对网桥设置nat转发：
+
+```shell
+iptables -A FORWARD -i br1 -j ACCEPT; 
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE;
+iptables -A FORWARD -i eth0 -j ACCEPT; 
+iptables -t nat -A POSTROUTING -o br1  -j MASQUERADE
+
+#对应的删除命令
+iptables -D FORWARD -i br1 -j ACCEPT; 
+iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE;
+iptables -D FORWARD -i eth0 -j ACCEPT; 
+iptables -t nat -D POSTROUTING -o br1  -j MASQUERADE
+```
+
 
 
 ### 参考资料
