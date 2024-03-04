@@ -147,3 +147,24 @@ https://cizixs.com/2017/09/25/vxlan-protocol-introduction/
 https://cizixs.com/2017/09/28/linux-vxlan/
 ```
 
+### vlan
+
+说起vxlan，就不得不提vlan。vlan是为了隔离广播域而创建的技术，也可以用来隔离出多个二层网络。在linux下可以这样来创建一个带vlan id的虚拟网卡，用来处理带vlanid的帧：
+
+```shell
+ apt install vlan
+ modprobe 8021q
+  
+ ip link add link eth0 name eth0.10 type vlan id 10
+ ip addr add 192.168.10.1/24 dev eth0.10
+ ip link set eth0.10 up
+ ip -d link show eth0.10 # check it
+ 
+ ping 192.168.10.3
+ 
+ #在另外一个命令窗口抓包，注意是对eth0接口抓包，会有下面的输出。。-e选项会打印每个帧的链路层头部，包括以太网类型，长度，源地址和目标地址。vlan选项会过滤出那些包含802.1Q VLAN标签的帧，并显示VLAN头部的细节，包括VLAN ID和优先级
+ tcpdump -i eth0 -vvv  -e vlan -n
+ 20:04:24.321440 52:54:00:c2:80:07 > ff:ff:ff:ff:ff:ff, ethertype 802.1Q (0x8100), length 46: vlan 10, p 0, ethertype ARP, Ethernet (len 6), IPv4 (len 4), Request who-has 192.168.10.3 tell 192.168.10.1, length 28
+ 
+```
+
