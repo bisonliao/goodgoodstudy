@@ -1206,3 +1206,116 @@ https://en.wikipedia.org/wiki/Network_address_translation
 
 1. 想用自己的熟悉的语言来开发peer端，不想用js，不太会。看起来安卓是有库支持的。
 2. 怎么实现cs视频通信，也就是server也作为一个peer端参与进来？
+
+### 6、用webrtc实现cs视频通信
+
+架构如下：
+
+1. 流媒体服务器使用的是kurento
+2. 用java自己开发一个信令服务器sigsrv
+3. STUN使用coturn
+4. 客户端用一个web页面，这个页面和js代码和上面的p2p例子中的代码大同小异，对，还是要修改一下来适配于kurento的通信
+5. 前面三个服务器都部署在同一台机器上。也可以分开部署。sigsrv和客户端用websocket通信，跟kurento之间用kurento的控制协议 json rpc
+
+
+
+sigsrv的关键代码比较简单，主要就是处理websocket消息：
+
+1. login
+2. 客户端发出offer，调用kurento api 创建pipline、创建endpointer、调用processOffer()会返回answer，就把answer返回给客户端。当然这时候还会设置一大把回调，例如其中一个很重要的回调就是endpointer收集到自身的candidate后要调用websocket发给客户端
+3. 客户端发出candidate，调用addIceCandidate()
+
+```java
+public void onMessage(WebSocket ws, String msg) {
+        System.out.println("收到消息："+msg);
+        JSONObject msgJSON = null;
+        try
+        {
+            msgJSON  = JSONObject.parseObject(msg);
+        }
+        catch (com.alibaba.fastjson.JSONException e)
+        {
+            msgJSON = null;
+        }
+
+        if (msgJSON == null)
+        {
+            ws.send("send:"+msg);
+        }
+        else
+        {
+            String type = msgJSON.getString("type");
+            if (type == null) { type = "";}
+            switch (type) {
+                case "login": {
+                    log.info("user login in as " + msgJSON.getString("name")+"\n");
+                    JSONObject login = new JSONObject();
+                    login.put("type", "login");
+                    login.put("success", true);
+                    ws.send(login.toJSONString());
+
+                }
+                break;
+                case "offer": {
+                    log.info("Sending offer to " + msgJSON.getString("name") + " from " + msgJSON.getString("myName")+"\n");
+                    final UserSession user = new UserSession();
+                    String sessionId = msgJSON.getString("myName");
+                    users.put(sessionId, user);
+
+                    log.info("[Handler::handleStart] Create Media Pipeline");
+                    final MediaPipeline pipeline = kurento.createMediaPipeline();
+                    user.setMediaPipeline(pipeline);
+                    final WebRtcEndpoint webRtcEp =
+                            new WebRtcEndpoint.Builder(pipeline).useDataChannels().build();//useDataChannels means it support data channel,optional
+                            //new WebRtcEndpoint.Builder(pipeline).build();//useDataChannels means it support data channel,optional
+
+                    user.setWebRtcEndpoint(webRtcEp);
+                    webRtcEp.connect(webRtcEp);
+                    String sdpOffer = msgJSON.getJSONObject("offer").getString("sdp");
+                    initWebRtcEndpoint(ws, sessionId, webRtcEp, sdpOffer);
+                    log.info("[Handler::handleStart] New WebRtcEndpoint: {}",
+                            webRtcEp.getName());
+                    startWebRtcEndpoint(webRtcEp);
+                }
+                break;
+                case "candidate": {
+                    log.info("Sending candidate to " + msgJSON.getString("name"));
+
+                    final String sessionId = msgJSON.getString("myName");
+                    if (!users.containsKey(sessionId)) {
+                        log.warn("[Handler::handleAddIceCandidate] Skip, unknown user, id: {}",
+                                sessionId);
+                        return;
+                    }
+                    final UserSession user = (UserSession) users.get(sessionId);
+                    final IceCandidate candidate =
+                            new IceCandidate(msgJSON.getString("candidate"),
+                                    msgJSON.getString("mid"),
+                                    msgJSON.getInteger("mline"));
+
+                    WebRtcEndpoint webRtcEp = user.getWebRtcEndpoint();
+                    webRtcEp.addIceCandidate(candidate);
+                }
+                break;
+```
+
+
+
+kurento流媒体服务器我是用docker部署起来的：
+
+```shell
+ docker pull kurento/kurento-media-server
+ docker run -d --name=kurento --rm --network=host kurento/kurento-media-server
+ docker exec -it kurento sh
+ 
+ #进去装了vim等软件，修改了/etc/kurento/kurento.conf.json文件里的IP等，让监听在IPv4上，然后保存为本地镜像：
+ docker commit kurento kurento:bison    
+ 
+ #注意启动的时候，采取host类型的网络
+ docker run -d --name=kurento --rm --network=host kurento:bison
+```
+
+
+
+[完整工程代码在这里](code/webrtc/sigalsrv.zip)， 目录下也有index.htmp和rtc.js两个文件。
+
