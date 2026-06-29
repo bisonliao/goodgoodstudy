@@ -4,7 +4,7 @@
 
 1. 资产负债表（Balance Sheet）：资产（asset） = 负债（Liability）+ 所有者权益（owner equity）
 2. 损益表（Income Statement）：
-   1. 营业收入（Revenue）-  营业成本（Cost Of Goods Saled）= 毛利（Gross Profit)，衡量产品/服务本身的盈利能力
+   1. 营业收入（Revenue）-  销货成本（Cost Of Goods Saled）= 毛利（Gross Profit)，衡量产品/服务本身的盈利能力
    2. 毛利（Gross Profit) - 费用（Expense）= 净利润（net income)，衡量公司的管理水平
    3. 净利润 (NI) + 其他综合收益 (OCI) = 综合收益总额 (TCI)
 3. 经营活动现金流（CFO） + 投资活动现金流（CFI） + 筹资活动现金流（CFF） = 现金及现金等价物净增加额（Net Change in Cash）
@@ -68,6 +68,74 @@
 
 
 
+利润表/损益表主要形式/科目如下：
+
+- Revenues (收入/经济资源流入)
+  - **Revenue / Sales (营业收入/销售额)**：企业通过核心业务获得的收入。
+  - **Gains (利得)**：非主营业务产生的收益（如出售资产获利）。
+  - **Investment Income (投资收益)**：例如利息（interest）和股息（dividends）。
+- Expenses (费用/经济资源流出)
+  - **Cost of Goods Sold (COGS) (销货成本)**：与生产产品或提供服务直接相关的成本。
+  - **Selling, General, and Administrative Expenses (SG&A) (销售、一般及行政费用)**：包括广告费、管理层薪资、租金和水电费等运营支出。
+  - **Depreciation and Amortization (折旧与摊销)**：反映资产（特别是无形资产）随时间“消耗”的价值。
+  - **Tax Expense (税费)**：企业应缴纳的所得税费用。
+  - **Interest Expense (利息费用)**：企业为债务支付的利息。
+  - **Losses (损失)**：由非日常核心业务交易（incidental transactions）导致的资产减少。
+- Profit Metrics (利润指标)
+  - **EBIT (息税前利润)**：Earnings Before Interest and Tax，扣除利息和税项之前的利润，用于衡量核心经营盈利能力。
+
+
+
+**Revenue (营业收入) - COGS (销货成本) = Gross Profit (毛利)**
+
+**Gross Profit (毛利) - [ SG&A (销售及管理费用) + Depreciation & Amortization (折旧与摊销) ] = Operating Income (营业利润)**
+
+**Operating Income (营业利润) + Investment Income/Gains (投资收益/利得) - Interest Expense (利息费用) - Losses (损失) = EBT (税前利润)**
+
+**EBT (税前利润) - Tax Expense (税费) = Net Income (净利润)**
+
+```
+Revenue (收入)
+  │
+  ├─ 减去：COGS (直接成本)
+  ▼
+Gross Profit (毛利)  <-- 产品赚不赚钱？
+  │
+  ├─ 减去：SG&A + D&A (运营费用)
+  ▼
+Operating Income / EBIT (营业利润) <-- 公司管理效率高不高？
+  │
+  ├─ 加减：Investment Income, Interest, Gains/Losses (金融/融资活动)
+  ▼
+EBT (税前利润)     <-- 最终赚了多少钱（含税）？
+  │
+  ├─ 减去：Tax Expense (给政府的)
+  ▼
+Net Income (净利润) <-- 股东真正能拿走的钱
+```
+
+
+
+复式记账法，怎么决定借还是贷？**BS左边（资产）的增加、右边（负债与权益）的减少为借；BS右边的增加、左边的减少为贷。**
+
+两个核心概念：
+
+1. 收付实现制 (Cash Basis Accounting)
+   - 收入/费用在现金实际收到/支付时才记录
+   - 关注现金流的时间点
+2. 权责发生制 (Accrual Basis Accounting)
+   - 收入在赚取时记录，费用在发生时记录
+   - 不管现金是否实际收付
+   - 更准确反映企业经营成果
+
+三张报表的记账机制：
+
+1. 资产负债表 (Balance Sheet) → 权责发生制 
+2. 利润表 (Income Statement) → 权责发生制 
+3. 现金流量表 (Cash Flow Statement) → 收付实现制
+
+
+
 #### 会计和财务的区别
 
 从大学专业和学科本质的角度来看，**会计（Accounting）和财务（Finance / Financial Management）绝对不是一样的**。
@@ -82,7 +150,7 @@
 
 **一、 核心视角与解决的问题（过去 vs 未来）**
 
-| 维度 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;         | 会计 (Accounting)                                            | 财务 / 财务管理 (Finance)                                    |
+| 维度                  | 会计 (Accounting)                                            | 财务 / 财务管理 (Finance)                                    |
 | :----------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
 | **时间视角** | **向后看 (Backward-looking)**                                | **向前看 (Forward-looking)**                                 |
 | **核心关注** | **历史数据的准确记录与合规**                                 | **未来现金流的创造与风险权衡**                               |
@@ -113,7 +181,7 @@
 
 四、 就业方向与核心证书（最现实的差异）
 
-| 维度 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| 会计 (Accounting)                                            | 财务 / 财务管理 (Finance)                                    |
+| 维度                  | 会计 (Accounting)                                            | 财务 / 财务管理 (Finance)                                    |
 | :------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
 |**对口就业**| **会计师事务所**（如“四大”做审计）、**企业财务部**（做总账、税务、成本核算）、**考公/考编**（税务局、财政局、审计署，会计是招考大户）。 | **金融机构**（券商投行部、行研、PE/VC、基金公司）、**企业战略投资部/投融资部**、**商业银行**、**企业财务分析(FP&A)**。 |
 | **核心证书**   | **CPA（注册会计师）**：国内会计/审计领域的绝对王者，拥有唯一审计签字权。 | **CFA（特许金融分析师）**：投资分析领域的黄金标准；或 **FRM（金融风险管理师）**。 |
@@ -121,7 +189,7 @@
 
 ---
 
-⚠️ 特别提示：国内大学专业目录的“坑”
+**国内大学专业目录的“坑”**
 
 在中国教育部的本科专业目录中，你需要特别注意以下名称的区分，这直接决定了你学的是“会计”还是“金融”：
 
