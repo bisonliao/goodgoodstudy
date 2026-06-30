@@ -228,3 +228,35 @@ Net Income (净利润) <-- 股东真正能拿走的钱
 - **权益投资 (Equity) & 固定收益 (Fixed Income)**：股票和债券（美债）的定价逻辑、宏观利率传导机制。
 - **衍生品 (Derivatives) & 另类投资**：期货、期权、互换的定价（BSM模型）与风险对冲。
 - **投资组合管理 (Portfolio Management)**：马科维茨有效前沿、CAPM 模型、多因子模型（这里全是矩阵运算和统计学，您的老本行）。
+
+
+
+**财务报告准则：准则制定机构与监管机构**
+
+一、准则制定机构（Standard-setting bodies） 定义：会计师和审计师组成的专业组织，负责制定财务报告准则
+
+1. FASB（美国财务会计准则委员会）
+   - 制定美国GAAP（SFAS）
+2. IASB（国际会计准则理事会）
+   - 制定国际GAAP（IAS & IFRS）
+
+二、监管机构（Regulatory authorities） 定义：拥有法律权力强制执行财务报告准则合规性的政府机构
+
+1. SEC（美国证券交易委员会）
+2. FSA（英国金融服务管理局）
+
+三、编制财务报表的基本假设（General features）：
+
+1. 持续经营假设 (Going concern basis)
+   - 假设企业将持续运营下去，除非管理层打算或必须将其清算。
+2. 权责发生制 (Accrual basis of accounting)
+   - 除现金流量表外，所有财务报表均基于此原则编制。
+
+四、财务报表常见计量标准（Measurement Base）：
+
+1. **历史成本（Historical Cost）** 资产最初支付的金额
+2. **摊余成本（Amortized Cost）** 历史成本扣除折旧、摊销、折耗和减值后的金额
+3. **现行成本（Current Cost）** 企业今天购买相同资产需支付的金额
+4. **可变现价值（Realizable Value）** 企业出售资产可获得的金额
+5. **现值（Present Value）** 折现后的价值
+6. **公允价值（Fair Value）** 独立交易的双方在公平交易中交换资产的金额
